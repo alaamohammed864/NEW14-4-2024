@@ -3,35 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusFiles | Professional File Management</title>
+    <title>NexusFiles | alaamohammed864</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Brand Colors - Visual Identity */
+            /* Brand Identity */
             --brand-primary: #6366f1;
             --brand-primary-dark: #4f46e5;
             --brand-secondary: #8b5cf6;
             --brand-accent: #06b6d4;
             
-            /* Dark Theme Base */
+            /* Dark Theme */
             --bg-primary: #0f0f11;
             --bg-secondary: #18181b;
             --bg-tertiary: #27272a;
             --bg-card: #1e1e22;
             
-            /* Text Colors */
+            /* Text */
             --text-primary: #fafafa;
             --text-secondary: #a1a1aa;
             --text-muted: #71717a;
             
-            /* Status Colors */
+            /* Status */
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --info: #3b82f6;
             
-            /* UI Elements */
+            /* UI */
             --border-color: #3f3f46;
             --border-radius: 16px;
             --border-radius-sm: 10px;
@@ -39,8 +38,6 @@
             --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
             --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            
-            /* Spacing */
             --space-xs: 0.5rem;
             --space-sm: 1rem;
             --space-md: 1.5rem;
@@ -48,11 +45,7 @@
             --space-xl: 3rem;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -65,7 +58,7 @@
                 radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
         }
 
-        /* ===== HEADER & NAVIGATION ===== */
+        /* ===== HEADER ===== */
         .app-header {
             background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
             border-bottom: 1px solid var(--border-color);
@@ -83,6 +76,7 @@
             align-items: center;
             justify-content: space-between;
             gap: var(--space-md);
+            flex-wrap: wrap;
         }
 
         .brand {
@@ -117,13 +111,12 @@
         .brand-tagline {
             font-size: 0.85rem;
             color: var(--text-muted);
-            margin-top: 2px;
         }
 
-        /* Search Bar */
         .search-wrapper {
             flex: 1;
             max-width: 500px;
+            min-width: 200px;
             position: relative;
         }
 
@@ -152,11 +145,11 @@
             color: var(--text-muted);
         }
 
-        /* User Actions */
         .header-actions {
             display: flex;
             align-items: center;
             gap: var(--space-sm);
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -170,6 +163,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
         }
 
         .btn-primary {
@@ -207,11 +201,9 @@
             transition: var(--transition);
         }
 
-        .user-avatar:hover {
-            transform: scale(1.05);
-        }
+        .user-avatar:hover { transform: scale(1.05); }
 
-        /* ===== MAIN LAYOUT ===== */
+        /* ===== LAYOUT ===== */
         .app-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -221,7 +213,6 @@
             gap: var(--space-lg);
         }
 
-        /* Sidebar */
         .sidebar {
             background: var(--bg-secondary);
             border-radius: var(--border-radius);
@@ -242,12 +233,7 @@
             padding: 0 var(--space-xs);
         }
 
-        .nav-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
+        .nav-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
 
         .nav-item {
             padding: 12px 16px;
@@ -259,23 +245,16 @@
             font-weight: 500;
             transition: var(--transition);
             color: var(--text-secondary);
+            font-size: 0.95rem;
         }
 
-        .nav-item:hover,
-        .nav-item.active {
+        .nav-item:hover, .nav-item.active {
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
             color: var(--text-primary);
         }
 
-        .nav-item.active {
-            border-left: 3px solid var(--brand-primary);
-        }
-
-        .nav-item i {
-            width: 20px;
-            text-align: center;
-            font-size: 1.1rem;
-        }
+        .nav-item.active { border-left: 3px solid var(--brand-primary); }
+        .nav-item i { width: 20px; text-align: center; font-size: 1.1rem; }
 
         .storage-info {
             margin-top: var(--space-lg);
@@ -294,7 +273,7 @@
 
         .storage-progress {
             height: 100%;
-            width: 65%;
+            width: 72%;
             background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
             border-radius: 3px;
             transition: width 0.5s ease;
@@ -307,14 +286,13 @@
             justify-content: space-between;
         }
 
-        /* Main Content */
+        /* ===== MAIN CONTENT ===== */
         .main-content {
             display: flex;
             flex-direction: column;
             gap: var(--space-lg);
         }
 
-        /* Filters & Stats */
         .content-header {
             display: flex;
             justify-content: space-between;
@@ -323,20 +301,15 @@
             gap: var(--space-sm);
         }
 
-        .page-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-
-        .page-subtitle {
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
+        .page-title { font-size: 1.8rem; font-weight: 700; }
+        .page-subtitle { color: var(--text-muted); font-size: 1rem; }
 
         .filter-chips {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            overflow-x: auto;
+            padding-bottom: 4px;
         }
 
         .chip {
@@ -351,10 +324,10 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         }
 
-        .chip:hover,
-        .chip.active {
+        .chip:hover, .chip.active {
             background: var(--brand-primary);
             border-color: var(--brand-primary);
             color: white;
@@ -367,14 +340,12 @@
             font-size: 0.8rem;
         }
 
-        .chip.active .count {
-            background: rgba(255,255,255,0.2);
-        }
+        .chip.active .count { background: rgba(255,255,255,0.2); }
 
-        /* Stats Cards */
+        /* Stats */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: var(--space-md);
         }
 
@@ -402,26 +373,19 @@
             font-size: 1.2rem;
         }
 
-        .stat-icon.images { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
-        .stat-icon.documents { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-        .stat-icon.media { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .stat-icon.html { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .stat-icon.js { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .stat-icon.css { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .stat-icon.other { background: rgba(16, 185, 129, 0.15); color: #10b981; }
         .stat-icon.total { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
+        .stat-value { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+        .stat-label { color: var(--text-muted); font-size: 0.9rem; }
 
         /* File Grid */
         .file-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: var(--space-md);
         }
 
@@ -439,9 +403,7 @@
         .file-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 3px;
             background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent));
             opacity: 0;
@@ -454,68 +416,42 @@
             border-color: var(--brand-primary);
         }
 
-        .file-card:hover::before {
-            opacity: 1;
-        }
+        .file-card:hover::before { opacity: 1; }
 
-        .file-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
+        .file-header {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: var(--space-sm);
         }
 
-        .file-icon.image { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
-        .file-icon.document { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-        .file-icon.video { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-        .file-icon.audio { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-        .file-icon.archive { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
-
-        .file-name {
-            font-weight: 600;
-            font-size: 1.05rem;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .file-meta {
+        .file-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            color: var(--text-muted);
-            font-size: 0.85rem;
+            justify-content: center;
+            font-size: 1.3rem;
         }
 
-        .file-size {
-            background: var(--bg-tertiary);
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-weight: 500;
-        }
+        .file-icon.html { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
+        .file-icon.js { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+        .file-icon.css { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+        .file-icon.jsx { background: rgba(96, 165, 250, 0.12); color: #60a5fa; }
+        .file-icon.tsx { background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+        .file-icon.image { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+        .file-icon.doc { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+        .file-icon.other { background: rgba(100, 116, 139, 0.12); color: #64748b; }
 
         .file-actions {
-            position: absolute;
-            top: 12px;
-            right: 12px;
             display: flex;
             gap: 4px;
-            opacity: 0;
-            transition: var(--transition);
-        }
-
-        .file-card:hover .file-actions {
-            opacity: 1;
         }
 
         .file-action-btn {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 8px;
             background: var(--bg-secondary);
             border: none;
@@ -525,12 +461,59 @@
             align-items: center;
             justify-content: center;
             transition: var(--transition);
+            font-size: 0.85rem;
         }
 
         .file-action-btn:hover {
             background: var(--brand-primary);
             color: white;
         }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .file-path {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .file-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .file-badge {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .badge-html { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .badge-js { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .badge-css { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .badge-jsx { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+        .badge-tsx { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+        .badge-img { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .badge-doc { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
 
         /* Empty State */
         .empty-state {
@@ -540,15 +523,8 @@
             display: none;
         }
 
-        .empty-state.show {
-            display: block;
-        }
-
-        .empty-icon {
-            font-size: 4rem;
-            margin-bottom: var(--space-md);
-            opacity: 0.5;
-        }
+        .empty-state.show { display: block; }
+        .empty-icon { font-size: 4rem; margin-bottom: var(--space-md); opacity: 0.5; }
 
         /* Footer */
         .app-footer {
@@ -568,83 +544,9 @@
             margin-bottom: var(--space-xs);
         }
 
-        .footer-brand i {
-            color: var(--brand-primary);
-        }
+        .footer-brand i { color: var(--brand-primary); }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .app-container {
-                grid-template-columns: 1fr;
-                padding: var(--space-md);
-            }
-            
-            .sidebar {
-                position: static;
-                display: flex;
-                overflow-x: auto;
-                padding: var(--space-sm);
-            }
-            
-            .nav-list {
-                flex-direction: row;
-                flex-wrap: nowrap;
-            }
-            
-            .nav-item {
-                padding: 10px 14px;
-                font-size: 0.9rem;
-            }
-            
-            .storage-info {
-                display: none;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .header-content {
-                flex-wrap: wrap;
-            }
-            
-            .search-wrapper {
-                order: 3;
-                max-width: 100%;
-                margin-top: var(--space-sm);
-            }
-            
-            .content-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .filter-chips {
-                width: 100%;
-                overflow-x: auto;
-                padding-bottom: 8px;
-            }
-            
-            .file-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .file-card {
-            animation: fadeIn 0.3s ease forwards;
-        }
-
-        .file-card:nth-child(1) { animation-delay: 0.05s; }
-        .file-card:nth-child(2) { animation-delay: 0.1s; }
-        .file-card:nth-child(3) { animation-delay: 0.15s; }
-        .file-card:nth-child(4) { animation-delay: 0.2s; }
-        .file-card:nth-child(5) { animation-delay: 0.25s; }
-
-        /* Toast Notification */
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -661,16 +563,56 @@
             z-index: 1000;
             transform: translateX(400px);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 350px;
         }
 
-        .toast.show {
-            transform: translateX(0);
+        .toast.show { transform: translateX(0); }
+        .toast i { font-size: 1.2rem; color: var(--success); }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .app-container { grid-template-columns: 1fr; padding: var(--space-md); }
+            .sidebar {
+                position: static;
+                display: flex;
+                overflow-x: auto;
+                padding: var(--space-sm);
+                gap: var(--space-sm);
+            }
+            .nav-list { flex-direction: row; flex-wrap: nowrap; }
+            .nav-item { padding: 10px 14px; font-size: 0.9rem; white-space: nowrap; }
+            .storage-info { display: none; }
         }
 
-        .toast i {
-            font-size: 1.2rem;
-            color: var(--success);
+        @media (max-width: 640px) {
+            .header-content { flex-wrap: wrap; }
+            .search-wrapper { order: 3; max-width: 100%; margin-top: var(--space-sm); }
+            .content-header { flex-direction: column; align-items: flex-start; }
+            .file-grid { grid-template-columns: 1fr; }
         }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-card { animation: fadeIn 0.3s ease forwards; }
+        .file-card:nth-child(1) { animation-delay: 0.02s; }
+        .file-card:nth-child(2) { animation-delay: 0.04s; }
+        .file-card:nth-child(3) { animation-delay: 0.06s; }
+        .file-card:nth-child(4) { animation-delay: 0.08s; }
+        .file-card:nth-child(5) { animation-delay: 0.1s; }
+        .file-card:nth-child(n+6) { animation-delay: 0.12s; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-color); }
     </style>
 </head>
 <body>
@@ -681,24 +623,18 @@
                 <div class="brand-logo">NF</div>
                 <div>
                     <div class="brand-name">NexusFiles</div>
-                    <div class="brand-tagline">Professional File Management</div>
+                    <div class="brand-tagline">by alaamohammed864</div>
                 </div>
             </a>
             
             <div class="search-wrapper">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-input" id="searchInput" placeholder="Search files, folders, tags..." onkeyup="filterFiles()">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search files..." onkeyup="filterFiles()">
             </div>
             
             <div class="header-actions">
-                <button class="btn btn-outline">
-                    <i class="fas fa-upload"></i>
-                    Upload
-                </button>
-                <button class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    New Folder
-                </button>
+                <button class="btn btn-outline"><i class="fas fa-upload"></i> Upload</button>
+                <button class="btn btn-primary"><i class="fas fa-plus"></i> New</button>
                 <div class="user-avatar" title="Alaa Mohammed">AM</div>
             </div>
         </div>
@@ -708,66 +644,57 @@
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="sidebar-title">Navigation</div>
+            <div class="sidebar-title">Categories</div>
             <ul class="nav-list">
-                <li class="nav-item active" onclick="filterCategory('all')">
-                    <i class="fas fa-home"></i>
-                    <span>All Files</span>
+                <li class="nav-item active" onclick="filterCategory('all', this)">
+                    <i class="fas fa-th-large"></i> All Files
                 </li>
-                <li class="nav-item" onclick="filterCategory('images')">
-                    <i class="fas fa-image"></i>
-                    <span>Images</span>
+                <li class="nav-item" onclick="filterCategory('html', this)">
+                    <i class="fas fa-file-code"></i> HTML Files
                 </li>
-                <li class="nav-item" onclick="filterCategory('documents')">
-                    <i class="fas fa-file-alt"></i>
-                    <span>Documents</span>
+                <li class="nav-item" onclick="filterCategory('js', this)">
+                    <i class="fab fa-js"></i> JavaScript
                 </li>
-                <li class="nav-item" onclick="filterCategory('media')">
-                    <i class="fas fa-video"></i>
-                    <span>Media</span>
+                <li class="nav-item" onclick="filterCategory('css', this)">
+                    <i class="fab fa-css3-alt"></i> Stylesheets
                 </li>
-                <li class="nav-item" onclick="filterCategory('archives')">
-                    <i class="fas fa-file-archive"></i>
-                    <span>Archives</span>
+                <li class="nav-item" onclick="filterCategory('other', this)">
+                    <i class="fas fa-folder"></i> Other Files
                 </li>
             </ul>
             
             <div class="storage-info">
-                <div class="sidebar-title">Storage</div>
-                <div class="storage-bar">
-                    <div class="storage-progress"></div>
-                </div>
+                <div class="sidebar-title">Storage Used</div>
+                <div class="storage-bar"><div class="storage-progress"></div></div>
                 <div class="storage-text">
-                    <span>6.5 GB used</span>
-                    <span>10 GB total</span>
+                    <span>8.2 GB used</span>
+                    <span>15 GB total</span>
                 </div>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Content Header -->
             <div class="content-header">
                 <div>
-                    <h1 class="page-title">My Files</h1>
-                    <p class="page-subtitle">Manage and organize your digital assets</p>
+                    <h1 class="page-title">Project Files</h1>
+                    <p class="page-subtitle">Axiom Engineering Suite • 102 files</p>
                 </div>
                 <div class="filter-chips">
-                    <div class="chip active" data-filter="all" onclick="filterCategory('all')">
-                        <i class="fas fa-th-large"></i>
-                        All <span class="count">5</span>
+                    <div class="chip active" data-filter="all" onclick="filterCategory('all', this)">
+                        All <span class="count" id="count-all">102</span>
                     </div>
-                    <div class="chip" data-filter="images" onclick="filterCategory('images')">
-                        <i class="fas fa-image"></i>
-                        Images <span class="count">2</span>
+                    <div class="chip" data-filter="html" onclick="filterCategory('html', this)">
+                        <i class="fas fa-file-code"></i> HTML <span class="count" id="count-html">56</span>
                     </div>
-                    <div class="chip" data-filter="documents" onclick="filterCategory('documents')">
-                        <i class="fas fa-file-pdf"></i>
-                        Documents <span class="count">2</span>
+                    <div class="chip" data-filter="js" onclick="filterCategory('js', this)">
+                        <i class="fab fa-js"></i> JS <span class="count" id="count-js">23</span>
                     </div>
-                    <div class="chip" data-filter="media" onclick="filterCategory('media')">
-                        <i class="fas fa-play-circle"></i>
-                        Media <span class="count">1</span>
+                    <div class="chip" data-filter="css" onclick="filterCategory('css', this)">
+                        <i class="fab fa-css3-alt"></i> CSS <span class="count" id="count-css">4</span>
+                    </div>
+                    <div class="chip" data-filter="other" onclick="filterCategory('other', this)">
+                        <i class="fas fa-folder"></i> Other <span class="count" id="count-other">19</span>
                     </div>
                 </div>
             </div>
@@ -775,121 +702,37 @@
             <!-- Stats -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon total">
-                        <i class="fas fa-folder-open"></i>
-                    </div>
-                    <div class="stat-value">5</div>
+                    <div class="stat-icon total"><i class="fas fa-folder-open"></i></div>
+                    <div class="stat-value">102</div>
                     <div class="stat-label">Total Files</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon images">
-                        <i class="fas fa-images"></i>
-                    </div>
-                    <div class="stat-value">2</div>
-                    <div class="stat-label">Images</div>
+                    <div class="stat-icon html"><i class="fas fa-file-code"></i></div>
+                    <div class="stat-value">56</div>
+                    <div class="stat-label">HTML Files</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon documents">
-                        <i class="fas fa-file-pdf"></i>
-                    </div>
-                    <div class="stat-value">2</div>
-                    <div class="stat-label">Documents</div>
+                    <div class="stat-icon js"><i class="fab fa-js"></i></div>
+                    <div class="stat-value">23</div>
+                    <div class="stat-label">JS Files</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon media">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <div class="stat-value">1</div>
-                    <div class="stat-label">Media Files</div>
+                    <div class="stat-icon other"><i class="fas fa-images"></i></div>
+                    <div class="stat-value">23</div>
+                    <div class="stat-label">Other Assets</div>
                 </div>
             </div>
 
             <!-- File Grid -->
             <div class="file-grid" id="fileList">
-                <!-- Image Files -->
-                <div class="file-card" data-category="images">
-                    <div class="file-actions">
-                        <button class="file-action-btn" title="Download"><i class="fas fa-download"></i></button>
-                        <button class="file-action-btn" title="More"><i class="fas fa-ellipsis-v"></i></button>
-                    </div>
-                    <div class="file-icon image">
-                        <i class="fas fa-file-image"></i>
-                    </div>
-                    <div class="file-name">Project_Mockup.png</div>
-                    <div class="file-meta">
-                        <span>Image • PNG</span>
-                        <span class="file-size">2.4 MB</span>
-                    </div>
-                </div>
-
-                <div class="file-card" data-category="images">
-                    <div class="file-actions">
-                        <button class="file-action-btn" title="Download"><i class="fas fa-download"></i></button>
-                        <button class="file-action-btn" title="More"><i class="fas fa-ellipsis-v"></i></button>
-                    </div>
-                    <div class="file-icon image">
-                        <i class="fas fa-file-image"></i>
-                    </div>
-                    <div class="file-name">Brand_Logo_v2.png</div>
-                    <div class="file-meta">
-                        <span>Image • PNG</span>
-                        <span class="file-size">856 KB</span>
-                    </div>
-                </div>
-
-                <!-- Document Files -->
-                <div class="file-card" data-category="documents">
-                    <div class="file-actions">
-                        <button class="file-action-btn" title="Download"><i class="fas fa-download"></i></button>
-                        <button class="file-action-btn" title="More"><i class="fas fa-ellipsis-v"></i></button>
-                    </div>
-                    <div class="file-icon document">
-                        <i class="fas fa-file-pdf"></i>
-                    </div>
-                    <div class="file-name">Annual_Report_2024.pdf</div>
-                    <div class="file-meta">
-                        <span>Document • PDF</span>
-                        <span class="file-size">4.1 MB</span>
-                    </div>
-                </div>
-
-                <div class="file-card" data-category="documents">
-                    <div class="file-actions">
-                        <button class="file-action-btn" title="Download"><i class="fas fa-download"></i></button>
-                        <button class="file-action-btn" title="More"><i class="fas fa-ellipsis-v"></i></button>
-                    </div>
-                    <div class="file-icon document">
-                        <i class="fas fa-file-word"></i>
-                    </div>
-                    <div class="file-name">Project_Proposal.docx</div>
-                    <div class="file-meta">
-                        <span>Document • DOCX</span>
-                        <span class="file-size">1.8 MB</span>
-                    </div>
-                </div>
-
-                <!-- Media Files -->
-                <div class="file-card" data-category="media">
-                    <div class="file-actions">
-                        <button class="file-action-btn" title="Download"><i class="fas fa-download"></i></button>
-                        <button class="file-action-btn" title="More"><i class="fas fa-ellipsis-v"></i></button>
-                    </div>
-                    <div class="file-icon video">
-                        <i class="fas fa-file-video"></i>
-                    </div>
-                    <div class="file-name">Product_Demo.mp4</div>
-                    <div class="file-meta">
-                        <span>Video • MP4</span>
-                        <span class="file-size">45.2 MB</span>
-                    </div>
-                </div>
+                <!-- Files will be injected by JavaScript -->
             </div>
 
             <!-- Empty State -->
             <div class="empty-state" id="emptyState">
-                <i class="fas fa-folder-open empty-icon"></i>
+                <i class="fas fa-search empty-icon"></i>
                 <h3>No files found</h3>
-                <p>Try adjusting your search or filter to find what you're looking for.</p>
+                <p>Try adjusting your search or filter criteria.</p>
             </div>
         </main>
     </div>
@@ -901,104 +744,281 @@
             <strong>NexusFiles</strong>
         </div>
         <p>Created with <i class="fas fa-heart" style="color:#ec4899"></i> by <strong>alaamohammed864</strong> © 2024</p>
-        <p style="margin-top:8px; font-size:0.85rem">Professional File Management System • Visual Identity v2.0</p>
+        <p style="margin-top:8px; font-size:0.85rem">Axiom Engineering Suite • File Manager v2.1</p>
     </footer>
 
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div class="toast" id="toast">
         <i class="fas fa-check-circle"></i>
-        <span>File operation completed successfully!</span>
+        <span id="toastMsg">Ready!</span>
     </div>
 
     <script>
-        // Filter Files by Search
-        function filterFiles() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const cards = document.querySelectorAll('.file-card');
-            let visibleCount = 0;
+        // ===== FILE DATA =====
+        const files = [
+            // HTML Files
+            { name: "INDEX.html", category: "html", size: "24 KB", path: "root/" },
+            { name: "AXIOM Engineering Suite - Single File Application.html", category: "html", size: "156 KB", path: "root/" },
+            { name: "axiom-engineering-suite.html", category: "html", size: "142 KB", path: "root/" },
+            { name: "axiom-engineering-site.html", category: "html", size: "98 KB", path: "root/" },
+            { name: "axiom-engineering.html", category: "html", size: "87 KB", path: "root/" },
+            { name: "axiom_engineering_site.html", category: "html", size: "95 KB", path: "root/" },
+            { name: "axiom-pid-3d.html", category: "html", size: "210 KB", path: "3d/" },
+            { name: "pid_3d.html", category: "html", size: "198 KB", path: "3d/pid/" },
+            { name: "pid_3d_flue_gas.html", category: "html", size: "224 KB", path: "3d/pid/" },
+            { name: "pid_3d_professional.html", category: "html", size: "267 KB", path: "3d/pid/" },
+            { name: "pid_diagram.html", category: "html", size: "145 KB", path: "diagrams/" },
+            { name: "3d.html", category: "html", size: "178 KB", path: "3d/" },
+            { name: "ccpp_3d_enhanced.html", category: "html", size: "189 KB", path: "3d/" },
+            { name: "oil_refinery_3d_interactive.html", category: "html", size: "312 KB", path: "3d/refinery/" },
+            { name: "refinery3d.html", category: "html", size: "298 KB", path: "3d/refinery/" },
+            { name: "zubair_3d_v3_complete.html", category: "html", size: "276 KB", path: "3d/projects/" },
+            { name: "zubair_hac_3d.html", category: "html", size: "245 KB", path: "3d/projects/" },
+            { name: "cdu04-digital-twin.html", category: "html", size: "334 KB", path: "digital-twin/" },
+            { name: "robotic-twin-dashboard.html", category: "html", size: "287 KB", path: "robotics/" },
+            { name: "robot-factory.html", category: "html", size: "198 KB", path: "robotics/" },
+            { name: "robot-factory-v2.html", category: "html", size: "215 KB", path: "robotics/" },
+            { name: "vibe-coding-robotics.html", category: "html", size: "167 KB", path: "robotics/" },
+            { name: "particle-vortex.html", category: "html", size: "156 KB", path: "visualizations/" },
+            { name: "particle-vortex (1).html", category: "html", size: "156 KB", path: "visualizations/" },
+            { name: "ccpp_infographic.html", category: "html", size: "134 KB", path: "infographics/" },
+            { name: "distillation-dashboard.html", category: "html", size: "245 KB", path: "dashboards/" },
+            { name: "liftplan_autodesk.html", category: "html", size: "189 KB", path: "cad/" },
+            { name: "CAD.html", category: "html", size: "167 KB", path: "cad/" },
+            { name: "CAM31.html", category: "html", size: "145 KB", path: "cam/" },
+            { name: "CAD_CAM_Studio_Pro1_v31.html", category: "html", size: "178 KB", path: "cam/" },
+            { name: "Studio_Pro_v32.html", category: "html", size: "182 KB", path: "cam/" },
+            { name: "Enterprise.html", category: "html", size: "198 KB", path: "enterprise/" },
+            { name: "IQ Enterprise.html", category: "html", size: "203 KB", path: "enterprise/" },
+            { name: "TriageIQ_Enterprise.html", category: "html", size: "234 KB", path: "enterprise/" },
+            { name: "xiom_nuclear_suite.html", category: "html", size: "267 KB", path: "nuclear/" },
+            { name: "xiom_nuclear_suite1.html", category: "html", size: "267 KB", path: "nuclear/" },
+            { name: "xiom_nuclear_suite_v4.html", category: "html", size: "289 KB", path: "nuclear/" },
+            { name: "Iraq_Apps_Interactive_v3.html", category: "html", size: "156 KB", path: "apps/" },
+            { name: "SmartPOS.html", category: "html", size: "134 KB", path: "apps/" },
+            { name: "vitalflow-ai-main.html", category: "html", size: "178 KB", path: "ai/" },
+            { name: "basra-learn-hub-main.html", category: "html", size: "145 KB", path: "education/" },
+            { name: "home.html", category: "html", size: "98 KB", path: "pages/" },
+            { name: "dex.html", category: "html", size: "112 KB", path: "pages/" },
+            { name: "heath.html", category: "html", size: "87 KB", path: "pages/" },
+            { name: "phy.html", category: "html", size: "92 KB", path: "pages/" },
+            { name: "strucal.html", category: "html", size: "105 KB", path: "pages/" },
+            { name: "vrt.html", category: "html", size: "118 KB", path: "pages/" },
+            { name: "checken.html", category: "html", size: "76 KB", path: "utils/" },
+            { name: "lkj.html", category: "html", size: "45 KB", path: "temp/" },
+            { name: "oytr.html", category: "html", size: "43 KB", path: "temp/" },
+            { name: "ytg.html", category: "html", size: "41 KB", path: "temp/" },
+            { name: "New Text Document.html", category: "html", size: "12 KB", path: "temp/" },
+            { name: "New Text Document1.html", category: "html", size: "12 KB", path: "temp/" },
+            { name: "New T1ext Document.html", category: "html", size: "12 KB", path: "temp/" },
+            { name: "New Text 1Document.html", category: "html", size: "12 KB", path: "temp/" },
+            { name: "New Text Docu1ment.html", category: "html", size: "12 KB", path: "temp/" },
+            { name: "ne1w 1.html", category: "html", size: "14 KB", path: "temp/" },
+            { name: "new 1.html", category: "html", size: "14 KB", path: "temp/" },
+            { name: "new 2.html", category: "html", size: "14 KB", path: "temp/" },
+            { name: "new 3.html", category: "html", size: "14 KB", path: "temp/" },
+            
+            // Qwen Generated Files
+            { name: "Qwen_fixed_v2.html", category: "html", size: "89 KB", path: "qwen/" },
+            { name: "Qwen_html_20260321_m0jbnha8s.html", category: "html", size: "124 KB", path: "qwen/" },
+            { name: "Qwen_html_20260410_azvswqv8v.html", category: "html", size: "156 KB", path: "qwen/" },
+            { name: "Qwen_html_20260410_hgexs6tc7.html", category: "html", size: "167 KB", path: "qwen/" },
+            
+            // Other HTML variants
+            { name: "blackbox-output-code.html", category: "html", size: "98 KB", path: "exports/" },
+            { name: "xiom-engineering.html", category: "html", size: "134 KB", path: "exports/" },
+            
+            // JavaScript Files
+            { name: "react.js", category: "js", size: "45 KB", path: "node_modules/react/" },
+            { name: "react_jsx-runtime.js", category: "js", size: "12 KB", path: "node_modules/react/" },
+            { name: "react_jsx-dev-runtime.js", category: "js", size: "14 KB", path: "node_modules/react/" },
+            { name: "lucide-react.js", category: "js", size: "234 KB", path: "node_modules/lucide-react/" },
+            { name: "@react-three_fiber.js", category: "js", size: "178 KB", path: "node_modules/@react-three/" },
+            { name: "@react-three_drei.js", category: "js", size: "312 KB", path: "node_modules/@react-three/" },
+            { name: "@tanstack_react-query.js", category: "js", size: "145 KB", path: "node_modules/@tanstack/" },
+            { name: "@radix-ui_react-toast.js", category: "js", size: "34 KB", path: "node_modules/@radix-ui/" },
+            { name: "@radix-ui_react-tooltip.js", category: "js", size: "42 KB", path: "node_modules/@radix-ui/" },
+            { name: "next-themes.js", category: "js", size: "28 KB", path: "node_modules/next-themes/" },
+            { name: "class-variance-authority.js", category: "js", size: "18 KB", path: "node_modules/cva/" },
+            { name: "clsx.js", category: "js", size: "8 KB", path: "node_modules/clsx/" },
+            { name: "hls-J3KQFUCH.js", category: "js", size: "156 KB", path: "lib/" },
+            { name: "chat.js", category: "js", size: "67 KB", path: "src/" },
+            { name: "eslint.config.js", category: "js", size: "4 KB", path: "root/" },
+            { name: "postcss.config.js", category: "js", size: "2 KB", path: "root/" },
+            { name: "chunk-ALOMATP7.js", category: "js", size: "89 KB", path: "dist/chunks/" },
+            { name: "chunk-BDRZ4532.js", category: "js", size: "76 KB", path: "dist/chunks/" },
+            { name: "chunk-FGBNOIQX.js", category: "js", size: "92 KB", path: "dist/chunks/" },
+            { name: "chunk-KBTYAULA.js", category: "js", size: "104 KB", path: "dist/chunks/" },
+            { name: "chunk-NFR4I2VH.js", category: "js", size: "87 KB", path: "dist/chunks/" },
+            { name: "chunk-OTHSB3H2.js", category: "js", size: "95 KB", path: "dist/chunks/" },
+            { name: "chunk-QCHXOAYK.js", category: "js", size: "112 KB", path: "dist/chunks/" },
+            
+            // CSS Files
+            { name: "index.css", category: "css", size: "34 KB", path: "src/styles/" },
+            { name: "App.css", category: "css", size: "28 KB", path: "src/styles/" },
+            { name: "chat.css", category: "css", size: "18 KB", path: "src/styles/" },
+            { name: "postcss.config.js", category: "css", size: "2 KB", path: "root/" },
+            
+            // JSX/TSX Files
+            { name: "App.jsx", category: "jsx", size: "45 KB", path: "src/components/" },
+            { name: "TriageIQ_v7.jsx", category: "jsx", size: "67 KB", path: "src/enterprise/" },
+            { name: "skeleton.tsx", category: "tsx", size: "12 KB", path: "src/ui/" },
+            
+            // Images & Assets
+            { name: "PipingandInstrumentationIllustration-1_1280x.webp", category: "image", size: "456 KB", path: "assets/images/" },
+            { name: "favicon.ico", category: "image", size: "15 KB", path: "public/" },
+            
+            // Documents & Config
+            { name: "README.md", category: "doc", size: "8 KB", path: "root/" },
+            { name: "LICENSE", category: "doc", size: "2 KB", path: "root/" },
+            { name: "index.html", category: "html", size: "3 KB", path: "public/" },
+        ];
 
-            cards.forEach(card => {
-                const fileName = card.querySelector('.file-name').textContent.toLowerCase();
-                const fileType = card.querySelector('.file-meta span:first-child').textContent.toLowerCase();
-                
-                if (fileName.includes(filter) || fileType.includes(filter)) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+        // ===== RENDER FUNCTIONS =====
+        function getFileIcon(category) {
+            const icons = {
+                html: '<i class="fas fa-file-code"></i>',
+                js: '<i class="fab fa-js"></i>',
+                css: '<i class="fab fa-css3-alt"></i>',
+                jsx: '<i class="fab fa-react"></i>',
+                tsx: '<i class="fas fa-code"></i>',
+                image: '<i class="fas fa-image"></i>',
+                doc: '<i class="fas fa-file-alt"></i>',
+                other: '<i class="fas fa-file"></i>'
+            };
+            return icons[category] || icons.other;
+        }
 
-            // Show/hide empty state
-            const emptyState = document.getElementById('emptyState');
-            if (visibleCount === 0 && filter !== '') {
-                emptyState.classList.add('show');
-            } else {
-                emptyState.classList.remove('show');
+        function getFileBadge(category) {
+            const badges = {
+                html: '<span class="file-badge badge-html">HTML</span>',
+                js: '<span class="file-badge badge-js">JS</span>',
+                css: '<span class="file-badge badge-css">CSS</span>',
+                jsx: '<span class="file-badge badge-jsx">JSX</span>',
+                tsx: '<span class="file-badge badge-tsx">TSX</span>',
+                image: '<span class="file-badge badge-img">IMG</span>',
+                doc: '<span class="file-badge badge-doc">DOC</span>',
+                other: '<span class="file-badge" style="background:rgba(100,116,139,0.15);color:#64748b">FILE</span>'
+            };
+            return badges[category] || badges.other;
+        }
+
+        function renderFiles(fileList) {
+            const container = document.getElementById('fileList');
+            container.innerHTML = '';
+            
+            if (fileList.length === 0) {
+                document.getElementById('emptyState').classList.add('show');
+                return;
             }
+            
+            document.getElementById('emptyState').classList.remove('show');
+            
+            fileList.forEach((file, index) => {
+                const card = document.createElement('div');
+                card.className = 'file-card';
+                card.dataset.category = file.category;
+                card.style.animationDelay = `${Math.min(index * 0.02, 0.3)}s`;
+                
+                card.innerHTML = `
+                    <div class="file-header">
+                        <div class="file-icon ${file.category}">${getFileIcon(file.category)}</div>
+                        <div class="file-actions">
+                            <button class="file-action-btn" title="Download" onclick="event.stopPropagation(); showToast('Downloading: ${file.name}')">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="file-action-btn" title="More" onclick="event.stopPropagation(); showToast('Options for: ${file.name}')">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="file-name" title="${file.name}">${file.name}</div>
+                    <div class="file-path" title="${file.path}">${file.path}</div>
+                    <div class="file-meta">
+                        <span>${file.size}</span>
+                        ${getFileBadge(file.category)}
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    showToast(`Opening: ${file.name}`);
+                });
+                
+                container.appendChild(card);
+            });
         }
 
-        // Filter by Category
-        function filterCategory(category) {
-            // Update active states
-            document.querySelectorAll('.nav-item, .chip').forEach(el => {
-                el.classList.remove('active');
+        // ===== FILTER FUNCTIONS =====
+        function filterFiles() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const activeCategory = document.querySelector('.nav-item.active')?.dataset?.filter || 'all';
+            
+            const filtered = files.filter(file => {
+                const matchesSearch = file.name.toLowerCase().includes(input) || 
+                                     file.path.toLowerCase().includes(input);
+                const matchesCategory = activeCategory === 'all' || file.category === activeCategory;
+                return matchesSearch && matchesCategory;
             });
-            event.currentTarget.classList.add('active');
-
-            const cards = document.querySelectorAll('.file-card');
-            let visibleCount = 0;
-
-            cards.forEach(card => {
-                if (category === 'all' || card.dataset.category === category) {
-                    card.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            // Update empty state
-            const emptyState = document.getElementById('emptyState');
-            emptyState.classList.toggle('show', visibleCount === 0);
+            
+            renderFiles(filtered);
+            updateCounts(filtered);
         }
 
-        // File Card Click Animation
-        document.querySelectorAll('.file-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                if (!e.target.closest('.file-action-btn')) {
-                    this.style.transform = 'scale(0.98)';
-                    setTimeout(() => {
-                        this.style.transform = '';
-                        showToast(`Opening: ${this.querySelector('.file-name').textContent}`);
-                    }, 150);
-                }
-            });
-        });
+        function filterCategory(category, element) {
+            // Update nav active state
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if (element) element.classList.add('active');
+            
+            // Update chips active state
+            document.querySelectorAll('.chip').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.chip[data-filter="${category}"]`)?.classList.add('active');
+            
+            // Filter and render
+            const filtered = category === 'all' ? files : files.filter(f => f.category === category);
+            renderFiles(filtered);
+            updateCounts(filtered);
+            
+            // Clear search
+            document.getElementById('searchInput').value = '';
+        }
 
-        // Toast Notification
+        function updateCounts(fileList) {
+            const counts = { all: fileList.length, html: 0, js: 0, css: 0, other: 0 };
+            fileList.forEach(f => {
+                if (['html'].includes(f.category)) counts.html++;
+                else if (['js'].includes(f.category)) counts.js++;
+                else if (['css', 'jsx', 'tsx'].includes(f.category)) counts.css++;
+                else counts.other++;
+            });
+            
+            document.getElementById('count-all').textContent = counts.all;
+            document.getElementById('count-html').textContent = counts.html;
+            document.getElementById('count-js').textContent = counts.js;
+            document.getElementById('count-css').textContent = counts.css + counts.other;
+            document.getElementById('count-other').textContent = counts.other;
+        }
+
+        // ===== TOAST =====
         function showToast(message) {
             const toast = document.getElementById('toast');
-            toast.querySelector('span').textContent = message;
+            document.getElementById('toastMsg').textContent = message;
             toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // Initialize: Show toast on load
-        setTimeout(() => {
-            showToast('Welcome to NexusFiles! 🎉');
-        }, 500);
-
-        // Keyboard shortcut for search
-        document.addEventListener('keydown', function(e) {
-            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
-                e.preventDefault();
-                document.getElementById('searchInput').focus();
-            }
+        // ===== INIT =====
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFiles(files);
+            updateCounts(files);
+            showToast('📁 102 files loaded successfully');
+            
+            // Keyboard shortcut
+            document.addEventListener('keydown', (e) => {
+                if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    document.getElementById('searchInput').focus();
+                }
+            });
         });
     </script>
 </body>
