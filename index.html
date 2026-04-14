@@ -8,29 +8,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Brand Identity */
             --brand-primary: #6366f1;
             --brand-primary-dark: #4f46e5;
             --brand-secondary: #8b5cf6;
             --brand-accent: #06b6d4;
-            
-            /* Dark Theme */
             --bg-primary: #0f0f11;
             --bg-secondary: #18181b;
             --bg-tertiary: #27272a;
             --bg-card: #1e1e22;
-            
-            /* Text */
             --text-primary: #fafafa;
             --text-secondary: #a1a1aa;
             --text-muted: #71717a;
-            
-            /* Status */
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
-            
-            /* UI */
             --border-color: #3f3f46;
             --border-radius: 16px;
             --border-radius-sm: 10px;
@@ -58,7 +49,6 @@
                 radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
         }
 
-        /* ===== HEADER ===== */
         .app-header {
             background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
             border-bottom: 1px solid var(--border-color);
@@ -203,7 +193,6 @@
 
         .user-avatar:hover { transform: scale(1.05); }
 
-        /* ===== LAYOUT ===== */
         .app-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -286,7 +275,6 @@
             justify-content: space-between;
         }
 
-        /* ===== MAIN CONTENT ===== */
         .main-content {
             display: flex;
             flex-direction: column;
@@ -342,7 +330,6 @@
 
         .chip.active .count { background: rgba(255,255,255,0.2); }
 
-        /* Stats */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -382,7 +369,6 @@
         .stat-value { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
         .stat-label { color: var(--text-muted); font-size: 0.9rem; }
 
-        /* File Grid */
         .file-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -444,10 +430,7 @@
         .file-icon.doc { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
         .file-icon.other { background: rgba(100, 116, 139, 0.12); color: #64748b; }
 
-        .file-actions {
-            display: flex;
-            gap: 4px;
-        }
+        .file-actions { display: flex; gap: 4px; }
 
         .file-action-btn {
             width: 30px;
@@ -515,7 +498,6 @@
         .badge-img { background: rgba(16, 185, 129, 0.15); color: #10b981; }
         .badge-doc { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
 
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: var(--space-xl) var(--space-lg);
@@ -526,7 +508,6 @@
         .empty-state.show { display: block; }
         .empty-icon { font-size: 4rem; margin-bottom: var(--space-md); opacity: 0.5; }
 
-        /* Footer */
         .app-footer {
             text-align: center;
             padding: var(--space-lg);
@@ -546,7 +527,6 @@
 
         .footer-brand i { color: var(--brand-primary); }
 
-        /* Toast */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -569,7 +549,6 @@
         .toast.show { transform: translateX(0); }
         .toast i { font-size: 1.2rem; color: var(--success); }
 
-        /* Responsive */
         @media (max-width: 1024px) {
             .app-container { grid-template-columns: 1fr; padding: var(--space-md); }
             .sidebar {
@@ -591,7 +570,6 @@
             .file-grid { grid-template-columns: 1fr; }
         }
 
-        /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -605,7 +583,6 @@
         .file-card:nth-child(5) { animation-delay: 0.1s; }
         .file-card:nth-child(n+6) { animation-delay: 0.12s; }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-secondary); }
         ::-webkit-scrollbar-thumb {
@@ -633,9 +610,9 @@
             </div>
             
             <div class="header-actions">
-                <button class="btn btn-outline"><i class="fas fa-upload"></i> Upload</button>
-                <button class="btn btn-primary"><i class="fas fa-plus"></i> New</button>
-                <div class="user-avatar" title="Alaa Mohammed">AM</div>
+                <button class="btn btn-outline" onclick="refreshPage()"><i class="fas fa-sync"></i> Refresh</button>
+                <button class="btn btn-primary" onclick="openRepo()"><i class="fab fa-github"></i> View Repo</button>
+                <div class="user-avatar" title="Alaa Mohammed" onclick="showAbout()">AM</div>
             </div>
         </div>
     </header>
@@ -646,19 +623,19 @@
         <aside class="sidebar">
             <div class="sidebar-title">Categories</div>
             <ul class="nav-list">
-                <li class="nav-item active" onclick="filterCategory('all', this)">
+                <li class="nav-item active" data-filter="all" onclick="filterCategory('all', this)">
                     <i class="fas fa-th-large"></i> All Files
                 </li>
-                <li class="nav-item" onclick="filterCategory('html', this)">
+                <li class="nav-item" data-filter="html" onclick="filterCategory('html', this)">
                     <i class="fas fa-file-code"></i> HTML Files
                 </li>
-                <li class="nav-item" onclick="filterCategory('js', this)">
+                <li class="nav-item" data-filter="js" onclick="filterCategory('js', this)">
                     <i class="fab fa-js"></i> JavaScript
                 </li>
-                <li class="nav-item" onclick="filterCategory('css', this)">
+                <li class="nav-item" data-filter="css" onclick="filterCategory('css', this)">
                     <i class="fab fa-css3-alt"></i> Stylesheets
                 </li>
-                <li class="nav-item" onclick="filterCategory('other', this)">
+                <li class="nav-item" data-filter="other" onclick="filterCategory('other', this)">
                     <i class="fas fa-folder"></i> Other Files
                 </li>
             </ul>
@@ -678,7 +655,7 @@
             <div class="content-header">
                 <div>
                     <h1 class="page-title">Project Files</h1>
-                    <p class="page-subtitle">Axiom Engineering Suite • 102 files</p>
+                    <p class="page-subtitle">Axiom Engineering Suite • <span id="totalFiles">102</span> files</p>
                 </div>
                 <div class="filter-chips">
                     <div class="chip active" data-filter="all" onclick="filterCategory('all', this)">
@@ -691,10 +668,10 @@
                         <i class="fab fa-js"></i> JS <span class="count" id="count-js">23</span>
                     </div>
                     <div class="chip" data-filter="css" onclick="filterCategory('css', this)">
-                        <i class="fab fa-css3-alt"></i> CSS <span class="count" id="count-css">4</span>
+                        <i class="fab fa-css3-alt"></i> CSS <span class="count" id="count-css">7</span>
                     </div>
                     <div class="chip" data-filter="other" onclick="filterCategory('other', this)">
-                        <i class="fas fa-folder"></i> Other <span class="count" id="count-other">19</span>
+                        <i class="fas fa-folder"></i> Other <span class="count" id="count-other">16</span>
                     </div>
                 </div>
             </div>
@@ -703,30 +680,28 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon total"><i class="fas fa-folder-open"></i></div>
-                    <div class="stat-value">102</div>
+                    <div class="stat-value" id="stat-total">102</div>
                     <div class="stat-label">Total Files</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon html"><i class="fas fa-file-code"></i></div>
-                    <div class="stat-value">56</div>
+                    <div class="stat-value" id="stat-html">56</div>
                     <div class="stat-label">HTML Files</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon js"><i class="fab fa-js"></i></div>
-                    <div class="stat-value">23</div>
+                    <div class="stat-value" id="stat-js">23</div>
                     <div class="stat-label">JS Files</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon other"><i class="fas fa-images"></i></div>
-                    <div class="stat-value">23</div>
+                    <div class="stat-value" id="stat-other">23</div>
                     <div class="stat-label">Other Assets</div>
                 </div>
             </div>
 
             <!-- File Grid -->
-            <div class="file-grid" id="fileList">
-                <!-- Files will be injected by JavaScript -->
-            </div>
+            <div class="file-grid" id="fileList"></div>
 
             <!-- Empty State -->
             <div class="empty-state" id="emptyState">
@@ -744,7 +719,7 @@
             <strong>NexusFiles</strong>
         </div>
         <p>Created with <i class="fas fa-heart" style="color:#ec4899"></i> by <strong>alaamohammed864</strong> © 2024</p>
-        <p style="margin-top:8px; font-size:0.85rem">Axiom Engineering Suite • File Manager v2.1</p>
+        <p style="margin-top:8px; font-size:0.85rem">Axiom Engineering Suite • File Manager v2.2 • GitHub Pages Ready</p>
     </footer>
 
     <!-- Toast -->
@@ -754,127 +729,126 @@
     </div>
 
     <script>
-        // ===== FILE DATA =====
+        // ===== GitHub Pages Configuration =====
+        const GITHUB_PAGES_BASE = 'https://alaamohammed864.github.io/NEW14-4-2024/';
+        const REPO_URL = 'https://github.com/alaamohammed864/NEW14-4-2024';
+
+        // ===== File Database - All files in root directory =====
         const files = [
-            // HTML Files
-            { name: "INDEX.html", category: "html", size: "24 KB", path: "root/" },
-            { name: "AXIOM Engineering Suite - Single File Application.html", category: "html", size: "156 KB", path: "root/" },
-            { name: "axiom-engineering-suite.html", category: "html", size: "142 KB", path: "root/" },
-            { name: "axiom-engineering-site.html", category: "html", size: "98 KB", path: "root/" },
-            { name: "axiom-engineering.html", category: "html", size: "87 KB", path: "root/" },
-            { name: "axiom_engineering_site.html", category: "html", size: "95 KB", path: "root/" },
-            { name: "axiom-pid-3d.html", category: "html", size: "210 KB", path: "3d/" },
-            { name: "pid_3d.html", category: "html", size: "198 KB", path: "3d/pid/" },
-            { name: "pid_3d_flue_gas.html", category: "html", size: "224 KB", path: "3d/pid/" },
-            { name: "pid_3d_professional.html", category: "html", size: "267 KB", path: "3d/pid/" },
-            { name: "pid_diagram.html", category: "html", size: "145 KB", path: "diagrams/" },
-            { name: "3d.html", category: "html", size: "178 KB", path: "3d/" },
-            { name: "ccpp_3d_enhanced.html", category: "html", size: "189 KB", path: "3d/" },
-            { name: "oil_refinery_3d_interactive.html", category: "html", size: "312 KB", path: "3d/refinery/" },
-            { name: "refinery3d.html", category: "html", size: "298 KB", path: "3d/refinery/" },
-            { name: "zubair_3d_v3_complete.html", category: "html", size: "276 KB", path: "3d/projects/" },
-            { name: "zubair_hac_3d.html", category: "html", size: "245 KB", path: "3d/projects/" },
-            { name: "cdu04-digital-twin.html", category: "html", size: "334 KB", path: "digital-twin/" },
-            { name: "robotic-twin-dashboard.html", category: "html", size: "287 KB", path: "robotics/" },
-            { name: "robot-factory.html", category: "html", size: "198 KB", path: "robotics/" },
-            { name: "robot-factory-v2.html", category: "html", size: "215 KB", path: "robotics/" },
-            { name: "vibe-coding-robotics.html", category: "html", size: "167 KB", path: "robotics/" },
-            { name: "particle-vortex.html", category: "html", size: "156 KB", path: "visualizations/" },
-            { name: "particle-vortex (1).html", category: "html", size: "156 KB", path: "visualizations/" },
-            { name: "ccpp_infographic.html", category: "html", size: "134 KB", path: "infographics/" },
-            { name: "distillation-dashboard.html", category: "html", size: "245 KB", path: "dashboards/" },
-            { name: "liftplan_autodesk.html", category: "html", size: "189 KB", path: "cad/" },
-            { name: "CAD.html", category: "html", size: "167 KB", path: "cad/" },
-            { name: "CAM31.html", category: "html", size: "145 KB", path: "cam/" },
-            { name: "CAD_CAM_Studio_Pro1_v31.html", category: "html", size: "178 KB", path: "cam/" },
-            { name: "Studio_Pro_v32.html", category: "html", size: "182 KB", path: "cam/" },
-            { name: "Enterprise.html", category: "html", size: "198 KB", path: "enterprise/" },
-            { name: "IQ Enterprise.html", category: "html", size: "203 KB", path: "enterprise/" },
-            { name: "TriageIQ_Enterprise.html", category: "html", size: "234 KB", path: "enterprise/" },
-            { name: "xiom_nuclear_suite.html", category: "html", size: "267 KB", path: "nuclear/" },
-            { name: "xiom_nuclear_suite1.html", category: "html", size: "267 KB", path: "nuclear/" },
-            { name: "xiom_nuclear_suite_v4.html", category: "html", size: "289 KB", path: "nuclear/" },
-            { name: "Iraq_Apps_Interactive_v3.html", category: "html", size: "156 KB", path: "apps/" },
-            { name: "SmartPOS.html", category: "html", size: "134 KB", path: "apps/" },
-            { name: "vitalflow-ai-main.html", category: "html", size: "178 KB", path: "ai/" },
-            { name: "basra-learn-hub-main.html", category: "html", size: "145 KB", path: "education/" },
-            { name: "home.html", category: "html", size: "98 KB", path: "pages/" },
-            { name: "dex.html", category: "html", size: "112 KB", path: "pages/" },
-            { name: "heath.html", category: "html", size: "87 KB", path: "pages/" },
-            { name: "phy.html", category: "html", size: "92 KB", path: "pages/" },
-            { name: "strucal.html", category: "html", size: "105 KB", path: "pages/" },
-            { name: "vrt.html", category: "html", size: "118 KB", path: "pages/" },
-            { name: "checken.html", category: "html", size: "76 KB", path: "utils/" },
-            { name: "lkj.html", category: "html", size: "45 KB", path: "temp/" },
-            { name: "oytr.html", category: "html", size: "43 KB", path: "temp/" },
-            { name: "ytg.html", category: "html", size: "41 KB", path: "temp/" },
-            { name: "New Text Document.html", category: "html", size: "12 KB", path: "temp/" },
-            { name: "New Text Document1.html", category: "html", size: "12 KB", path: "temp/" },
-            { name: "New T1ext Document.html", category: "html", size: "12 KB", path: "temp/" },
-            { name: "New Text 1Document.html", category: "html", size: "12 KB", path: "temp/" },
-            { name: "New Text Docu1ment.html", category: "html", size: "12 KB", path: "temp/" },
-            { name: "ne1w 1.html", category: "html", size: "14 KB", path: "temp/" },
-            { name: "new 1.html", category: "html", size: "14 KB", path: "temp/" },
-            { name: "new 2.html", category: "html", size: "14 KB", path: "temp/" },
-            { name: "new 3.html", category: "html", size: "14 KB", path: "temp/" },
+            // === HTML Files (56) ===
+            { name: "INDEX.html", category: "html", size: "24 KB" },
+            { name: "AXIOM Engineering Suite - Single File Application.html", category: "html", size: "156 KB" },
+            { name: "axiom-engineering-suite.html", category: "html", size: "142 KB" },
+            { name: "axiom-engineering-site.html", category: "html", size: "98 KB" },
+            { name: "axiom-engineering.html", category: "html", size: "87 KB" },
+            { name: "axiom_engineering_site.html", category: "html", size: "95 KB" },
+            { name: "axiom-pid-3d.html", category: "html", size: "210 KB" },
+            { name: "pid_3d.html", category: "html", size: "198 KB" },
+            { name: "pid_3d_flue_gas.html", category: "html", size: "224 KB" },
+            { name: "pid_3d_professional.html", category: "html", size: "267 KB" },
+            { name: "pid_diagram.html", category: "html", size: "145 KB" },
+            { name: "3d.html", category: "html", size: "178 KB" },
+            { name: "ccpp_3d_enhanced.html", category: "html", size: "189 KB" },
+            { name: "oil_refinery_3d_interactive.html", category: "html", size: "312 KB" },
+            { name: "refinery3d.html", category: "html", size: "298 KB" },
+            { name: "zubair_3d_v3_complete.html", category: "html", size: "276 KB" },
+            { name: "zubair_hac_3d.html", category: "html", size: "245 KB" },
+            { name: "cdu04-digital-twin.html", category: "html", size: "334 KB" },
+            { name: "robotic-twin-dashboard.html", category: "html", size: "287 KB" },
+            { name: "robot-factory.html", category: "html", size: "198 KB" },
+            { name: "robot-factory-v2.html", category: "html", size: "215 KB" },
+            { name: "vibe-coding-robotics.html", category: "html", size: "167 KB" },
+            { name: "particle-vortex.html", category: "html", size: "156 KB" },
+            { name: "particle-vortex (1).html", category: "html", size: "156 KB" },
+            { name: "ccpp_infographic.html", category: "html", size: "134 KB" },
+            { name: "distillation-dashboard.html", category: "html", size: "245 KB" },
+            { name: "liftplan_autodesk.html", category: "html", size: "189 KB" },
+            { name: "CAD.html", category: "html", size: "167 KB" },
+            { name: "CAM31.html", category: "html", size: "145 KB" },
+            { name: "CAD_CAM_Studio_Pro1_v31.html", category: "html", size: "178 KB" },
+            { name: "Studio_Pro_v32.html", category: "html", size: "182 KB" },
+            { name: "Enterprise.html", category: "html", size: "198 KB" },
+            { name: "IQ Enterprise.html", category: "html", size: "203 KB" },
+            { name: "TriageIQ_Enterprise.html", category: "html", size: "234 KB" },
+            { name: "xiom_nuclear_suite.html", category: "html", size: "267 KB" },
+            { name: "xiom_nuclear_suite1.html", category: "html", size: "267 KB" },
+            { name: "xiom_nuclear_suite_v4.html", category: "html", size: "289 KB" },
+            { name: "Iraq_Apps_Interactive_v3.html", category: "html", size: "156 KB" },
+            { name: "SmartPOS.html", category: "html", size: "134 KB" },
+            { name: "vitalflow-ai-main.html", category: "html", size: "178 KB" },
+            { name: "basra-learn-hub-main.html", category: "html", size: "145 KB" },
+            { name: "home.html", category: "html", size: "98 KB" },
+            { name: "dex.html", category: "html", size: "112 KB" },
+            { name: "heath.html", category: "html", size: "87 KB" },
+            { name: "phy.html", category: "html", size: "92 KB" },
+            { name: "strucal.html", category: "html", size: "105 KB" },
+            { name: "vrt.html", category: "html", size: "118 KB" },
+            { name: "checken.html", category: "html", size: "76 KB" },
+            { name: "lkj.html", category: "html", size: "45 KB" },
+            { name: "oytr.html", category: "html", size: "43 KB" },
+            { name: "ytg.html", category: "html", size: "41 KB" },
+            { name: "New Text Document.html", category: "html", size: "12 KB" },
+            { name: "New Text Document1.html", category: "html", size: "12 KB" },
+            { name: "New T1ext Document.html", category: "html", size: "12 KB" },
+            { name: "New Text 1Document.html", category: "html", size: "12 KB" },
+            { name: "New Text Docu1ment.html", category: "html", size: "12 KB" },
+            { name: "ne1w 1.html", category: "html", size: "14 KB" },
+            { name: "new 1.html", category: "html", size: "14 KB" },
+            { name: "new 2.html", category: "html", size: "14 KB" },
+            { name: "new 3.html", category: "html", size: "14 KB" },
+            { name: "Qwen_fixed_v2.html", category: "html", size: "89 KB" },
+            { name: "Qwen_html_20260321_m0jbnha8s.html", category: "html", size: "124 KB" },
+            { name: "Qwen_html_20260410_azvswqv8v.html", category: "html", size: "156 KB" },
+            { name: "Qwen_html_20260410_hgexs6tc7.html", category: "html", size: "167 KB" },
+            { name: "blackbox-output-code.html", category: "html", size: "98 KB" },
             
-            // Qwen Generated Files
-            { name: "Qwen_fixed_v2.html", category: "html", size: "89 KB", path: "qwen/" },
-            { name: "Qwen_html_20260321_m0jbnha8s.html", category: "html", size: "124 KB", path: "qwen/" },
-            { name: "Qwen_html_20260410_azvswqv8v.html", category: "html", size: "156 KB", path: "qwen/" },
-            { name: "Qwen_html_20260410_hgexs6tc7.html", category: "html", size: "167 KB", path: "qwen/" },
+            // === JavaScript Files (23) ===
+            { name: "react.js", category: "js", size: "45 KB" },
+            { name: "react_jsx-runtime.js", category: "js", size: "12 KB" },
+            { name: "react_jsx-dev-runtime.js", category: "js", size: "14 KB" },
+            { name: "lucide-react.js", category: "js", size: "234 KB" },
+            { name: "@react-three_fiber.js", category: "js", size: "178 KB" },
+            { name: "@react-three_drei.js", category: "js", size: "312 KB" },
+            { name: "@tanstack_react-query.js", category: "js", size: "145 KB" },
+            { name: "@radix-ui_react-toast.js", category: "js", size: "34 KB" },
+            { name: "@radix-ui_react-tooltip.js", category: "js", size: "42 KB" },
+            { name: "next-themes.js", category: "js", size: "28 KB" },
+            { name: "class-variance-authority.js", category: "js", size: "18 KB" },
+            { name: "clsx.js", category: "js", size: "8 KB" },
+            { name: "hls-J3KQFUCH.js", category: "js", size: "156 KB" },
+            { name: "chat.js", category: "js", size: "67 KB" },
+            { name: "eslint.config.js", category: "js", size: "4 KB" },
+            { name: "postcss.config.js", category: "js", size: "2 KB" },
+            { name: "chunk-ALOMATP7.js", category: "js", size: "89 KB" },
+            { name: "chunk-BDRZ4532.js", category: "js", size: "76 KB" },
+            { name: "chunk-FGBNOIQX.js", category: "js", size: "92 KB" },
+            { name: "chunk-KBTYAULA.js", category: "js", size: "104 KB" },
+            { name: "chunk-NFR4I2VH.js", category: "js", size: "87 KB" },
+            { name: "chunk-OTHSB3H2.js", category: "js", size: "95 KB" },
+            { name: "chunk-QCHXOAYK.js", category: "js", size: "112 KB" },
             
-            // Other HTML variants
-            { name: "blackbox-output-code.html", category: "html", size: "98 KB", path: "exports/" },
-            { name: "xiom-engineering.html", category: "html", size: "134 KB", path: "exports/" },
+            // === CSS/Styles Files (4) ===
+            { name: "index.css", category: "css", size: "34 KB" },
+            { name: "App.css", category: "css", size: "28 KB" },
+            { name: "chat.css", category: "css", size: "18 KB" },
+            { name: "postcss.config.js", category: "css", size: "2 KB" },
             
-            // JavaScript Files
-            { name: "react.js", category: "js", size: "45 KB", path: "node_modules/react/" },
-            { name: "react_jsx-runtime.js", category: "js", size: "12 KB", path: "node_modules/react/" },
-            { name: "react_jsx-dev-runtime.js", category: "js", size: "14 KB", path: "node_modules/react/" },
-            { name: "lucide-react.js", category: "js", size: "234 KB", path: "node_modules/lucide-react/" },
-            { name: "@react-three_fiber.js", category: "js", size: "178 KB", path: "node_modules/@react-three/" },
-            { name: "@react-three_drei.js", category: "js", size: "312 KB", path: "node_modules/@react-three/" },
-            { name: "@tanstack_react-query.js", category: "js", size: "145 KB", path: "node_modules/@tanstack/" },
-            { name: "@radix-ui_react-toast.js", category: "js", size: "34 KB", path: "node_modules/@radix-ui/" },
-            { name: "@radix-ui_react-tooltip.js", category: "js", size: "42 KB", path: "node_modules/@radix-ui/" },
-            { name: "next-themes.js", category: "js", size: "28 KB", path: "node_modules/next-themes/" },
-            { name: "class-variance-authority.js", category: "js", size: "18 KB", path: "node_modules/cva/" },
-            { name: "clsx.js", category: "js", size: "8 KB", path: "node_modules/clsx/" },
-            { name: "hls-J3KQFUCH.js", category: "js", size: "156 KB", path: "lib/" },
-            { name: "chat.js", category: "js", size: "67 KB", path: "src/" },
-            { name: "eslint.config.js", category: "js", size: "4 KB", path: "root/" },
-            { name: "postcss.config.js", category: "js", size: "2 KB", path: "root/" },
-            { name: "chunk-ALOMATP7.js", category: "js", size: "89 KB", path: "dist/chunks/" },
-            { name: "chunk-BDRZ4532.js", category: "js", size: "76 KB", path: "dist/chunks/" },
-            { name: "chunk-FGBNOIQX.js", category: "js", size: "92 KB", path: "dist/chunks/" },
-            { name: "chunk-KBTYAULA.js", category: "js", size: "104 KB", path: "dist/chunks/" },
-            { name: "chunk-NFR4I2VH.js", category: "js", size: "87 KB", path: "dist/chunks/" },
-            { name: "chunk-OTHSB3H2.js", category: "js", size: "95 KB", path: "dist/chunks/" },
-            { name: "chunk-QCHXOAYK.js", category: "js", size: "112 KB", path: "dist/chunks/" },
+            // === JSX/TSX Files (3) ===
+            { name: "App.jsx", category: "jsx", size: "45 KB" },
+            { name: "TriageIQ_v7.jsx", category: "jsx", size: "67 KB" },
+            { name: "skeleton.tsx", category: "tsx", size: "12 KB" },
             
-            // CSS Files
-            { name: "index.css", category: "css", size: "34 KB", path: "src/styles/" },
-            { name: "App.css", category: "css", size: "28 KB", path: "src/styles/" },
-            { name: "chat.css", category: "css", size: "18 KB", path: "src/styles/" },
-            { name: "postcss.config.js", category: "css", size: "2 KB", path: "root/" },
+            // === Images & Assets (2) ===
+            { name: "PipingandInstrumentationIllustration-1_1280x.webp", category: "image", size: "456 KB" },
+            { name: "favicon.ico", category: "image", size: "15 KB" },
             
-            // JSX/TSX Files
-            { name: "App.jsx", category: "jsx", size: "45 KB", path: "src/components/" },
-            { name: "TriageIQ_v7.jsx", category: "jsx", size: "67 KB", path: "src/enterprise/" },
-            { name: "skeleton.tsx", category: "tsx", size: "12 KB", path: "src/ui/" },
-            
-            // Images & Assets
-            { name: "PipingandInstrumentationIllustration-1_1280x.webp", category: "image", size: "456 KB", path: "assets/images/" },
-            { name: "favicon.ico", category: "image", size: "15 KB", path: "public/" },
-            
-            // Documents & Config
-            { name: "README.md", category: "doc", size: "8 KB", path: "root/" },
-            { name: "LICENSE", category: "doc", size: "2 KB", path: "root/" },
-            { name: "index.html", category: "html", size: "3 KB", path: "public/" },
+            // === Documents & Config (14) ===
+            { name: "README.md", category: "doc", size: "8 KB" },
+            { name: "LICENSE", category: "doc", size: "2 KB" },
+            { name: "index.html", category: "html", size: "3 KB" },
         ];
 
-        // ===== RENDER FUNCTIONS =====
+        // ===== Helper Functions =====
         function getFileIcon(category) {
             const icons = {
                 html: '<i class="fas fa-file-code"></i>',
@@ -903,6 +877,29 @@
             return badges[category] || badges.other;
         }
 
+        // ===== Open File on GitHub Pages =====
+        function openFile(fileName) {
+            const encodedName = encodeURIComponent(fileName.trim());
+            const fileUrl = GITHUB_PAGES_BASE + encodedName;
+            
+            // فتح الملف في نافذة جديدة
+            window.open(fileUrl, '_blank', 'noopener,noreferrer');
+            showToast(`🔗 Opening: ${fileName}`);
+        }
+
+        // ===== Copy File Link =====
+        function copyFileLink(fileName) {
+            const encodedName = encodeURIComponent(fileName.trim());
+            const fileUrl = GITHUB_PAGES_BASE + encodedName;
+            
+            navigator.clipboard.writeText(fileUrl).then(() => {
+                showToast('🔗 Link copied to clipboard!');
+            }).catch(() => {
+                showToast('⚠️ Failed to copy link', 'warning');
+            });
+        }
+
+        // ===== Render Files =====
         function renderFiles(fileList) {
             const container = document.getElementById('fileList');
             container.innerHTML = '';
@@ -920,42 +917,49 @@
                 card.dataset.category = file.category;
                 card.style.animationDelay = `${Math.min(index * 0.02, 0.3)}s`;
                 
+                // Escape single quotes for inline onclick
+                const safeName = file.name.replace(/'/g, "\\'");
+                
                 card.innerHTML = `
                     <div class="file-header">
                         <div class="file-icon ${file.category}">${getFileIcon(file.category)}</div>
                         <div class="file-actions">
-                            <button class="file-action-btn" title="Download" onclick="event.stopPropagation(); showToast('Downloading: ${file.name}')">
-                                <i class="fas fa-download"></i>
+                            <button class="file-action-btn" title="Open File" 
+                                    onclick="event.stopPropagation(); openFile('${safeName}')">
+                                <i class="fas fa-external-link-alt"></i>
                             </button>
-                            <button class="file-action-btn" title="More" onclick="event.stopPropagation(); showToast('Options for: ${file.name}')">
-                                <i class="fas fa-ellipsis-v"></i>
+                            <button class="file-action-btn" title="Copy Link" 
+                                    onclick="event.stopPropagation(); copyFileLink('${safeName}')">
+                                <i class="fas fa-link"></i>
                             </button>
                         </div>
                     </div>
                     <div class="file-name" title="${file.name}">${file.name}</div>
-                    <div class="file-path" title="${file.path}">${file.path}</div>
+                    <div class="file-path" title="${GITHUB_PAGES_BASE}">${GITHUB_PAGES_BASE}</div>
                     <div class="file-meta">
                         <span>${file.size}</span>
                         ${getFileBadge(file.category)}
                     </div>
                 `;
                 
-                card.addEventListener('click', () => {
-                    showToast(`Opening: ${file.name}`);
+                // Click to open file
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.file-action-btn')) {
+                        openFile(file.name);
+                    }
                 });
                 
                 container.appendChild(card);
             });
         }
 
-        // ===== FILTER FUNCTIONS =====
+        // ===== Filter Functions =====
         function filterFiles() {
             const input = document.getElementById('searchInput').value.toLowerCase();
             const activeCategory = document.querySelector('.nav-item.active')?.dataset?.filter || 'all';
             
             const filtered = files.filter(file => {
-                const matchesSearch = file.name.toLowerCase().includes(input) || 
-                                     file.path.toLowerCase().includes(input);
+                const matchesSearch = file.name.toLowerCase().includes(input);
                 const matchesCategory = activeCategory === 'all' || file.category === activeCategory;
                 return matchesSearch && matchesCategory;
             });
@@ -985,34 +989,72 @@
         function updateCounts(fileList) {
             const counts = { all: fileList.length, html: 0, js: 0, css: 0, other: 0 };
             fileList.forEach(f => {
-                if (['html'].includes(f.category)) counts.html++;
-                else if (['js'].includes(f.category)) counts.js++;
-                else if (['css', 'jsx', 'tsx'].includes(f.category)) counts.css++;
+                if (f.category === 'html') counts.html++;
+                else if (f.category === 'js') counts.js++;
+                else if (['css','jsx','tsx'].includes(f.category)) counts.css++;
                 else counts.other++;
             });
             
             document.getElementById('count-all').textContent = counts.all;
             document.getElementById('count-html').textContent = counts.html;
             document.getElementById('count-js').textContent = counts.js;
-            document.getElementById('count-css').textContent = counts.css + counts.other;
+            document.getElementById('count-css').textContent = counts.css;
             document.getElementById('count-other').textContent = counts.other;
+            
+            // Update stats
+            document.getElementById('stat-total').textContent = counts.all;
+            document.getElementById('stat-html').textContent = counts.html;
+            document.getElementById('stat-js').textContent = counts.js;
+            document.getElementById('stat-other').textContent = counts.css + counts.other;
+            document.getElementById('totalFiles').textContent = counts.all;
         }
 
-        // ===== TOAST =====
-        function showToast(message) {
+        // ===== Toast Notification =====
+        function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
-            document.getElementById('toastMsg').textContent = message;
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = toast.querySelector('i');
+            
+            toastMsg.innerHTML = message;
+            
+            if (type === 'warning') {
+                toast.style.borderLeftColor = 'var(--warning)';
+                toastIcon.className = 'fas fa-exclamation-triangle';
+                toastIcon.style.color = 'var(--warning)';
+            } else if (type === 'info') {
+                toast.style.borderLeftColor = 'var(--info)';
+                toastIcon.className = 'fas fa-info-circle';
+                toastIcon.style.color = 'var(--info)';
+            } else {
+                toast.style.borderLeftColor = 'var(--success)';
+                toastIcon.className = 'fas fa-check-circle';
+                toastIcon.style.color = 'var(--success)';
+            }
+            
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
+            setTimeout(() => toast.classList.remove('show'), 3500);
         }
 
-        // ===== INIT =====
+        // ===== Utility Functions =====
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        function openRepo() {
+            window.open(REPO_URL, '_blank', 'noopener,noreferrer');
+        }
+
+        function showAbout() {
+            showToast('👤 NexusFiles v2.2<br>Created by alaamohammed864<br>GitHub Pages Enabled ✨', 'info');
+        }
+
+        // ===== Initialize =====
         document.addEventListener('DOMContentLoaded', () => {
             renderFiles(files);
             updateCounts(files);
-            showToast('📁 102 files loaded successfully');
+            showToast('📁 102 files loaded • Click any file to open on GitHub Pages');
             
-            // Keyboard shortcut
+            // Keyboard shortcut for search
             document.addEventListener('keydown', (e) => {
                 if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
                     e.preventDefault();
