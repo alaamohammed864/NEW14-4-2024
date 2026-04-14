@@ -1,31 +1,99 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project">
-    <meta name="author" content="Lovable" />
-
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
-    <meta property="og:type" content="website" />
-    
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    
-    <meta property="og:title" content="Lovable App">
-  <meta name="twitter:title" content="Lovable App">
-  <meta property="og:description" content="Lovable Generated Project">
-  <meta name="twitter:description" content="Lovable Generated Project">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index of Files</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        input[type='text'] { width: 100%; padding: 10px; margin: 10px 0; }
+        .file-list { margin: 20px 0; }
+        .file-type { margin-top: 20px; font-weight: bold; }
+        a { text-decoration: none; color: blue; }
+    </style>
 </head>
+<body>
+    <h1>File Index</h1>
+    <p>Search for a file: <input type="text" id="search" placeholder="Type here..."></p>
+    <div class="file-list" id="fileList">
+        <div class="file-type" id="htmlFiles">
+            <h2>HTML Files</h2>
+            <!-- Populate HTML files here -->
+        </div>
+        <div class="file-type" id="jsFiles">
+            <h2>JavaScript Files</h2>
+            <!-- Populate JavaScript files here -->
+        </div>
+        <div class="file-type" id="cssFiles">
+            <h2>CSS Files</h2>
+            <!-- Populate CSS files here -->
+        </div>
+        <div class="file-type" id="configFiles">
+            <h2>Configuration Files</h2>
+            <!-- Populate Configuration files here -->
+        </div>
+        <div class="file-type" id="otherFiles">
+            <h2>Other Files</h2>
+            <!-- Populate other files here -->
+        </div>
+    </div>
+    <script>
+        const files = [
+            // List of files with descriptions
+            {path: 'index.html', type: 'html', description: 'Main HTML document'},
+            {path: 'script.js', type: 'javascript', description: 'Main JavaScript file for functionality'},
+            {path: 'style.css', type: 'css', description: 'Styles for the web page'},
+            {path: 'config.json', type: 'configuration', description: 'Configuration settings for the app'},
+            {path: 'README.md', type: 'other', description: 'Project documentation'},
+            // Add files here
+        ];
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+        function populateFiles() {
+            const htmlContainer = document.getElementById('htmlFiles');
+            const jsContainer = document.getElementById('jsFiles');
+            const cssContainer = document.getElementById('cssFiles');
+            const configContainer = document.getElementById('configFiles');
+            const otherContainer = document.getElementById('otherFiles');
+
+            files.forEach(file => {
+                const fileEntry = document.createElement('div');
+                fileEntry.innerHTML = `<a href='${file.path}'>${file.path}</a> - ${file.description}`;
+
+                switch(file.type) {
+                    case 'html':
+                        htmlContainer.appendChild(fileEntry);
+                        break;
+                    case 'javascript':
+                        jsContainer.appendChild(fileEntry);
+                        break;
+                    case 'css':
+                        cssContainer.appendChild(fileEntry);
+                        break;
+                    case 'configuration':
+                        configContainer.appendChild(fileEntry);
+                        break;
+                    default:
+                        otherContainer.appendChild(fileEntry);
+                }
+            });
+        }
+
+        function searchFiles() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const allEntries = document.querySelectorAll('.file-list > div > div');
+            allEntries.forEach(entry => {
+                if (entry.textContent.toLowerCase().includes(query)) {
+                    entry.style.display = 'block';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
+
+        document.getElementById('search').addEventListener('keyup', searchFiles);
+
+        populateFiles();
+    </script>
+</body>
 </html>
