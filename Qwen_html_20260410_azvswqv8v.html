@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&ID 3D Interactive Viewer - PENNLEX System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Roboto+Mono:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: #1a2235;
+    --bg-card-hover: #1e2a42;
+    --border-color: #2a3a5c;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #8b5cf6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ===== TOP BAR ===== */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: linear-gradient(135deg, #111827 0%, #1a2235 100%);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+  }
+
+  .top-bar .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .top-bar .logo svg { width: 32px; height: 32px; }
+
+  .top-bar .title-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .top-bar .title-group .tag {
+    background: rgba(59,130,246,0.15);
+    color: var(--accent-blue);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(59,130,246,0.3);
+  }
+
+  .top-bar .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .top-bar .actions button {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Cairo', sans-serif;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .top-bar .actions button:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+  }
+
+  .top-bar .actions button.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    width: 320px;
+    height: calc(100vh - 56px);
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    z-index: 900;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    padding: 16px;
+  }
+
+  .sidebar.collapsed { transform: translateX(100%); }
+
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-track { background: var(--bg-primary); }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+  .sidebar-section {
+    margin-bottom: 20px;
+  }
+
+  .sidebar-section h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .equip-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .equip-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent-blue);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .equip-item:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-blue);
+    transform: translateX(-4px);
+  }
+
+  .equip-item:hover::before { opacity: 1; }
+
+  .equip-item.selected {
+    border-color: var(--accent-cyan);
+    background: rgba(6,182,212,0.1);
+  }
+
+  .equip-item.selected::before {
+    opacity: 1;
+    background: var(--accent-cyan);
+  }
+
+  .equip-item .eq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .equip-item .eq-tag {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent-blue);
+  }
+
+  .equip-item .eq-status {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px rgba(16,185,129,0.5);
+    animation: pulse-status 2s infinite;
+  }
+
+  .equip-item .eq-status.warning {
+    background: var(--accent-orange);
+    box-shadow: 0 0 8px rgba(245,158,11,0.5);
+  }
+
+  .equip-item .eq-status.alarm {
+    background: var(--accent-red);
+    box-shadow: 0 0 8px rgba(239,68,68,0.5);
+  }
+
+  @keyframes pulse-status {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .equip-item .eq-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .equip-item .eq-params {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .equip-item .eq-param {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Roboto Mono', monospace;
+  }
+
+  .equip-item .eq-param span {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* ===== DETAIL PANEL ===== */
+  .detail-panel {
+    position: fixed;
+    top: 56px;
+    left: 20px;
+    width: 340px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    z-index: 950;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.4s ease;
+    transform: translateY(120%);
+    opacity: 0;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .detail-panel.visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .detail-panel .detail-header {
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    padding: 20px;
+    position: relative;
+  }
+
+  .detail-panel .detail-header .close-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 28px; height: 28px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+  }
+
+  .detail-panel .detail-header .close-btn:hover {
+    background: rgba(255,255,255,0.4);
+  }
+
+  .detail-panel .detail-header .eq-type {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .detail-panel .detail-header .eq-id {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .detail-panel .detail-header .eq-desc {
+    font-size: 13px;
+    color: rgba(255,255,255,0.8);
+    margin-top: 4px;
+  }
+
+  .detail-panel .detail-body {
+    padding: 20px;
+  }
+
+  .detail-panel .param-group {
+    margin-bottom: 16px;
+  }
+
+  .detail-panel .param-group-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .detail-panel .param-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(42,58,92,0.5);
+  }
+
+  .detail-panel .param-row .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .detail-panel .param-row .value {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .detail-panel .param-row .value.good { color: var(--accent-green); }
+  .detail-panel .param-row .value.warn { color: var(--accent-orange); }
+  .detail-panel .param-row .value.bad { color: var(--accent-red); }
+
+  .detail-panel .mini-chart {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 8px;
+  }
+
+  .detail-panel .mini-chart canvas {
+    width: 100%;
+    height: 80px;
+  }
+
+  /* ===== 3D CANVAS ===== */
+  #canvas-container {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+  }
+
+  #canvas-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ===== CONTROLS ===== */
+  .controls-panel {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 900;
+  }
+
+  .controls-panel button {
+    width: 44px;
+    height: 44px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .controls-panel button:hover {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+  }
+
+  .view-modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .view-modes button {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  /* ===== LEGEND ===== */
+  .legend-panel {
+    position: fixed;
+    bottom: 24px;
+    right: 340px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 900;
+    min-width: 220px;
+    box-shadow: var(--shadow-lg);
+    transition: transform 0.3s;
+  }
+
+  .legend-panel.collapsed { transform: translateY(100%); }
+
+  .legend-panel h4 {
+    font-size: 13px;
+    color: var(--accent-cyan);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .legend-item .swatch {
+    width: 24px;
+    height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ===== SEARCH ===== */
+  .search-box {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .search-box input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 14px 10px 36px;
+    color: var(--text-primary);
+    font-family: 'Cairo', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .search-box input::placeholder { color: var(--text-muted); }
+
+  .search-box .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+  }
+
+  /* ===== TOOLTIP ===== */
+  .tooltip {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 14px;
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    box-shadow: var(--shadow-lg);
+    max-width: 250px;
+  }
+
+  .tooltip.visible { opacity: 1; }
+
+  .tooltip .tt-tag {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 700;
+    color: var(--accent-blue);
+    font-size: 13px;
+  }
+
+  .tooltip .tt-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  /* ===== ANIMATION ===== */
+  .fade-in {
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== LOADING ===== */
+  .loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s;
+  }
+
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-text {
+    margin-top: 20px;
+    font-size: 16px;
+    color: var(--text-secondary);
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .sidebar { width: 260px; }
+    .legend-panel { display: none; }
+    .detail-panel { width: 90vw; left: 5vw; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">جاري تحميل النموذج ثلاثي الأبعاد...</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="14" stroke="#3b82f6" stroke-width="2"/>
+      <path d="M10 16h12M16 10v12M12 12l8 8M20 12l-8 8" stroke="#06b6d4" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="3" fill="#3b82f6"/>
+    </svg>
+    <span>P&ID <span style="color:var(--accent-cyan)">3D Viewer</span></span>
+  </div>
+  <div class="title-group">
+    <span class="tag">PENNLEX SYSTEM</span>
+    <span class="tag" style="background:rgba(16,185,129,0.15);color:var(--accent-green);border-color:rgba(16,185,129,0.3)">LIVE</span>
+    <span class="tag" style="background:rgba(139,92,246,0.15);color:var(--accent-purple);border-color:rgba(139,92,246,0.3)">3D</span>
+  </div>
+  <div class="actions">
+    <button onclick="toggleSidebar()" id="sidebarBtn">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="2" x2="6" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>
+      القائمة
+    </button>
+    <button onclick="resetCamera()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8a6 6 0 0110.5-4M14 8a6 6 0 01-10.5 4"/><path d="M12.5 2v3H9.5M3.5 14v-3h3"/></svg>
+      إعادة الضبط
+    </button>
+    <button onclick="toggleAnimation()" id="animateBtn">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6 6l4 2-4 2z" fill="currentColor"/></svg>
+      إيقاف
+    </button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="search-box">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="15" y2="15"/></svg>
+    <input type="text" placeholder="بحث عن معدات..." oninput="searchEquipment(this.value)">
+  </div>
+
+  <div class="sidebar-section">
+    <h3>الضواغط (Compressors)</h3>
+    <div id="compressorList"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>المبادلات الحرارية (Heat Exchangers)</h3>
+    <div id="heatExchangerList"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>الخزانات والفواصل (Vessels)</h3>
+    <div id="vesselList"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>الصمامات (Valves)</h3>
+    <div id="valveList"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>أجهزة القياس (Instruments)</h3>
+    <div id="instrumentList"></div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header" id="detailHeader">
+    <button class="close-btn" onclick="closeDetail()">✕</button>
+    <div class="eq-type" id="detailType">COMPRESSOR</div>
+    <div class="eq-id" id="detailId">C-101</div>
+    <div class="eq-desc" id="detailDesc">Centrifugal Compressor</div>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<!-- 3D CANVAS -->
+<div id="canvas-container"></div>
+
+<!-- CONTROLS -->
+<div class="controls-panel">
+  <div class="view-modes">
+    <button onclick="setView('top')" style="font-size:11px">من الأعلى</button>
+    <button onclick="setView('front')" style="font-size:11px">من الأمام</button>
+    <button onclick="setView('iso')" style="font-size:11px">Isometric</button>
+  </div>
+  <button onclick="zoomIn()" title="تكبير">+</button>
+  <button onclick="zoomOut()" title="تصغير">−</button>
+  <button onclick="resetCamera()" title="إعادة ضبط">⟲</button>
+</div>
+
+<!-- LEGEND -->
+<div class="legend-panel" id="legendPanel">
+  <h4>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="8" y1="2" x2="8" y2="14"/></svg>
+    مفتاح الألوان
+  </h4>
+  <div class="legend-item">
+    <div class="swatch" style="background:#f59e0b"></div>
+    <span>غاز (Gas)</span>
+  </div>
+  <div class="legend-item">
+    <div class="swatch" style="background:#10b981"></div>
+    <span>سائل (Liquid)</span>
+  </div>
+  <div class="legend-item">
+    <div class="swatch" style="background:#06b6d4"></div>
+    <span>ماء (Water)</span>
+  </div>
+  <div class="legend-item">
+    <div class="swatch" style="background:#3b82f6"></div>
+    <span>مبرد (Refrigerant)</span>
+  </div>
+  <div class="legend-item">
+    <div class="swatch" style="background:#8b5cf6"></div>
+    <span>زيت (Oil)</span>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-tag" id="ttTag"></div>
+  <div class="tt-desc" id="ttDesc"></div>
+</div>
+
+<!-- Three.js and dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// ===== EQUIPMENT DATA =====
+const equipmentData = {
+  'C-101': {
+    type: 'COMPRESSOR',
+    name: 'Centrifugal Compressor',
+    desc: 'ضاغط طرد مركزي - المرحلة الرئيسية',
+    status: 'running',
+    position: { x: 0, y: 0, z: 0 },
+    params: {
+      'سرعة الدوران': { value: '3,600 RPM', status: 'good' },
+      'ضغط الدخول': { value: '1.2 bar', status: 'good' },
+      'ضغط الخروج': { value: '4.8 bar', status: 'warn' },
+      'درجة حرارة الدخول': { value: '15°C', status: 'good' },
+      'درجة حرارة الخروج': { value: '85°C', status: 'warn' },
+      'استهلاك الطاقة': { value: '450 kW', status: 'good' },
+      'التدفق الكتلي': { value: '12.5 kg/s', status: 'good' }
+    }
+  },
+  'C-102': {
+    type: 'COMPRESSOR',
+    name: 'Reciprocating Compressor',
+    desc: 'ضاغط ترددي - المرحلة الثانوية',
+    status: 'standby',
+    position: { x: -8, y: 0, z: 8 },
+    params: {
+      'سرعة الدوران': { value: '0 RPM', status: 'good' },
+      'ضغط الدخول': { value: '1.0 bar', status: 'good' },
+      'ضغط الخروج': { value: '0 bar', status: 'good' },
+      'الحالة': { value: 'STANDBY', status: 'warn' }
+    }
+  },
+  'E-101': {
+    type: 'HEAT EXCHANGER',
+    name: 'Shell & Tube Condenser',
+    desc: 'مكثف ذو أنابيب - تبريد بالماء',
+    status: 'running',
+    position: { x: 8, y: 0, z: -4 },
+    params: {
+      'ضغط الأنبوب': { value: '4.8 bar', status: 'good' },
+      'ضغط الغلاف': { value: '2.1 bar', status: 'good' },
+      'درجة حرارة الدخول': { value: '85°C', status: 'good' },
+      'درجة حرارة الخروج': { value: '35°C', status: 'good' },
+      'معدل التدفق المائي': { value: '15 kg/s', status: 'good' },
+      'سعة التبادل الحراري': { value: '1,200 kW', status: 'good' }
+    }
+  },
+  'E-102': {
+    type: 'HEAT EXCHANGER',
+    name: 'Plate Evaporator',
+    desc: 'مبخر صفائحي - تبريد المنتج',
+    status: 'running',
+    position: { x: 14, y: 0, z: 0 },
+    params: {
+      'ضغط المبخر': { value: '0.8 bar', status: 'good' },
+      'درجة حرارة التشبع': { value: '-30°C', status: 'good' },
+      'درجة حرارة الخروج': { value: '-25°C', status: 'good' },
+      'التدفق الحراري': { value: '800 kW', status: 'good' }
+    }
+  },
+  'E-103': {
+    type: 'HEAT EXCHANGER',
+    name: 'Economizer',
+    desc: 'موفر اقتصادي - تحسين الكفاءة',
+    status: 'running',
+    position: { x: 8, y: 0, z: 8 },
+    params: {
+      'ضغط الجانب الساخن': { value: '2.5 bar', status: 'good' },
+      'ضغط الجانب البارد': { value: '1.2 bar', status: 'good' },
+      'درجة حرارة الدخول': { value: '45°C', status: 'good' },
+      'درجة حرارة الخروج': { value: '25°C', status: 'good' }
+    }
+  },
+  'E-104': {
+    type: 'HEAT EXCHANGER',
+    name: 'Liquid Subcooler',
+    desc: 'مبرد ثانوي للسائل',
+    status: 'running',
+    position: { x: -10, y: 0, z: 8 },
+    params: {
+      'ضغط الدخول': { value: '4.5 bar', status: 'good' },
+      'ضغط الخروج': { value: '4.4 bar', status: 'good' },
+      'درجة حرارة الدخول': { value: '30°C', status: 'good' },
+      'درجة حرارة الخروج': { value: '10°C', status: 'good' }
+    }
+  },
+  'V-101': {
+    type: 'VESSEL',
+    name: 'Liquid Receiver',
+    desc: 'خزان استقبال السائل',
+    status: 'running',
+    position: { x: 10, y: 0, z: 5 },
+    params: {
+      'ضغط الخزان': { value: '4.4 bar', status: 'good' },
+      'درجة الحرارة': { value: '10°C', status: 'good' },
+      'مستوى السائل': { value: '65%', status: 'good' },
+      'حجم الخزان': { value: '2.5 m³', status: 'good' }
+    }
+  },
+  'V-102': {
+    type: 'VESSEL',
+    name: 'Suction Accumulator',
+    desc: 'مجمع الشفط - فصل السائل عن الغاز',
+    status: 'running',
+    position: { x: -6, y: 0, z: 5 },
+    params: {
+      'ضغط الخزان': { value: '1.2 bar', status: 'good' },
+      'درجة الحرارة': { value: '15°C', status: 'good' },
+      'مستوى السائل': { value: '20%', status: 'good' }
+    }
+  },
+  'V-103': {
+    type: 'VESSEL',
+    name: 'Oil Separator',
+    desc: 'فاصل الزيت - إزالة الزيت من الغاز',
+    status: 'running',
+    position: { x: -8, y: 0, z: 5 },
+    params: {
+      'ضغط الدخول': { value: '4.8 bar', status: 'good' },
+      'ضغط الخروج': { value: '4.7 bar', status: 'good' },
+      'كفاءة الفصل': { value: '99.5%', status: 'good' }
+    }
+  },
+  'HV-101': { type: 'VALVE', name: 'Manual Hand Valve', desc: 'صمام يدوي', status: 'open', position: { x: 2, y: 0, z: 0 } },
+  'HV-102': { type: 'VALVE', name: 'Manual Hand Valve', desc: 'صمام يدوي', status: 'open', position: { x: 9, y: 0, z: 0 } },
+  'FCV-101': { type: 'VALVE', name: 'Flow Control Valve', desc: 'صمام تحكم في التدفق', status: 'auto', position: { x: 10.5, y: 0, z: 0 } },
+  'XV-101': { type: 'VALVE', name: 'Thermal Expansion Valve', desc: 'صمام تمدد حراري', status: 'running', position: { x: 11, y: 0, z: 0 } },
+  'PSV-101': { type: 'VALVE', name: 'Pressure Safety Valve', desc: 'صمام أمان ضغط', status: 'closed', position: { x: 0, y: 2, z: 0 } },
+  'CV-101': { type: 'VALVE', name: 'Check Valve', desc: 'صمام عدم رجوع', status: 'open', position: { x: 13, y: 0, z: 0 } },
+  'TI-101': { type: 'INSTRUMENT', name: 'Temperature Indicator', desc: 'مؤشر درجة حرارة', status: 'active', position: { x: -2, y: 1, z: 0 } },
+  'TI-102': { type: 'INSTRUMENT', name: 'Temperature Indicator', desc: 'مؤشر درجة حرارة', status: 'active', position: { x: 8, y: 1, z: -4 } },
+  'PI-101': { type: 'INSTRUMENT', name: 'Pressure Indicator', desc: 'مؤشر ضغط', status: 'active', position: { x: 0, y: 1.5, z: 1 } },
+  'PI-102': { type: 'INSTRUMENT', name: 'Pressure Indicator', desc: 'مؤشر ضغط', status: 'active', position: { x: 4, y: 1.5, z: 0 } },
+  'PIC-101': { type: 'INSTRUMENT', name: 'Pressure Controller', desc: 'متحكم ضغط', status: 'active', position: { x: 3, y: 1.5, z: 1 } },
+  'TIC-101': { type: 'INSTRUMENT', name: 'Temperature Controller', desc: 'متحكم حرارة', status: 'active', position: { x: 9, y: 1.5, z: -3 } },
+  'FI-101': { type: 'INSTRUMENT', name: 'Flow Indicator', desc: 'مؤشر تدفق', status: 'active', position: { x: 11.5, y: 1, z: 0 } },
+  'LI-101': { type: 'INSTRUMENT', name: 'Level Indicator', desc: 'مؤشر مستوى', status: 'active', position: { x: 10.5, y: 1.5, z: 5 } },
+  'FIC-101': { type: 'INSTRUMENT', name: 'Flow Controller', desc: 'متحكم تدفق', status: 'active', position: { x: 10.5, y: 1.5, z: 1 } },
+  'PSH-101': { type: 'INSTRUMENT', name: 'Pressure Switch High', desc: 'مفتاح ضغط عالي', status: 'normal', position: { x: 5, y: 1.5, z: 1 } },
+  'PSL-101': { type: 'INSTRUMENT', name: 'Pressure Switch Low', desc: 'مفتاح ضغط منخفض', status: 'normal', position: { x: -2, y: 1.5, z: 1 } },
+  'VI-101': { type: 'INSTRUMENT', name: 'Vibration Indicator', desc: 'مؤشر اهتزاز', status: 'active', position: { x: -1, y: 1.5, z: 1 } }
+};
+
+// ===== THREE.JS VARIABLES =====
+let scene, camera, renderer, controls;
+let equipmentMeshes = {};
+let pipeLines = [];
+let animationId;
+let isAnimating = true;
+let selectedObject = null;
+
+// ===== INIT THREE.JS =====
+function initThreeJS() {
+  const container = document.getElementById('canvas-container');
+  
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e1a);
+  scene.fog = new THREE.Fog(0x0a0e1a, 20, 100);
+
+  // Camera
+  camera = new THREE.PerspectiveCamera(
+    60,
+    container.clientWidth / container.clientHeight,
+    0.1,
+    1000
+  );
+  camera.position.set(20, 15, 20);
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+
+  // Controls
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.maxDistance = 100;
+  controls.minDistance = 5;
+
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(10, 20, 10);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  scene.add(dirLight);
+
+  const dirLight2 = new THREE.DirectionalLight(0x3b82f6, 0.3);
+  dirLight2.position.set(-10, 10, -10);
+  scene.add(dirLight2);
+
+  // Grid
+  const gridHelper = new THREE.GridHelper(60, 60, 0x2a3a5c, 0x1a2235);
+  scene.add(gridHelper);
+
+  // Ground plane
+  const groundGeometry = new THREE.PlaneGeometry(60, 60);
+  const groundMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x111827,
+    roughness: 0.8,
+    metalness: 0.2
+  });
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.01;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Create 3D scene
+  create3DScene();
+
+  // Event listeners
+  window.addEventListener('resize', onWindowResize);
+  renderer.domElement.addEventListener('click', onCanvasClick);
+  renderer.domElement.addEventListener('mousemove', onCanvasMouseMove);
+
+  // Start animation
+  animate();
+
+  // Hide loading
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }, 1000);
+}
+
+// ===== CREATE 3D SCENE =====
+function create3DScene() {
+  // Create equipment
+  createCompressor('C-101', 0, 0, 0);
+  createCompressor('C-102', -8, 0, 8, 'reciprocating');
+  
+  createHeatExchanger('E-101', 8, 0, -4, 'condenser');
+  createHeatExchanger('E-102', 14, 0, 0, 'evaporator');
+  createHeatExchanger('E-103', 8, 0, 8, 'economizer');
+  createHeatExchanger('E-104', -10, 0, 8, 'subcooler');
+  
+  createVessel('V-101', 10, 0, 5, 'receiver');
+  createVessel('V-102', -6, 0, 5, 'accumulator');
+  createVessel('V-103', -8, 0, 5, 'separator');
+  
+  createValve('HV-101', 2, 0, 0);
+  createValve('HV-102', 9, 0, 0);
+  createValve('FCV-101', 10.5, 0, 0, 'control');
+  createValve('XV-101', 11, 0, 0, 'expansion');
+  createValve('PSV-101', 0, 2, 0, 'relief');
+  createValve('CV-101', 13, 0, 0, 'check');
+  
+  createInstrument('TI-101', -2, 1, 0);
+  createInstrument('TI-102', 8, 1, -4);
+  createInstrument('PI-101', 0, 1.5, 1);
+  createInstrument('PI-102', 4, 1.5, 0);
+  createInstrument('PIC-101', 3, 1.5, 1);
+  createInstrument('TIC-101', 9, 1.5, -3);
+  createInstrument('FI-101', 11.5, 1, 0);
+  createInstrument('LI-101', 10.5, 1.5, 5);
+  createInstrument('FIC-101', 10.5, 1.5, 1);
+  createInstrument('PSH-101', 5, 1.5, 1);
+  createInstrument('PSL-101', -2, 1.5, 1);
+  createInstrument('VI-101', -1, 1.5, 1);
+
+  // Create piping system
+  createPipingSystem();
+}
+
+// ===== CREATE COMPRESSOR =====
+function createCompressor(id, x, y, z, type = 'centrifugal') {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.userData = { type: 'equipment', id: id };
+
+  if (type === 'centrifugal') {
+    // Main body
+    const bodyGeom = new THREE.CylinderGeometry(1.5, 1.5, 2, 32);
+    const bodyMat = new THREE.MeshStandardMaterial({ 
+      color: 0x3b82f6,
+      metalness: 0.7,
+      roughness: 0.3
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.y = 1;
+    body.castShadow = true;
+    group.add(body);
+
+    // Inlet
+    const inletGeom = new THREE.CylinderGeometry(0.6, 0.6, 1.5, 16);
+    const inletMat = new THREE.MeshStandardMaterial({ 
+      color: 0xf59e0b,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const inlet = new THREE.Mesh(inletGeom, inletMat);
+    inlet.rotation.z = Math.PI / 2;
+    inlet.position.set(-1.5, 1, 0);
+    inlet.castShadow = true;
+    group.add(inlet);
+
+    // Outlet
+    const outlet = new THREE.Mesh(inletGeom, inletMat);
+    outlet.rotation.z = Math.PI / 2;
+    outlet.position.set(1.5, 1.5, 0);
+    outlet.castShadow = true;
+    group.add(outlet);
+
+    // Impeller (visible through transparent casing)
+    const impellerGeom = new THREE.CylinderGeometry(1.2, 1.2, 0.3, 8);
+    const impellerMat = new THREE.MeshStandardMaterial({ 
+      color: 0x10b981,
+      metalness: 0.9,
+      roughness: 0.2,
+      transparent: true,
+      opacity: 0.6
+    });
+    const impeller = new THREE.Mesh(impellerGeom, impellerMat);
+    impeller.position.y = 1;
+    impeller.userData = { isImpeller: true, parentId: id };
+    group.add(impeller);
+
+  } else {
+    // Reciprocating compressor
+    const bodyGeom = new THREE.BoxGeometry(2, 2, 1.5);
+    const bodyMat = new THREE.MeshStandardMaterial({ 
+      color: 0x3b82f6,
+      metalness: 0.7,
+      roughness: 0.3
+    });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.y = 1;
+    body.castShadow = true;
+    group.add(body);
+
+    // Cylinders
+    for (let i = 0; i < 2; i++) {
+      const cylGeom = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 16);
+      const cyl = new THREE.Mesh(cylGeom, bodyMat);
+      cyl.position.set(-0.5 + i, 2, 0);
+      cyl.castShadow = true;
+      group.add(cyl);
+    }
+  }
+
+  // Label
+  createLabel(id, x, y + 3, z);
+
+  scene.add(group);
+  equipmentMeshes[id] = group;
+}
+
+// ===== CREATE HEAT EXCHANGER =====
+function createHeatExchanger(id, x, y, z, type = 'shell') {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.userData = { type: 'equipment', id: id };
+
+  if (type === 'condenser') {
+    // Shell
+    const shellGeom = new THREE.CylinderGeometry(1.2, 1.2, 4, 32);
+    const shellMat = new THREE.MeshStandardMaterial({ 
+      color: 0x06b6d4,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const shell = new THREE.Mesh(shellGeom, shellMat);
+    shell.rotation.z = Math.PI / 2;
+    shell.position.y = 1;
+    shell.castShadow = true;
+    group.add(shell);
+
+    // Tubes (visible)
+    for (let i = 0; i < 5; i++) {
+      const tubeGeom = new THREE.CylinderGeometry(0.15, 0.15, 4, 8);
+      const tubeMat = new THREE.MeshStandardMaterial({ 
+        color: 0x10b981,
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const tube = new THREE.Mesh(tubeGeom, tubeMat);
+      tube.rotation.z = Math.PI / 2;
+      tube.position.y = 1 + (i - 2) * 0.3;
+      group.add(tube);
+    }
+
+  } else if (type === 'evaporator') {
+    // Plate heat exchanger
+    const platesGeom = new THREE.BoxGeometry(3, 2, 0.8);
+    const platesMat = new THREE.MeshStandardMaterial({ 
+      color: 0x06b6d4,
+      metalness: 0.7,
+      roughness: 0.3
+    });
+    const plates = new THREE.Mesh(platesGeom, platesMat);
+    plates.position.y = 1;
+    plates.castShadow = true;
+    group.add(plates);
+
+    // Frame
+    const frameGeom = new THREE.BoxGeometry(3.2, 2.2, 0.2);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+    const frame = new THREE.Mesh(frameGeom, frameMat);
+    frame.position.set(0, 1, -0.5);
+    group.add(frame);
+
+  } else {
+    // Generic shell and tube
+    const shellGeom = new THREE.CylinderGeometry(1, 1, 3, 32);
+    const shellMat = new THREE.MeshStandardMaterial({ 
+      color: 0x06b6d4,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const shell = new THREE.Mesh(shellGeom, shellMat);
+    shell.rotation.z = Math.PI / 2;
+    shell.position.y = 1;
+    shell.castShadow = true;
+    group.add(shell);
+  }
+
+  createLabel(id, x, y + 2.5, z);
+  scene.add(group);
+  equipmentMeshes[id] = group;
+}
+
+// ===== CREATE VESSEL =====
+function createVessel(id, x, y, z, type = 'vertical') {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.userData = { type: 'equipment', id: id };
+
+  if (type === 'receiver' || type === 'accumulator') {
+    // Vertical vessel
+    const vesselGeom = new THREE.CylinderGeometry(1, 1, 4, 32);
+    const vesselMat = new THREE.MeshStandardMaterial({ 
+      color: 0x10b981,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const vessel = new THREE.Mesh(vesselGeom, vesselMat);
+    vessel.position.y = 2;
+    vessel.castShadow = true;
+    group.add(vessel);
+
+    // Dished ends
+    const topGeom = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    const top = new THREE.Mesh(topGeom, vesselMat);
+    top.position.y = 4;
+    group.add(top);
+
+    const bottomGeom = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+    const bottom = new THREE.Mesh(bottomGeom, vesselMat);
+    bottom.position.y = 0;
+    group.add(bottom);
+
+    // Liquid level indicator
+    const levelGeom = new THREE.CylinderGeometry(1.01, 1.01, 2.6, 32);
+    const levelMat = new THREE.MeshStandardMaterial({ 
+      color: 0x3b82f6,
+      transparent: true,
+      opacity: 0.3
+    });
+    const level = new THREE.Mesh(levelGeom, levelMat);
+    level.position.y = 1.3;
+    level.userData = { isLiquidLevel: true, parentId: id };
+    group.add(level);
+
+  } else {
+    // Horizontal vessel (separator)
+    const vesselGeom = new THREE.CylinderGeometry(0.8, 0.8, 2.5, 32);
+    const vesselMat = new THREE.MeshStandardMaterial({ 
+      color: 0x8b5cf6,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+    const vessel = new THREE.Mesh(vesselGeom, vesselMat);
+    vessel.rotation.z = Math.PI / 2;
+    vessel.position.y = 1.25;
+    vessel.castShadow = true;
+    group.add(vessel);
+  }
+
+  createLabel(id, x, y + 4, z);
+  scene.add(group);
+  equipmentMeshes[id] = group;
+}
+
+// ===== CREATE VALVE =====
+function createValve(id, x, y, z, type = 'manual') {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.userData = { type: 'valve', id: id };
+
+  if (type === 'control') {
+    // Control valve with actuator
+    const bodyGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.rotation.z = Math.PI / 2;
+    group.add(body);
+
+    const actuatorGeom = new THREE.CylinderGeometry(0.25, 0.25, 0.6, 16);
+    const actuatorMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 });
+    const actuator = new THREE.Mesh(actuatorGeom, actuatorMat);
+    actuator.position.y = 0.5;
+    group.add(actuator);
+
+  } else if (type === 'expansion') {
+    // Expansion valve
+    const bodyGeom = new THREE.BoxGeometry(0.6, 0.4, 0.4);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    group.add(body);
+
+    const bulbGeom = new THREE.SphereGeometry(0.2, 16);
+    const bulbMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+    const bulb = new THREE.Mesh(bulbGeom, bulbMat);
+    bulb.position.set(0, 0.4, 0);
+    group.add(bulb);
+
+  } else if (type === 'relief') {
+    // Relief valve
+    const bodyGeom = new THREE.ConeGeometry(0.3, 0.8, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.y = 0.4;
+    group.add(body);
+
+  } else if (type === 'check') {
+    // Check valve
+    const bodyGeom = new THREE.CylinderGeometry(0.25, 0.25, 0.6, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x10b981 });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.rotation.z = Math.PI / 2;
+    group.add(body);
+
+    const arrowGeom = new THREE.ConeGeometry(0.15, 0.3, 8);
+    const arrowMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const arrow = new THREE.Mesh(arrowGeom, arrowMat);
+    arrow.rotation.z = Math.PI / 2;
+    arrow.position.x = 0.3;
+    group.add(arrow);
+
+  } else {
+    // Manual valve
+    const bodyGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.6, 16);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.rotation.z = Math.PI / 2;
+    group.add(body);
+
+    const handleGeom = new THREE.BoxGeometry(0.1, 0.6, 0.1);
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+    const handle = new THREE.Mesh(handleGeom, handleMat);
+    handle.position.y = 0.4;
+    handle.userData = { isValveHandle: true, parentId: id };
+    group.add(handle);
+  }
+
+  createLabel(id, x, y + 1.5, z);
+  scene.add(group);
+  equipmentMeshes[id] = group;
+}
+
+// ===== CREATE INSTRUMENT =====
+function createInstrument(id, x, y, z) {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.userData = { type: 'instrument', id: id };
+
+  // Circle/box based on type
+  const isController = id.includes('C');
+  const isSwitch = id.includes('S');
+  
+  let geom, mat;
+  if (isController) {
+    geom = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    mat = new THREE.MeshStandardMaterial({ 
+      color: 0x8b5cf6,
+      metalness: 0.5,
+      roughness: 0.5
+    });
+  } else if (isSwitch) {
+    geom = new THREE.OctahedronGeometry(0.3);
+    mat = new THREE.MeshStandardMaterial({ 
+      color: id.includes('H') ? 0xef4444 : 0xf59e0b,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+  } else {
+    geom = new THREE.CylinderGeometry(0.25, 0.25, 0.1, 32);
+    mat = new THREE.MeshStandardMaterial({ 
+      color: 0x3b82f6,
+      metalness: 0.6,
+      roughness: 0.4
+    });
+  }
+
+  const mesh = new THREE.Mesh(geom, mat);
+  if (!isController && !isSwitch) mesh.rotation.x = Math.PI / 2;
+  group.add(mesh);
+
+  // Connection line
+  if (y > 1) {
+    const lineGeom = new THREE.CylinderGeometry(0.03, 0.03, y - 0.5, 8);
+    const lineMat = new THREE.MeshStandardMaterial({ color: 0x64748b });
+    const line = new THREE.Mesh(lineGeom, lineMat);
+    line.position.y = -(y - 0.5) / 2;
+    group.add(line);
+  }
+
+  createLabel(id, x, y + 0.8, z);
+  scene.add(group);
+  equipmentMeshes[id] = group;
+}
+
+// ===== CREATE LABEL =====
+function createLabel(text, x, y, z) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = 256;
+  canvas.height = 64;
+  
+  context.fillStyle = 'rgba(0, 0, 0, 0)';
+  context.fillRect(0, 0, 256, 64);
+  
+  context.font = 'Bold 32px Cairo';
+  context.fillStyle = '#3b82f6';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(text, 128, 32);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(3, 0.75, 1);
+  
+  scene.add(sprite);
+}
+
+// ===== CREATE PIPING SYSTEM =====
+function createPipingSystem() {
+  const pipeConnections = [
+    // Suction line
+    { from: { x: -2, y: 0, z: 0 }, to: { x: 0, y: 0, z: 0 }, type: 'gas' },
+    { from: { x: 14, y: 0, z: 0 }, to: { x: 14, y: 3, z: 0 }, type: 'gas' },
+    { from: { x: 14, y: 3, z: 0 }, to: { x: 0, y: 3, z: 0 }, type: 'gas' },
+    { from: { x: 0, y: 3, z: 0 }, to: { x: -2, y: 3, z: 0 }, type: 'gas' },
+    { from: { x: -2, y: 3, z: 0 }, to: { x: -2, y: 0, z: 0 }, type: 'gas' },
+    
+    // Discharge line
+    { from: { x: 2, y: 0, z: 0 }, to: { x: 4, y: 0, z: 0 }, type: 'gas' },
+    { from: { x: 4, y: 0, z: 0 }, to: { x: 4, y: 2, z: 0 }, type: 'gas' },
+    { from: { x: 4, y: 2, z: 0 }, to: { x: 8, y: 2, z: -4 }, type: 'gas' },
+    { from: { x: 8, y: 2, z: -4 }, to: { x: 8, y: 0, z: -4 }, type: 'gas' },
+    
+    // Condenser to receiver
+    { from: { x: 8, y: 0, z: 0 }, to: { x: 9, y: 0, z: 0 }, type: 'liquid' },
+    { from: { x: 9, y: 0, z: 0 }, to: { x: 9, y: 0, z: 5 }, type: 'liquid' },
+    { from: { x: 9, y: 0, z: 5 }, to: { x: 10, y: 0, z: 5 }, type: 'liquid' },
+    
+    // Receiver to expansion
+    { from: { x: 10, y: 0, z: 0 }, to: { x: 10.5, y: 0, z: 0 }, type: 'liquid' },
+    { from: { x: 10.5, y: 0, z: 0 }, to: { x: 11, y: 0, z: 0 }, type: 'liquid' },
+    
+    // Expansion to evaporator
+    { from: { x: 11, y: 0, z: 0 }, to: { x: 14, y: 0, z: 0 }, type: 'liquid' },
+    
+    // Water lines
+    { from: { x: 8, y: 0, z: -6 }, to: { x: 8, y: 0, z: -4 }, type: 'water' },
+    { from: { x: 8, y: 0, z: -2 }, to: { x: 8, y: 0, z: 0 }, type: 'water' },
+    { from: { x: 8, y: 0, z: 0 }, to: { x: 12, y: 0, z: 0 }, type: 'water' },
+    
+    // Oil lines
+    { from: { x: 0, y: 0, z: 1 }, to: { x: 0, y: 0, z: 3 }, type: 'oil' },
+    { from: { x: 0, y: 0, z: 3 }, to: { x: -6, y: 0, z: 3 }, type: 'oil' },
+    { from: { x: -6, y: 0, z: 3 }, to: { x: -8, y: 0, z: 3 }, type: 'oil' },
+    { from: { x: -8, y: 0, z: 3 }, to: { x: -8, y: 0, z: 5 }, type: 'oil' },
+  ];
+
+  pipeConnections.forEach(conn => {
+    createPipe(conn.from, conn.to, conn.type);
+  });
+}
+
+// ===== CREATE PIPE =====
+function createPipe(from, to, type) {
+  const distance = Math.sqrt(
+    Math.pow(to.x - from.x, 2) +
+    Math.pow(to.y - from.y, 2) +
+    Math.pow(to.z - from.z, 2)
+  );
+
+  const geometry = new THREE.CylinderGeometry(0.15, 0.15, distance, 16);
+  
+  let color;
+  switch(type) {
+    case 'gas': color = 0xf59e0b; break;
+    case 'liquid': color = 0x10b981; break;
+    case 'water': color = 0x06b6d4; break;
+    case 'oil': color = 0x8b5cf6; break;
+    default: color = 0x3b82f6;
+  }
+
+  const material = new THREE.MeshStandardMaterial({ 
+    color: color,
+    metalness: 0.6,
+    roughness: 0.4
+  });
+
+  const pipe = new THREE.Mesh(geometry, material);
+  
+  // Position at midpoint
+  pipe.position.set(
+    (from.x + to.x) / 2,
+    (from.y + to.y) / 2,
+    (from.z + to.z) / 2
+  );
+  
+  // Rotate to align
+  const midY = (from.y + to.y) / 2;
+  if (Math.abs(from.x - to.x) > 0.01) {
+    pipe.rotation.z = Math.PI / 2;
+  } else if (Math.abs(from.z - to.z) > 0.01) {
+    pipe.rotation.x = Math.PI / 2;
+  }
+  
+  pipe.castShadow = true;
+  pipe.receiveShadow = true;
+  pipe.userData = { type: 'pipe', pipeType: type };
+  
+  scene.add(pipe);
+  pipeLines.push(pipe);
+
+  // Add flow animation particles for active lines
+  if (type === 'gas' || type === 'liquid') {
+    createFlowParticles(from, to, type);
+  }
+}
+
+// ===== CREATE FLOW PARTICLES =====
+function createFlowParticles(from, to, type) {
+  const particleCount = 5;
+  const colors = {
+    gas: 0xf59e0b,
+    liquid: 0x10b981,
+    water: 0x06b6d4,
+    oil: 0x8b5cf6
+  };
+
+  for (let i = 0; i < particleCount; i++) {
+    const geom = new THREE.SphereGeometry(0.08, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({ 
+      color: colors[type] || 0xffffff,
+      transparent: true,
+      opacity: 0.8
+    });
+    const particle = new THREE.Mesh(geom, mat);
+    
+    // Starting position
+    particle.position.set(
+      from.x + (to.x - from.x) * (i / particleCount),
+      from.y + (to.y - from.y) * (i / particleCount),
+      from.z + (to.z - from.z) * (i / particleCount)
+    );
+    
+    particle.userData = {
+      isParticle: true,
+      from: from,
+      to: to,
+      speed: 0.02 + Math.random() * 0.02,
+      offset: i / particleCount
+    };
+    
+    scene.add(particle);
+    pipeLines.push(particle);
+  }
+}
+
+// ===== ANIMATION =====
+function animate() {
+  animationId = requestAnimationFrame(animate);
+  
+  if (isAnimating) {
+    // Rotate compressor impellers
+    Object.keys(equipmentMeshes).forEach(id => {
+      const mesh = equipmentMeshes[id];
+      mesh.children.forEach(child => {
+        if (child.userData.isImpeller) {
+          child.rotation.y += 0.05;
+        }
+        if (child.userData.isValveHandle && id.includes('FCV')) {
+          child.rotation.y = Math.sin(Date.now() * 0.001) * 0.3;
+        }
+      });
+    });
+
+    // Animate flow particles
+    pipeLines.forEach(obj => {
+      if (obj.userData.isParticle) {
+        const { from, to, speed, offset } = obj.userData;
+        const t = (Date.now() * 0.001 * speed + offset) % 1;
+        
+        obj.position.set(
+          from.x + (to.x - from.x) * t,
+          from.y + (to.y - from.y) * t,
+          from.z + (to.z - from.z) * t
+        );
+      }
+    });
+
+    // Animate liquid levels
+    Object.keys(equipmentMeshes).forEach(id => {
+      const mesh = equipmentMeshes[id];
+      mesh.children.forEach(child => {
+        if (child.userData.isLiquidLevel) {
+          child.scale.y = 0.5 + Math.sin(Date.now() * 0.001) * 0.1;
+        }
+      });
+    });
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== EVENT HANDLERS =====
+function onWindowResize() {
+  const container = document.getElementById('canvas-container');
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function onCanvasClick(event) {
+  const container = document.getElementById('canvas-container');
+  const rect = container.getBoundingClientRect();
+  
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  
+  const allMeshes = [];
+  Object.values(equipmentMeshes).forEach(group => {
+    group.traverse(child => {
+      if (child.isMesh) allMeshes.push(child);
+    });
+  });
+  
+  const intersects = raycaster.intersectObjects(allMeshes, true);
+  
+  if (intersects.length > 0) {
+    let obj = intersects[0].object;
+    while (obj.parent && !obj.userData.id) {
+      obj = obj.parent;
+    }
+    
+    if (obj.userData.id) {
+      selectEquipment(obj.userData.id);
+      
+      // Highlight effect
+      obj.traverse(child => {
+        if (child.isMesh && child.material) {
+          const originalColor = child.material.color.getHex();
+          child.material.emissive.setHex(0x333333);
+          setTimeout(() => {
+            child.material.emissive.setHex(0x000000);
+          }, 1000);
+        }
+      });
+    }
+  }
+}
+
+function onCanvasMouseMove(event) {
+  const container = document.getElementById('canvas-container');
+  const rect = container.getBoundingClientRect();
+  
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  
+  const allMeshes = [];
+  Object.values(equipmentMeshes).forEach(group => {
+    group.traverse(child => {
+      if (child.isMesh) allMeshes.push(child);
+    });
+  });
+  
+  const intersects = raycaster.intersectObjects(allMeshes, true);
+  const tooltip = document.getElementById('tooltip');
+  
+  if (intersects.length > 0) {
+    let obj = intersects[0].object;
+    while (obj.parent && !obj.userData.id) {
+      obj = obj.parent;
+    }
+    
+    if (obj.userData.id) {
+      const id = obj.userData.id;
+      const eq = equipmentData[id];
+      if (eq) {
+        document.getElementById('ttTag').textContent = id;
+        document.getElementById('ttDesc').textContent = eq.name;
+        
+        tooltip.style.left = (event.clientX + 15) + 'px';
+        tooltip.style.top = (event.clientY + 15) + 'px';
+        tooltip.classList.add('visible');
+        
+        container.style.cursor = 'pointer';
+        return;
+      }
+    }
+  }
+  
+  tooltip.classList.remove('visible');
+  container.style.cursor = 'default';
+}
+
+// ===== UI FUNCTIONS =====
+function selectEquipment(id) {
+  // Update sidebar
+  document.querySelectorAll('.equip-item').forEach(item => {
+    item.classList.toggle('selected', item.dataset.tag === id);
+  });
+
+  // Show detail panel
+  const eq = equipmentData[id];
+  if (!eq) return;
+
+  const panel = document.getElementById('detailPanel');
+  document.getElementById('detailType').textContent = eq.type;
+  document.getElementById('detailId').textContent = id;
+  document.getElementById('detailDesc').textContent = eq.desc;
+
+  let paramsHTML = `
+    <div class="param-group">
+      <div class="param-group-title">المعاملات التشغيلية</div>
+      ${Object.entries(eq.params || {}).map(([k, v]) => `
+        <div class="param-row">
+          <span class="label">${k}</span>
+          <span class="value ${v.status}">${v.value}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('detailBody').innerHTML = paramsHTML;
+  panel.classList.add('visible');
+
+  // Focus camera on equipment
+  const mesh = equipmentMeshes[id];
+  if (mesh) {
+    const targetPos = new THREE.Vector3();
+    mesh.getWorldPosition(targetPos);
+    
+    // Smooth camera movement
+    const startPos = camera.position.clone();
+    const endPos = new THREE.Vector3(
+      targetPos.x + 5,
+      targetPos.y + 4,
+      targetPos.z + 5
+    );
+    
+    let progress = 0;
+    const animateCamera = () => {
+      progress += 0.05;
+      if (progress <= 1) {
+        camera.position.lerpVectors(startPos, endPos, progress);
+        controls.target.lerp(targetPos, progress);
+        controls.update();
+        requestAnimationFrame(animateCamera);
+      }
+    };
+    animateCamera();
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('visible');
+  document.querySelectorAll('.equip-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+}
+
+function buildSidebar() {
+  const compressors = ['C-101', 'C-102'];
+  const heatExchangers = ['E-101', 'E-102', 'E-103', 'E-104'];
+  const vessels = ['V-101', 'V-102', 'V-103'];
+  const valves = ['HV-101', 'HV-102', 'FCV-101', 'XV-101', 'PSV-101', 'CV-101'];
+  const instruments = ['TI-101', 'TI-102', 'PI-101', 'PI-102', 'PIC-101', 'TIC-101', 'FI-101', 'LI-101', 'FIC-101', 'PSH-101', 'PSL-101', 'VI-101'];
+
+  buildEquipList('compressorList', compressors);
+  buildEquipList('heatExchangerList', heatExchangers);
+  buildEquipList('vesselList', vessels);
+  buildEquipList('valveList', valves);
+  buildEquipList('instrumentList', instruments);
+}
+
+function buildEquipList(containerId, tags) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  tags.forEach(tag => {
+    const eq = equipmentData[tag];
+    if (!eq) return;
+    const item = document.createElement('div');
+    item.className = 'equip-item fade-in';
+    item.dataset.tag = tag;
+    item.onclick = () => selectEquipment(tag);
+
+    const statusClass = eq.status === 'running' || eq.status === 'active' || eq.status === 'open' ? '' :
+                        eq.status === 'warn' || eq.status === 'standby' ? 'warning' : '';
+
+    item.innerHTML = `
+      <div class="eq-header">
+        <span class="eq-tag">${tag}</span>
+        <span class="eq-status ${statusClass}"></span>
+      </div>
+      <div class="eq-name">${eq.name}</div>
+      ${eq.params ? `
+      <div class="eq-params">
+        ${Object.entries(eq.params).slice(0, 4).map(([k, v]) =>
+          `<div class="eq-param">${k}: <span>${v.value}</span></div>`
+        ).join('')}
+      </div>
+      ` : ''}
+    `;
+    container.appendChild(item);
+  });
+}
+
+function searchEquipment(query) {
+  query = query.toLowerCase();
+  document.querySelectorAll('.equip-item').forEach(item => {
+    const tag = item.dataset.tag.toLowerCase();
+    const eq = equipmentData[item.dataset.tag];
+    const name = eq ? eq.name.toLowerCase() : '';
+    const desc = eq ? eq.desc.toLowerCase() : '';
+    const match = tag.includes(query) || name.includes(query) || desc.includes(query);
+    item.style.display = match ? 'block' : 'none';
+  });
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('collapsed');
+  document.getElementById('sidebarBtn').classList.toggle('active');
+}
+
+function resetCamera() {
+  camera.position.set(20, 15, 20);
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
+
+function setView(view) {
+  switch(view) {
+    case 'top':
+      camera.position.set(0, 30, 0);
+      controls.target.set(0, 0, 0);
+      break;
+    case 'front':
+      camera.position.set(0, 0, 30);
+      controls.target.set(0, 0, 0);
+      break;
+    case 'iso':
+      camera.position.set(20, 15, 20);
+      controls.target.set(0, 0, 0);
+      break;
+  }
+  controls.update();
+}
+
+function zoomIn() {
+  controls.dollyIn(1.2);
+  controls.update();
+}
+
+function zoomOut() {
+  controls.dollyOut(1.2);
+  controls.update();
+}
+
+function toggleAnimation() {
+  isAnimating = !isAnimating;
+  document.getElementById('animateBtn').innerHTML = isAnimating ? 
+    '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M6 6l4 2-4 2z" fill="currentColor"/></svg> إيقاف' :
+    '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><rect x="6" y="5" width="2" height="6" fill="currentColor"/><rect x="9" y="5" width="2" height="6" fill="currentColor"/></svg> تشغيل';
+}
+
+function simulateLiveData() {
+  setInterval(() => {
+    Object.keys(equipmentData).forEach(id => {
+      const eq = equipmentData[id];
+      if (eq.params) {
+        Object.keys(eq.params).forEach(key => {
+          const param = eq.params[key];
+          if (param.value.includes('bar') && !param.value.includes('0') && param.status !== 'bad') {
+            const current = parseFloat(param.value);
+            if (!isNaN(current)) {
+              const variation = (Math.random() - 0.5) * 0.3;
+              param.value = (current + variation).toFixed(1) + ' bar';
+              param.status = current > 5 ? 'warn' : 'good';
+            }
+          }
+        });
+      }
+    });
+
+    // Update sidebar
+    document.querySelectorAll('.equip-item').forEach(item => {
+      const tag = item.dataset.tag;
+      const eq = equipmentData[tag];
+      if (eq && eq.params) {
+        const params = item.querySelectorAll('.eq-param span');
+        let i = 0;
+        Object.values(eq.params).slice(0, 4).forEach(v => {
+          if (params[i]) params[i].textContent = v.value;
+          i++;
+        });
+      }
+    });
+  }, 2000);
+}
+
+// ===== INITIALIZATION =====
+window.addEventListener('load', () => {
+  initThreeJS();
+  buildSidebar();
+  simulateLiveData();
+});
+</script>
+</body>
+</html>

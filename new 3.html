@@ -1,0 +1,1639 @@
+اكمل الكود <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zubair Oil Field — HAM Degassing Station 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#0b0f1a;font-family:'Segoe UI',Tahoma,sans-serif}
+canvas{display:block}
+#loading{position:fixed;inset:0;background:#0b0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .6s}
+#loading h2{color:#3a80d0;font-size:20px;margin-bottom:20px;letter-spacing:3px;font-weight:400}
+#loadBar{width:300px;height:3px;background:#1a2540;border-radius:2px;overflow:hidden}
+#loadFill{height:100%;width:0;background:linear-gradient(90deg,#3a80d0,#60b0ff);border-radius:2px;transition:width .12s}
+#loadTxt{color:#506878;font-size:11px;margin-top:14px;letter-spacing:1px}
+#toolbar{position:fixed;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:3px;padding:5px 8px;background:rgba(8,12,24,.96);border:1px solid #1a3060;border-radius:7px;z-index:100}
+#toolbar button{background:0 0;color:#8898a8;border:1px solid transparent;padding:5px 12px;border-radius:3px;cursor:pointer;font-size:11px;font-family:inherit;transition:all .2s;white-space:nowrap}
+#toolbar button:hover{color:#c0d8f0;background:rgba(58,128,208,.12)}
+#toolbar button.on{color:#3a80d0;border-color:#3a80d0;background:rgba(58,128,208,.08)}
+#legend{position:fixed;top:54px;left:10px;width:190px;padding:12px;background:rgba(8,12,24,.93);border:1px solid #1a3060;border-radius:7px;z-index:100;color:#98a8b8;font-size:10.5px}
+#legend h3{color:#3a80d0;font-size:12px;margin-bottom:8px;font-weight:600;letter-spacing:.5px}
+.li{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+#info{position:fixed;bottom:56px;right:10px;width:250px;padding:12px;background:rgba(8,12,24,.93);border:1px solid #1a3060;border-radius:7px;z-index:100;color:#98a8b8;font-size:11px;display:none}
+#info h3{color:#3a80d0;font-size:13px;margin-bottom:7px;font-weight:600}
+.ir{display:flex;justify-content:space-between;margin-bottom:3px}
+.ir .k{color:#506878}.ir .v{color:#c8d8e8}
+#stats{position:fixed;bottom:10px;left:10px;padding:10px 14px;background:rgba(8,12,24,.93);border:1px solid #1a3060;border-radius:7px;z-index:100;color:#8898a8;font-size:10.5px;line-height:1.9}
+#stats .t{color:#3a80d0;font-size:12px;font-weight:600;letter-spacing:.5px}
+#hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);padding:5px 14px;background:rgba(8,12,24,.82);border:1px solid #182030;border-radius:3px;z-index:100;color:#405060;font-size:10px}
+</style>
+</head>
+<body>
+<div id="loading"><h2>ZUBAIR OIL FIELD — HAM DEGASSING STATION</h2><div id="loadBar"><div id="loadFill"></div></div><div id="loadTxt">Initializing 3D Scene...</div></div>
+<div id="toolbar">
+<button onclick="setView('persp')">Perspective</button>
+<button onclick="setView('top')">Top-Down</button>
+<button onclick="setView('iso')">Isometric</button>
+<button onclick="setView('north')">North</button>
+<button onclick="setView('east')">East</button>
+<button id="btnWF" onclick="togWF()">Wireframe</button>
+<button id="btnSh" onclick="togSh()">Shadows</button>
+<button id="btnLb" onclick="togLb()">Labels</button>
+<button id="btnAR" onclick="togAR()">Auto-Rotate</button>
+<button onclick="setView('persp')">Fit All</button>
+</div>
+<div id="legend">
+<h3>EQUIPMENT LEGEND</h3>
+<div class="li"><div class="ld" style="background:#e0d8c8"></div>Process Vessels</div>
+<div class="li"><div class="ld" style="background:#ddd5b0"></div>Storage Tanks</div>
+<div class="li"><div class="ld" style="background:#3a7050"></div>Pumps</div>
+<div class="li"><div class="ld" style="background:#3c5468"></div>Power Generation</div>
+<div class="li"><div class="ld" style="background:#d0c8b8"></div>Admin / Control</div>
+<div class="li"><div class="ld" style="background:#909aa8"></div>Piping / Structures</div>
+<div class="li"><div class="ld" style="background:#cc3322"></div>Fire Water System</div>
+<div class="li"><div class="ld" style="background:#1a4080"></div>Fire Water Tank</div>
+<div class="li"><div class="ld" style="background:#e8c020"></div>Safety / Labeling</div>
+<div class="li"><div class="ld" style="background:rgba(204,34,0,.35)"></div>Zone Class 1 Div.1</div>
+<div class="li"><div class="ld" style="background:rgba(255,102,68,.2)"></div>Zone Class 1 Div.2</div>
+</div>
+<div id="info">
+<h3 id="iT">Equipment Info</h3>
+<div class="ir"><span class="k">Tag No.</span><span class="v" id="iTag">—</span></div>
+<div class="ir"><span class="k">Description</span><span class="v" id="iDesc">—</span></div>
+<div class="ir"><span class="k">Type</span><span class="v" id="iType">—</span></div>
+<div class="ir"><span class="k">Status</span><span class="v" id="iStat">—</span></div>
+<div class="ir"><span class="k">HAC Class</span><span class="v" id="iHac">—</span></div>
+</div>
+<div id="stats">
+<div class="t">Zubair Oil Field Development Project</div>
+HAM Degassing Station — ZFT-JV-4-RS203<br>
+Location: Onshore Iraq — Scale 1:500<br>
+Crude Processing: 4-Stage Separation<br>
+Equipment Items: <span id="eCnt">0</span>
+</div>
+<div id="hint">Left Drag: Rotate &nbsp;|&nbsp; Right Drag: Pan &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; Click: Select Equipment</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =============================================
+   GLOBAL VARIABLE DECLARATIONS
+   ============================================= */
+var scene, camera, renderer, clock;
+var theta = 0.75, phi = 0.85, rad = 380;
+var tgt = new THREE.Vector3(0, 12, 0);
+var mDown = false, rDown = false, lmx = 0, lmy = 0;
+var autoRot = false, lbVis = true, wfOn = false, shOn = true;
+var clickObjs = [], labelArr = [], allMats = [];
+var eqCount = 0, flareCns = [], flarePt = null, avLt = null;
+var raycaster = null, mouse = null;
+var tDist0 = 0, tCnt = 0;
+
+/* =============================================
+   MATERIALS
+   ============================================= */
+var mDesert, mGravel, mRoad, mRoadLine, mConcrete, mInsul, mSS, mCS;
+var mFW, mInsPipe, mTankBody, mTankRoof, mStruct, mPump;
+var mGenBld, mAdminBld, mRoof, mLadder, mFWTank, mFlare, mYellow;
+
+function makeMats() {
+  mDesert = new THREE.MeshLambertMaterial({color:0x8f7a52});
+  mGravel = new THREE.MeshLambertMaterial({color:0xb8a870});
+  mRoad = new THREE.MeshLambertMaterial({color:0x585850});
+  mRoadLine = new THREE.MeshBasicMaterial({color:0xe0c020});
+  mConcrete = new THREE.MeshLambertMaterial({color:0xa09880});
+  mInsul = new THREE.MeshStandardMaterial({color:0xe0d8c8, metalness:0.05, roughness:0.88});
+  mSS = new THREE.MeshStandardMaterial({color:0xc8ccd4, metalness:0.9, roughness:0.15});
+  mCS = new THREE.MeshStandardMaterial({color:0x909aa8, metalness:0.75, roughness:0.3});
+  mFW = new THREE.MeshStandardMaterial({color:0xcc3322, metalness:0.6, roughness:0.35});
+  mInsPipe = new THREE.MeshStandardMaterial({color:0xe8e0c0, metalness:0.1, roughness:0.7});
+  mTankBody = new THREE.MeshStandardMaterial({color:0xddd5b0, metalness:0.2, roughness:0.65});
+  mTankRoof = new THREE.MeshLambertMaterial({color:0xc8b870});
+  mStruct = new THREE.MeshStandardMaterial({color:0xa8adb8, metalness:0.85, roughness:0.22});
+  mPump = new THREE.MeshStandardMaterial({color:0x3a7050, metalness:0.5, roughness:0.4});
+  mGenBld = new THREE.MeshLambertMaterial({color:0x3c5468});
+  mAdminBld = new THREE.MeshLambertMaterial({color:0xd0c8b8});
+  mRoof = new THREE.MeshLambertMaterial({color:0x607080});
+  mLadder = new THREE.MeshLambertMaterial({color:0x606878});
+  mFWTank = new THREE.MeshStandardMaterial({color:0x1a4080, metalness:0.4, roughness:0.5});
+  mFlare = new THREE.MeshStandardMaterial({color:0x7a8090, metalness:0.8, roughness:0.25});
+  mYellow = new THREE.MeshStandardMaterial({color:0xe8c020, metalness:0.3, roughness:0.4});
+  allMats = [mDesert,mGravel,mRoad,mRoadLine,mConcrete,mInsul,mSS,mCS,mFW,mInsPipe,mTankBody,mTankRoof,mStruct,mPump,mGenBld,mAdminBld,mRoof,mLadder,mFWTank,mFlare,mYellow];
+}
+
+/* =============================================
+   SCENE INIT
+   ============================================= */
+function initScene() {
+  clock = new THREE.Clock();
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0f1a);
+  scene.fog = new THREE.FogExp2(0x0b0f1a, 0.0012);
+
+  camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 3000);
+  updateCam();
+
+  renderer = new THREE.WebGLRenderer({antialias: true, canvas: document.createElement('canvas')});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+  // Sun
+  var sun = new THREE.DirectionalLight(0xfffaea, 2.6);
+  sun.position.set(150, 250, 120);
+  sun.castShadow = true;
+  sun.shadow.mapSize.width = 8192;
+  sun.shadow.mapSize.height = 8192;
+  sun.shadow.camera.left = -250;
+  sun.shadow.camera.right = 250;
+  sun.shadow.camera.top = 250;
+  sun.shadow.camera.bottom = -250;
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 600;
+  sun.shadow.bias = -0.0008;
+  sun.shadow.normalBias = 0.04;
+  scene.add(sun);
+
+  // Hemisphere
+  scene.add(new THREE.HemisphereLight(0x90b8e0, 0x5a4a30, 0.85));
+
+  // Fill
+  var fill = new THREE.DirectionalLight(0x4a80c0, 0.35);
+  fill.position.set(-100, 60, -80);
+  scene.add(fill);
+
+  // Grid
+  var grid = new THREE.GridHelper(300, 30, 0x1a3050, 0x111a28);
+  grid.position.y = 0.02;
+  scene.add(grid);
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  window.addEventListener('resize', function() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+
+function updateCam() {
+  var sp = Math.sin(phi), cp = Math.cos(phi);
+  var st = Math.sin(theta), ct = Math.cos(theta);
+  camera.position.set(
+    tgt.x + rad * sp * ct,
+    tgt.y + rad * cp,
+    tgt.z + rad * sp * st
+  );
+  camera.lookAt(tgt);
+}
+
+/* =============================================
+   GROUND & INFRASTRUCTURE
+   ============================================= */
+function buildGround() {
+  // Desert ground
+  var gnd = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), mDesert);
+  gnd.rotation.x = -Math.PI / 2;
+  gnd.position.y = -0.05;
+  gnd.receiveShadow = true;
+  scene.add(gnd);
+
+  // Gravel pad
+  var pad = new THREE.Mesh(new THREE.PlaneGeometry(260, 250), mGravel);
+  pad.rotation.x = -Math.PI / 2;
+  pad.position.y = 0.01;
+  pad.receiveShadow = true;
+  scene.add(pad);
+}
+
+function buildFence() {
+  var x0 = -120, x1 = 120, z0 = -115, z1 = 115;
+  var postMat = new THREE.MeshLambertMaterial({color:0x707880});
+  var railMat = new THREE.MeshLambertMaterial({color:0x808890});
+  var postGeo = new THREE.BoxGeometry(0.08, 2, 0.08);
+
+  // Posts using InstancedMesh
+  var posts = [];
+  var px = x0;
+  while (px <= x1) { posts.push([px, z0]); posts.push([px, z1]); px += 4; }
+  var pz = z0 + 4;
+  while (pz < z1) { posts.push([x0, pz]); posts.push([x1, pz]); pz += 4; }
+
+  var inst = new THREE.InstancedMesh(postGeo, postMat, posts.length);
+  var dummy = new THREE.Object3D();
+  for (var i = 0; i < posts.length; i++) {
+    dummy.position.set(posts[i][0], 1, posts[i][1]);
+    dummy.updateMatrix();
+    inst.setMatrixAt(i, dummy.matrix);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+  scene.add(inst);
+
+  // Rails - 4 long boxes
+  var rw = 0.05, rh = 0.05;
+  function addRail(y, z, len) {
+    var r = new THREE.Mesh(new THREE.BoxGeometry(len, rh, rw), railMat);
+    r.position.set(0, y, z);
+    scene.add(r);
+  }
+  // N & S sides
+  addRail(1.6, z0, x1 - x0);
+  addRail(0.9, z0, x1 - x0);
+  addRail(1.6, z1, x1 - x0);
+  addRail(0.9, z1, x1 - x0);
+  // E & W sides (rotate)
+  function addRailZ(y, x, len) {
+    var r = new THREE.Mesh(new THREE.BoxGeometry(rw, rh, len), railMat);
+    r.position.set(x, y, 0);
+    scene.add(r);
+  }
+  addRailZ(1.6, x0, z1 - z0);
+  addRailZ(0.9, x0, z1 - z0);
+  addRailZ(1.6, x1, z1 - z0);
+  addRailZ(0.9, x1, z1 - z0);
+
+  // Gate on west side (gap in fence near z=0)
+  var gatePost1 = new THREE.Mesh(postGeo, postMat);
+  gatePost1.position.set(x0, 1, -4);
+  scene.add(gatePost1);
+  var gatePost2 = new THREE.Mesh(postGeo, postMat);
+  gatePost2.position.set(x0, 1, 4);
+  scene.add(gatePost2);
+  // Gate bar
+  var gateBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 8), mYellow);
+  gateBar.position.set(x0, 1.4, 0);
+  scene.add(gateBar);
+}
+
+function buildRoads() {
+  // Main N-S road
+  var ns = new THREE.Mesh(new THREE.PlaneGeometry(6, 230), mRoad);
+  ns.rotation.x = -Math.PI / 2;
+  ns.position.set(-30, 0.03, 0);
+  ns.receiveShadow = true;
+  scene.add(ns);
+
+  // Center line
+  var cl = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 228), mRoadLine);
+  cl.rotation.x = -Math.PI / 2;
+  cl.position.set(-30, 0.04, 0);
+  scene.add(cl);
+
+  // E-W cross road 1 (north area)
+  var ew1 = new THREE.Mesh(new THREE.PlaneGeometry(240, 5), mRoad);
+  ew1.rotation.x = -Math.PI / 2;
+  ew1.position.set(0, 0.03, -75);
+  ew1.receiveShadow = true;
+  scene.add(ew1);
+  var cl1 = new THREE.Mesh(new THREE.PlaneGeometry(238, 0.15), mRoadLine);
+  cl1.rotation.x = -Math.PI / 2;
+  cl1.position.set(0, 0.04, -75);
+  scene.add(cl1);
+
+  // E-W cross road 2 (south area)
+  var ew2 = new THREE.Mesh(new THREE.PlaneGeometry(240, 5), mRoad);
+  ew2.rotation.x = -Math.PI / 2;
+  ew2.position.set(0, 0.03, 55);
+  ew2.receiveShadow = true;
+  scene.add(ew2);
+  var cl2 = new THREE.Mesh(new THREE.PlaneGeometry(238, 0.15), mRoadLine);
+  cl2.rotation.x = -Math.PI / 2;
+  cl2.position.set(0, 0.04, 55);
+  scene.add(cl2);
+}
+
+/* =============================================
+   HELPER: Register clickable
+   ============================================= */
+function regClick(group, tag, desc, type, status, hac) {
+  group.traverse(function(c) {
+    if (c.isMesh) {
+      c.userData = {tag: tag, desc: desc, type: type, status: status, hac: hac};
+      clickObjs.push(c);
+    }
+  });
+  eqCount++;
+}
+
+/* =============================================
+   HORIZONTAL VESSELS
+   ============================================= */
+function mkHV(d) {
+  var g = new THREE.Group();
+  var bodyL = d.l - d.r * 2;
+  var hbL = bodyL / 2;
+
+  // Insulation body
+  var bGeo = new THREE.CylinderGeometry(d.r + 0.12, d.r + 0.12, bodyL, 28);
+  bGeo.rotateZ(Math.PI / 2);
+  var body = new THREE.Mesh(bGeo, mInsul);
+  body.castShadow = true;
+  g.add(body);
+
+  // End caps (hemispheres)
+  var capGeo = new THREE.SphereGeometry(d.r, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  var cL = new THREE.Mesh(capGeo, mSS);
+  cL.rotation.z = Math.PI / 2;
+  cL.position.x = -hbL;
+  cL.castShadow = true;
+  g.add(cL);
+  var cR = new THREE.Mesh(capGeo.clone(), mSS);
+  cR.rotation.z = -Math.PI / 2;
+  cR.position.x = hbL;
+  cR.castShadow = true;
+  g.add(cR);
+
+  // Color band
+  if (d.band) {
+    var bandMat = new THREE.MeshLambertMaterial({color: d.band});
+    var bGeo2 = new THREE.CylinderGeometry(d.r + 0.16, d.r + 0.16, 0.35, 28);
+    bGeo2.rotateZ(Math.PI / 2);
+    var band = new THREE.Mesh(bGeo2, bandMat);
+    band.position.y = d.r + 0.08;
+    g.add(band);
+  }
+
+  // SS bands at thirds
+  for (var i = -1; i <= 1; i += 2) {
+    var sbGeo = new THREE.CylinderGeometry(d.r + 0.15, d.r + 0.15, 0.06, 28);
+    sbGeo.rotateZ(Math.PI / 2);
+    var sb = new THREE.Mesh(sbGeo, mSS);
+    sb.position.x = i * bodyL / 3;
+    g.add(sb);
+  }
+
+  // Saddle supports + plinths
+  for (var s = -1; s <= 1; s += 2) {
+    var plinth = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, d.r * 1.6), mConcrete);
+    plinth.position.set(s * bodyL / 4, -d.r - 0.5, 0);
+    plinth.castShadow = true;
+    plinth.receiveShadow = true;
+    g.add(plinth);
+    var saddle = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, d.r * 1.3), mStruct);
+    saddle.position.set(s * bodyL / 4, -d.r + 0.2, 0);
+    g.add(saddle);
+  }
+
+  // Top nozzle
+  var nzGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7, 10);
+  var nz = new THREE.Mesh(nzGeo, mCS);
+  nz.position.y = d.r + 0.35;
+  g.add(nz);
+
+  // Side nozzles
+  var snGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 10);
+  snGeo.rotateZ(Math.PI / 2);
+  for (var sn = -1; sn <= 1; sn += 2) {
+    var snz = new THREE.Mesh(snGeo.clone(), mCS);
+    snz.position.set(sn * (hbL + 0.2), 0.3, 0);
+    g.add(snz);
+  }
+
+  // Level gauge
+  var lgGeo = new THREE.BoxGeometry(0.08, d.r * 1.4, 0.15);
+  var lg = new THREE.Mesh(lgGeo, new THREE.MeshLambertMaterial({color: 0x88ccff, transparent: true, opacity: 0.5}));
+  lg.position.set(0, 0, d.r + 0.2);
+  g.add(lg);
+
+  g.position.set(d.x, d.r + 1.0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Horizontal Vessel', 'EXISTING', 'Class 1 Div.1');
+}
+
+/* =============================================
+   VERTICAL VESSELS
+   ============================================= */
+function mkVV(d, detailed) {
+  var g = new THREE.Group();
+  var skirtH = d.h * 0.15;
+  var bodyH = d.h * 0.7;
+  var bodyBot = skirtH;
+
+  // Skirt
+  var skGeo = new THREE.CylinderGeometry(d.r + 0.08, d.r + 0.25, skirtH, 24);
+  var sk = new THREE.Mesh(skGeo, mConcrete);
+  sk.position.y = skirtH / 2;
+  sk.castShadow = true;
+  g.add(sk);
+
+  // Body
+  var bGeo = new THREE.CylinderGeometry(d.r + 0.1, d.r + 0.1, bodyH, 24);
+  var bd = new THREE.Mesh(bGeo, mInsul);
+  bd.position.y = bodyBot + bodyH / 2;
+  bd.castShadow = true;
+  g.add(bd);
+
+  // Top hemisphere
+  var tGeo = new THREE.SphereGeometry(d.r + 0.1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  var tc = new THREE.Mesh(tGeo, mSS);
+  tc.position.y = bodyBot + bodyH;
+  tc.castShadow = true;
+  g.add(tc);
+
+  // Bottom hemisphere
+  var btGeo = new THREE.SphereGeometry(d.r + 0.1, 24, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+  var btc = new THREE.Mesh(btGeo, mSS);
+  btc.position.y = bodyBot;
+  g.add(btc);
+
+  // Color band at 60%
+  if (d.band) {
+    var bmGeo = new THREE.CylinderGeometry(d.r + 0.14, d.r + 0.14, 0.35, 24);
+    var bmMat = new THREE.MeshLambertMaterial({color: d.band});
+    var bm = new THREE.Mesh(bmGeo, bmMat);
+    bm.position.y = d.h * 0.6;
+    g.add(bm);
+  }
+
+  if (detailed) {
+    // Platforms every 3m
+    for (var py = 3; py < d.h - 1; py += 3) {
+      mkPlatform(g, d.r + 1.0, py);
+    }
+    // Caged ladder
+    mkLadder(g, d.r + 0.4, 0, d.h - 1);
+    // Nozzles at 70% and 35%
+    var nGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 10);
+    nGeo.rotateZ(Math.PI / 2);
+    var n1 = new THREE.Mesh(nGeo, mCS);
+    n1.position.set(d.r + 0.6, d.h * 0.7, 0);
+    g.add(n1);
+    var n2 = new THREE.Mesh(nGeo.clone(), mCS);
+    n2.position.set(d.r + 0.6, d.h * 0.35, 0);
+    g.add(n2);
+  }
+
+  // Top vent
+  var vGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.0, 10);
+  var vent = new THREE.Mesh(vGeo, mCS);
+  vent.position.y = d.h + 0.5;
+  g.add(vent);
+
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Vertical Vessel', 'EXISTING', 'Class 1 Div.1');
+}
+
+function mkPlatform(g, r, y) {
+  // Floor ring
+  var flGeo = new THREE.RingGeometry(r - 0.4, r, 24, 1);
+  flGeo.rotateX(-Math.PI / 2);
+  var fl = new THREE.Mesh(flGeo, mStruct);
+  fl.position.y = y;
+  g.add(fl);
+  // Handrail posts
+  for (var a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+    var post = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.1, 6), mLadder);
+    post.position.set(Math.cos(a) * r, y + 0.55, Math.sin(a) * r);
+    g.add(post);
+  }
+  // Top rail (torus approximation)
+  var trGeo = new THREE.TorusGeometry(r, 0.03, 6, 24);
+  trGeo.rotateX(Math.PI / 2);
+  var tr = new THREE.Mesh(trGeo, mLadder);
+  tr.position.y = y + 1.1;
+  g.add(tr);
+}
+
+function mkLadder(g, r, y0, y1) {
+  // Two side rails
+  for (var s = -1; s <= 1; s += 2) {
+    var rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, y1 - y0, 0.04), mLadder);
+    rail.position.set(r + s * 0.25, (y0 + y1) / 2, 0);
+    g.add(rail);
+  }
+  // Rungs
+  var rungGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 6);
+  rungGeo.rotateZ(Math.PI / 2);
+  for (var ry = y0 + 0.3; ry < y1; ry += 0.35) {
+    var rung = new THREE.Mesh(rungGeo, mLadder);
+    rung.position.set(r, ry, 0);
+    g.add(rung);
+  }
+  // Cage (simplified - two curved rails behind)
+  var cageGeo = new THREE.CylinderGeometry(0.35, 0.35, y1 - y0, 8, 1, true, -0.4, 0.8);
+  var cage = new THREE.Mesh(cageGeo, mLadder);
+  cage.material = new THREE.MeshLambertMaterial({color: 0x606878, wireframe: true});
+  cage.position.set(r - 0.25, (y0 + y1) / 2, 0);
+  g.add(cage);
+}
+
+/* =============================================
+   BOX GROUND VESSELS
+   ============================================= */
+function mkBoxV(d) {
+  var g = new THREE.Group();
+  var body = new THREE.Mesh(new THREE.BoxGeometry(d.l, d.h, d.w), mInsul);
+  body.position.y = d.h / 2;
+  body.castShadow = true;
+  g.add(body);
+  // Top nozzle
+  var nz = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 10), mCS);
+  nz.position.set(0, d.h + 0.5, 0);
+  g.add(nz);
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Ground Vessel', 'EXISTING', 'Class 1 Div.1');
+}
+
+/* =============================================
+   STORAGE TANKS (API 650)
+   ============================================= */
+function mkTank(d) {
+  var g = new THREE.Group();
+  var R = d.r, H = d.h;
+  var roofH = R / 6;
+
+  // Concrete ringwall
+  var rw = new THREE.Mesh(new THREE.TorusGeometry(R + 0.3, 0.4, 8, 48), mConcrete);
+  rw.rotation.x = Math.PI / 2;
+  rw.position.y = 0.2;
+  g.add(rw);
+
+  // Tank shell
+  var shell = new THREE.Mesh(new THREE.CylinderGeometry(R, R, H, 48), mTankBody);
+  shell.position.y = H / 2;
+  shell.castShadow = true;
+  shell.receiveShadow = true;
+  g.add(shell);
+
+  // Weld seam rings at 33%, 66%
+  for (var ws = 1; ws <= 2; ws++) {
+    var wGeo = new THREE.TorusGeometry(R + 0.02, 0.03, 6, 48);
+    wGeo.rotateX(Math.PI / 2);
+    var w = new THREE.Mesh(wGeo, mCS);
+    w.position.y = H * ws / 3;
+    g.add(w);
+  }
+
+  // Wind girder at 70%
+  var wgGeo = new THREE.TorusGeometry(R + 0.15, 0.08, 6, 48);
+  wgGeo.rotateX(Math.PI / 2);
+  var wg = new THREE.Mesh(wgGeo, mStruct);
+  wg.position.y = H * 0.7;
+  g.add(wg);
+
+  // Stiffener at 45%
+  var stGeo = new THREE.TorusGeometry(R + 0.08, 0.05, 6, 48);
+  stGeo.rotateX(Math.PI / 2);
+  var st = new THREE.Mesh(stGeo, mStruct);
+  st.position.y = H * 0.45;
+  g.add(st);
+
+  // Cone roof
+  var roof = new THREE.Mesh(new THREE.ConeGeometry(R, roofH, 48), mTankRoof);
+  roof.position.y = H + roofH / 2;
+  roof.castShadow = true;
+  g.add(roof);
+
+  // Vent on roof
+  var vent = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.8, 8), mCS);
+  vent.position.y = H + roofH + 0.4;
+  g.add(vent);
+
+  // Spiral staircase (simplified as helical tube)
+  if (H > 8) {
+    var turns = 3;
+    var pts = [];
+    var stairR = R + 0.8;
+    for (var t = 0; t <= turns * Math.PI * 2; t += 0.15) {
+      pts.push(new THREE.Vector3(Math.cos(t) * stairR, (t / (turns * Math.PI * 2)) * H, Math.sin(t) * stairR));
+    }
+    var curve = new THREE.CatmullRomCurve3(pts);
+    var tubeGeo = new THREE.TubeGeometry(curve, 120, 0.04, 4, false);
+    var tube = new THREE.Mesh(tubeGeo, mLadder);
+    g.add(tube);
+    // Inner rail
+    var pts2 = [];
+    for (var t2 = 0; t2 <= turns * Math.PI * 2; t2 += 0.15) {
+      pts2.push(new THREE.Vector3(Math.cos(t2) * (stairR - 0.5), (t2 / (turns * Math.PI * 2)) * H, Math.sin(t2) * (stairR - 0.5)));
+    }
+    var curve2 = new THREE.CatmullRomCurve3(pts2);
+    var tubeGeo2 = new THREE.TubeGeometry(curve2, 120, 0.03, 4, false);
+    var tube2 = new THREE.Mesh(tubeGeo2, mLadder);
+    g.add(tube2);
+    // Steps (every ~30 degrees)
+    var stepGeo = new THREE.BoxGeometry(0.6, 0.03, 0.25);
+    for (var t3 = 0; t3 < turns * Math.PI * 2; t3 += 0.5) {
+      var step = new THREE.Mesh(stepGeo, mLadder);
+      var sy = (t3 / (turns * Math.PI * 2)) * H;
+      step.position.set(Math.cos(t3) * stairR, sy, Math.sin(t3) * stairR);
+      step.rotation.y = -t3 + Math.PI / 2;
+      g.add(step);
+    }
+  }
+
+  // Inlet/outlet nozzles at base
+  var nozGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.0, 10);
+  nozGeo.rotateZ(Math.PI / 2);
+  var inNoz = new THREE.Mesh(nozGeo, mCS);
+  inNoz.position.set(R + 0.5, 0.8, 0);
+  g.add(inNoz);
+  var outNoz = new THREE.Mesh(nozGeo.clone(), mCS);
+  outNoz.position.set(-R - 0.5, 0.8, 0);
+  g.add(outNoz);
+
+  // Containment berm
+  if (d.bermR) {
+    var bermPts = [];
+    bermPts.push(new THREE.Vector2(R + 2, 0));
+    bermPts.push(new THREE.Vector2(d.bermR - 1.5, 0));
+    bermPts.push(new THREE.Vector2(d.bermR, 1.5));
+    bermPts.push(new THREE.Vector2(R + 2, 1.5));
+    var bermGeo = new THREE.LatheGeometry(bermPts, 36);
+    var bermMat = new THREE.MeshLambertMaterial({color: 0x8a7a52});
+    var berm = new THREE.Mesh(bermGeo, bermMat);
+    berm.receiveShadow = true;
+    g.add(berm);
+  }
+
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Storage Tank', 'EXISTING', 'Class 1 Div.2');
+}
+
+/* =============================================
+   SMALL TANK (test/flow/FW)
+   ============================================= */
+function mkSmallTank(d) {
+  var g = new THREE.Group();
+  var mat = d.blue ? mFWTank : mTankBody;
+  var rMat = d.blue ? mTankRoof : mTankRoof;
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(d.r, d.r, d.h, 24), mat);
+  body.position.y = d.h / 2;
+  body.castShadow = true;
+  g.add(body);
+  var roofH = d.r / 6;
+  var roof = new THREE.Mesh(new THREE.ConeGeometry(d.r, roofH, 24), rMat);
+  roof.position.y = d.h + roofH / 2;
+  g.add(roof);
+  var vent = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.6, 8), mCS);
+  vent.position.y = d.h + roofH + 0.3;
+  g.add(vent);
+  if (d.bund) {
+    var bGeo = new THREE.LatheGeometry([
+      new THREE.Vector2(d.r + 1, 0),
+      new THREE.Vector2(d.r + 3, 0),
+      new THREE.Vector2(d.r + 3.5, 1),
+      new THREE.Vector2(d.r + 1, 1)
+    ], 20);
+    g.add(new THREE.Mesh(bGeo, new THREE.MeshLambertMaterial({color: 0x8a7a52})));
+  }
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, d.blue ? 'Fire Water Tank' : 'Tank', 'EXISTING', d.blue ? 'Safe Area' : 'Class 1 Div.2');
+}
+
+/* =============================================
+   PUMPS
+   ============================================= */
+function mkPump(d) {
+  var g = new THREE.Group();
+  // Baseplate
+  var bp = new THREE.Mesh(new THREE.BoxGeometry(2, 0.15, 1.2), mConcrete);
+  bp.position.y = 0.075;
+  bp.receiveShadow = true;
+  g.add(bp);
+  // Motor block
+  var motor = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.7), mPump);
+  motor.position.set(-0.3, 0.5, 0);
+  motor.castShadow = true;
+  g.add(motor);
+  // Pump casing
+  var casing = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.6, 16), mPump);
+  casing.rotation.z = Math.PI / 2;
+  casing.position.set(0.5, 0.45, 0);
+  casing.castShadow = true;
+  g.add(casing);
+  // Coupling guard (yellow)
+  var guard = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 12), mYellow);
+  guard.rotation.z = Math.PI / 2;
+  guard.position.set(0.05, 0.5, 0);
+  g.add(guard);
+  // Suction nozzle
+  var sNoz = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 10), mCS);
+  sNoz.rotation.z = Math.PI / 2;
+  sNoz.position.set(0.9, 0.3, 0);
+  g.add(sNoz);
+  // Discharge nozzle (top)
+  var dNoz = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.5, 10), mCS);
+  dNoz.position.set(0.5, 0.9, 0);
+  g.add(dNoz);
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Centrifugal Pump', 'EXISTING', 'Class 1 Div.1');
+}
+
+/* =============================================
+   CHEMICAL INJECTION SKIDS
+   ============================================= */
+function mkChemSkid(d) {
+  var g = new THREE.Group();
+  // Frame
+  var frame = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 2), mStruct);
+  frame.position.y = 0.4;
+  frame.castShadow = true;
+  g.add(frame);
+  // IBC totes
+  for (var i = -1; i <= 1; i += 2) {
+    var ibc = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.9), new THREE.MeshLambertMaterial({color: 0xd0d0d0}));
+    ibc.position.set(i * 0.7, 1.4, 0);
+    g.add(ibc);
+  }
+  // Small pump
+  var pump = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), mPump);
+  pump.position.set(0, 1.1, 0.6);
+  g.add(pump);
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Chemical Skid', 'EXISTING', 'Class 1 Div.2');
+}
+
+/* =============================================
+   BUILDINGS
+   ============================================= */
+function mkBld(d) {
+  var g = new THREE.Group();
+  var w = d.w, dp = d.d, h = d.h;
+  var wallMat = d.pow ? mGenBld : mAdminBld;
+  var wallMat2 = d.inst ? mGenBld : wallMat;
+
+  // Main walls
+  var walls = new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), wallMat2);
+  walls.position.y = h / 2;
+  walls.castShadow = true;
+  walls.receiveShadow = true;
+  g.add(walls);
+
+  // Roof
+  var roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.2, dp + 0.3), mRoof);
+  roof.position.y = h + 0.1;
+  roof.castShadow = true;
+  g.add(roof);
+
+  // Windows (glass)
+  var glassMat = new THREE.MeshLambertMaterial({color: 0x88aacc, transparent: true, opacity: 0.35});
+  var winW = 1.2, winH = 0.8;
+  var winCount = Math.floor(w / 4);
+  for (var wi = 0; wi < winCount; wi++) {
+    // Front face
+    var win = new THREE.Mesh(new THREE.PlaneGeometry(winW, winH), glassMat);
+    win.position.set(-w / 2 + 2 + wi * 3.5, h * 0.6, dp / 2 + 0.01);
+    g.add(win);
+    // Back face
+    var winB = new THREE.Mesh(new THREE.PlaneGeometry(winW, winH), glassMat);
+    winB.position.set(-w / 2 + 2 + wi * 3.5, h * 0.6, -dp / 2 - 0.01);
+    winB.rotation.y = Math.PI;
+    g.add(winB);
+  }
+
+  // Door
+  var door = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.4), new THREE.MeshLambertMaterial({color: 0x506070}));
+  door.position.set(0, 1.2, dp / 2 + 0.01);
+  g.add(door);
+
+  // Louvers for power buildings
+  if (d.pow) {
+    var louvMat = new THREE.MeshLambertMaterial({color: 0x304050});
+    for (var li = 0; li < 4; li++) {
+      var louver = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.8, 0.15), louvMat);
+      louver.position.set(0, h * 0.3 + li * 0.25, dp / 2 + 0.02);
+      g.add(louver);
+    }
+    // Exhaust stacks
+    for (var si = -1; si <= 1; si += 2) {
+      var stack = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 9, 10), mCS);
+      stack.position.set(si * w * 0.25, h + 4.5, 0);
+      stack.castShadow = true;
+      g.add(stack);
+    }
+  }
+
+  // AC units on admin buildings
+  if (d.admin) {
+    for (var ai = -1; ai <= 1; ai += 2) {
+      var ac = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.6, 0.8), new THREE.MeshLambertMaterial({color: 0xd0d8e0}));
+      ac.position.set(ai * w * 0.25, h + 0.4, 0);
+      g.add(ac);
+    }
+  }
+
+  g.position.set(d.x, 0, d.z);
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Building', d.new_ ? 'NEW' : 'EXISTING', 'Safe Area');
+}
+
+/* =============================================
+   PIPE RACKS
+   ============================================= */
+function mkPipeRack(d) {
+  var g = new THREE.Group();
+  var len = d.len, dx = d.dx || 0, dz = d.dz || 1;
+  var colSpacing = 6;
+  var numCols = Math.floor(len / colSpacing) + 1;
+
+  // Columns
+  for (var ci = 0; ci < numCols; ci++) {
+    var t = ci / (numCols - 1);
+    var cx = d.x + t * len * dx;
+    var cz = d.z + t * len * dz;
+    // Two columns (H-frame)
+    for (var s = -1; s <= 1; s += 2) {
+      var col = new THREE.Mesh(new THREE.BoxGeometry(0.15, 7, 0.15), mStruct);
+      col.position.set(cx + s * 1.5 * dz, 3.5, cz - s * 1.5 * dx);
+      col.castShadow = true;
+      g.add(col);
+    }
+    // Cross beam at level 1 (y=4)
+    var beam1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 3), mStruct);
+    beam1.position.set(cx, 4, cz);
+    beam1.rotation.y = dx !== 0 ? 0 : Math.PI / 2;
+    g.add(beam1);
+    // Cross beam at level 2 (y=6)
+    var beam2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 3), mStruct);
+    beam2.position.set(cx, 6, cz);
+    beam2.rotation.y = dx !== 0 ? 0 : Math.PI / 2;
+    g.add(beam2);
+
+    // Cross-bracing between column pairs
+    if (ci < numCols - 1) {
+      var t2 = (ci + 1) / (numCols - 1);
+      var nx = d.x + t2 * len * dx;
+      var nz = d.z + t2 * len * dz;
+      // Diagonal braces
+      var braceLen = colSpacing;
+      var braceGeo = new THREE.BoxGeometry(0.04, 0.04, braceLen * 1.02);
+      for (var s2 = -1; s2 <= 1; s2 += 2) {
+        var brace = new THREE.Mesh(braceGeo, mLadder);
+        var bx = (cx + nx) / 2 + s2 * 1.5 * dz;
+        var bz = (cz + nz) / 2 - s2 * 1.5 * dx;
+        brace.position.set(bx, 3.5, bz);
+        if (dx !== 0) {
+          brace.rotation.y = 0;
+          brace.rotation.z = Math.atan2(1, 0) * 0.3;
+        } else {
+          brace.rotation.y = Math.PI / 2;
+          brace.rotation.z = Math.atan2(1, 0) * 0.3;
+        }
+        g.add(brace);
+      }
+    }
+  }
+
+  // Longitudinal beams
+  for (var lv = 0; lv < 2; lv++) {
+    var ly = 4 + lv * 2;
+    for (var s3 = -1; s3 <= 1; s3 += 2) {
+      var lBeam = new THREE.Mesh(
+        new THREE.BoxGeometry(dx !== 0 ? len : 0.1, 0.1, dx !== 0 ? 0.1 : len),
+        mStruct
+      );
+      lBeam.position.set(
+        d.x + (dx !== 0 ? len / 2 : 0) + s3 * 1.5 * dz,
+        ly,
+        d.z + (dx !== 0 ? 0 : len / 2) - s3 * 1.5 * dx
+      );
+      g.add(lBeam);
+    }
+  }
+
+  // Pipes on top level
+  var pipeColors = [mCS, mCS, mCS, mInsPipe, mInsPipe, mFW];
+  var pipeR = [0.15, 0.15, 0.15, 0.1, 0.1, 0.075];
+  for (var pi = 0; pi < 6; pi++) {
+    var pGeo = new THREE.CylinderGeometry(pipeR[pi], pipeR[pi], len, 8);
+    if (dx !== 0) {
+      pGeo.rotateZ(Math.PI / 2);
+    }
+    var pipe = new THREE.Mesh(pGeo, pipeColors[pi]);
+    pipe.position.set(
+      d.x + (dx !== 0 ? len / 2 : (-1 + pi * 0.5)),
+      6.5 + pi * 0.35,
+      d.z + (dx !== 0 ? (-1 + pi * 0.5) : len / 2)
+    );
+    g.add(pipe);
+  }
+
+  scene.add(g);
+  regClick(g, d.tag, d.desc, 'Pipe Rack', 'EXISTING', 'Safe Area');
+}
+
+/* =============================================
+   FIRE WATER SYSTEM
+   ============================================= */
+function buildFireWater() {
+  var x0 = -118, x1 = 118, z0 = -113, z1 = 113;
+  var pipeR = 0.09;
+
+  // Ring main - 4 segments
+  function addFWSeg(xa, za, xb, zb) {
+    var dx = xb - xa, dz = zb - za;
+    var len = Math.sqrt(dx * dx + dz * dz);
+    var geo = new THREE.CylinderGeometry(pipeR, pipeR, len, 8);
+    geo.rotateZ(Math.PI / 2);
+    if (Math.abs(dz) > Math.abs(dx)) {
+      geo.rotateY(Math.PI / 2);
+    }
+    var pipe = new THREE.Mesh(geo, mFW);
+    pipe.position.set((xa + xb) / 2, 0.3, (za + zb) / 2);
+    scene.add(pipe);
+  }
+  addFWSeg(x0, z0, x1, z0);
+  addFWSeg(x0, z1, x1, z1);
+  addFWSeg(x0, z0, x0, z1);
+  addFWSeg(x1, z0, x1, z1);
+
+  // Fire hydrants
+  var hydrantPos = [
+    [-50,-113],[0,-113],[50,-113],
+    [118,-50],[118,50],[-118,-50],[-118,50],
+    [-50,113],[50,113]
+  ];
+  var hGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8);
+  var hTop = new THREE.CylinderGeometry(0.12, 0.12, 0.15, 8);
+  var hMat = new THREE.MeshLambertMaterial({color: 0xcc2200});
+  for (var hi = 0; hi < hydrantPos.length; hi++) {
+    var hg = new THREE.Group();
+    var post = new THREE.Mesh(hGeo, hMat);
+    post.position.y = 0.6;
+    hg.add(post);
+    var top = new THREE.Mesh(hTop, hMat);
+    top.position.y = 1.25;
+    hg.add(top);
+    hg.position.set(hydrantPos[hi][0], 0, hydrantPos[hi][1]);
+    scene.add(hg);
+  }
+}
+
+/* =============================================
+   FLARE STACK
+   ============================================= */
+function buildFlare() {
+  var g = new THREE.Group();
+  var fx = 0, fz = 108;
+
+  // Foundation pad
+  var padGeo = new THREE.CylinderGeometry(4, 4.2, 0.4, 8);
+  var pad = new THREE.Mesh(padGeo, mConcrete);
+  pad.position.y = 0.2;
+  g.add(pad);
+
+  // Tapered sections
+  var sections = [
+    {rb: 0.6, rt: 0.5, h: 5, y: 0.4},
+    {rb: 0.5, rt: 0.375, h: 12, y: 5.4},
+    {rb: 0.375, rt: 0.275, h: 12, y: 17.4},
+    {rb: 0.275, rt: 0.22, h: 10, y: 29.4}
+  ];
+  for (var si = 0; si < sections.length; si++) {
+    var s = sections[si];
+    var sGeo = new THREE.CylinderGeometry(s.rt, s.rb, s.h, 12);
+    var sMesh = new THREE.Mesh(sGeo, mFlare);
+    sMesh.position.y = s.y + s.h / 2;
+    sMesh.castShadow = true;
+    g.add(sMesh);
+  }
+
+  // Platforms at 10m, 22m, 34m
+  var platYs = [10, 22, 34];
+  for (var pi = 0; pi < platYs.length; pi++) {
+    var py = platYs[pi];
+    var pFlr = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 2.5), mStruct);
+    pFlr.position.y = py;
+    g.add(pFlr);
+    // Handrails
+    for (var hr = 0; hr < 4; hr++) {
+      var ha = hr * Math.PI / 2;
+      var hp = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.0, 4), mLadder);
+      hp.position.set(Math.cos(ha) * 1.25, py + 0.5, Math.sin(ha) * 1.25);
+      g.add(hp);
+    }
+    var pRail = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.025, 4, 12), mLadder);
+    pRail.rotation.x = Math.PI / 2;
+    pRail.position.y = py + 1.0;
+    g.add(pRail);
+  }
+
+  // Caged ladder
+  var ladR = 0.25;
+  for (var ls = -1; ls <= 1; ls += 2) {
+    var lRail = new THREE.Mesh(new THREE.BoxGeometry(0.03, 39, 0.03), mLadder);
+    lRail.position.set(ladR + ls * 0.2, 20, 0);
+    g.add(lRail);
+  }
+  // Rungs
+  var rGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.4, 4);
+  rGeo.rotateZ(Math.PI / 2);
+  for (var ry = 1; ry < 39; ry += 0.4) {
+    var rung = new THREE.Mesh(rGeo, mLadder);
+    rung.position.set(ladR, ry, 0);
+    g.add(rung);
+  }
+
+  // Guy wires (3 directions)
+  var wireMat = new THREE.LineBasicMaterial({color: 0x606870});
+  for (var gi = 0; gi < 3; gi++) {
+    var ga = gi * Math.PI * 2 / 3;
+    var pts = [
+      new THREE.Vector3(0, 35, 0),
+      new THREE.Vector3(Math.cos(ga) * 28, 0, Math.sin(ga) * 28)
+    ];
+    var wGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    g.add(new THREE.Line(wGeo, wireMat));
+  }
+
+  // Flare tip
+  var tip = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.8, 8), mFlare);
+  tip.position.y = 39.4;
+  g.add(tip);
+
+  // Pilot burner nozzles
+  for (var pbi = 0; pbi < 3; pbi++) {
+    var pba = pbi * Math.PI * 2 / 3;
+    var pb = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 6), mCS);
+    pb.position.set(Math.cos(pba) * 0.15, 39.8, Math.sin(pba) * 0.15);
+    g.add(pb);
+  }
+
+  // Aviation warning light
+  avLt = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 0.15, 8),
+    new THREE.MeshBasicMaterial({color: 0xff0000})
+  );
+  avLt.position.y = 40;
+  g.add(avLt);
+
+  // Animated flame (3 cones)
+  var flameMat = new THREE.MeshBasicMaterial({color: 0xff6600, transparent: true, opacity: 0.8});
+  var flameMat2 = new THREE.MeshBasicMaterial({color: 0xffaa00, transparent: true, opacity: 0.6});
+  var flameMat3 = new THREE.MeshBasicMaterial({color: 0xff3300, transparent: true, opacity: 0.5});
+
+  var fc1 = new THREE.Mesh(new THREE.ConeGeometry(0.6, 3, 8), flameMat);
+  fc1.position.y = 41.5;
+  g.add(fc1);
+  flareCns.push(fc1);
+
+  var fc2 = new THREE.Mesh(new THREE.ConeGeometry(0.45, 2.5, 8), flameMat2);
+  fc2.position.y = 41.8;
+  fc2.rotation.z = 0.15;
+  g.add(fc2);
+  flareCns.push(fc2);
+
+  var fc3 = new THREE.Mesh(new THREE.ConeGeometry(0.35, 2, 8), flameMat3);
+  fc3.position.y = 41.3;
+  fc3.rotation.z = -0.2;
+  g.add(fc3);
+  flareCns.push(fc3);
+
+  // Flare point light
+  flarePt = new THREE.PointLight(0xff6600, 4, 60);
+  flarePt.position.y = 42;
+  g.add(flarePt);
+
+  g.position.set(fx, 0, fz);
+  scene.add(g);
+  regClick(g, 'FLARE-001', 'Flare Stack', 'Flare System', 'EXISTING', 'Class 1 Div.1');
+}
+
+/* =============================================
+   WORKERS CAMP
+   ============================================= */
+function buildCamp() {
+  var g = new THREE.Group();
+  var cx = 90, cz = 85;
+  // Inner fence
+  var fPostGeo = new THREE.BoxGeometry(0.06, 1.5, 0.06);
+  var fMat = new THREE.MeshLambertMaterial({color: 0x606870});
+  // Perimeter posts
+  for (var fi = 0; fi < 50; fi++) {
+    var ft = fi / 49;
+    var fx2, fz2;
+    if (ft < 0.35) { fx2 = cx - 30 + ft / 0.35 * 60; fz2 = cz - 20; }
+    else if (ft < 0.6) { fx2 = cx + 30; fz2 = cz - 20 + (ft - 0.35) / 0.25 * 40; }
+    else if (ft < 0.85) { fx2 = cx + 30 - (ft - 0.6) / 0.25 * 60; fz2 = cz + 20; }
+    else { fx2 = cx - 30; fz2 = cz + 20 - (ft - 0.85) / 0.15 * 40; }
+    var fp = new THREE.Mesh(fPostGeo, fMat);
+    fp.position.set(fx2, 0.75, fz2);
+    g.add(fp);
+  }
+
+  // Prefab units (4x3 grid)
+  var unitMat = new THREE.MeshLambertMaterial({color: 0xc8c0b0});
+  var unitRoof = new THREE.MeshLambertMaterial({color: 0x808890});
+  for (var row = 0; row < 3; row++) {
+    for (var col = 0; col < 4; col++) {
+      var ux = cx - 18 + col * 12;
+      var uz = cz - 10 + row * 10;
+      var unit = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 4), unitMat);
+      unit.position.set(ux, 1.5, uz);
+      unit.castShadow = true;
+      g.add(unit);
+      var uRoof = new THREE.Mesh(new THREE.BoxGeometry(10.3, 0.12, 4.3), unitRoof);
+      uRoof.position.set(ux, 3.06, uz);
+      g.add(uRoof);
+      // Door
+      var uDoor = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 2.2), new THREE.MeshLambertMaterial({color: 0x605840}));
+      uDoor.position.set(ux, 1.1, uz + 2.01);
+      g.add(uDoor);
+    }
+  }
+  scene.add(g);
+  regClick(g, 'LSC-001', 'Workers Camp / LSC', 'Accommodation', 'EXISTING', 'Safe Area');
+}
+
+/* =============================================
+   HAZARDOUS AREA ZONES
+   ============================================= */
+function buildHazardZones() {
+  // Class 1 Div.1 - process areas
+  var div1Mat = new THREE.MeshBasicMaterial({color: 0xcc2200, transparent: true, opacity: 0.12, side: THREE.DoubleSide});
+  var zones1 = [
+    {x: -10, z: -70, w: 90, h: 30},   // Main separator area
+    {x: -60, z: -42, w: 20, h: 20},   // Test/desalter area
+    {x: 50, z: -68, w: 30, h: 20},    // Finger sep / MT bank area
+    {x: -25, z: -82, w: 20, h: 10},   // Process pump area
+    {x: -72, z: -24, w: 15, h: 15},   // Test pump area
+  ];
+  for (var i = 0; i < zones1.length; i++) {
+    var z1 = new THREE.Mesh(new THREE.PlaneGeometry(zones1[i].w, zones1[i].h), div1Mat);
+    z1.rotation.x = -Math.PI / 2;
+    z1.position.set(zones1[i].x, 0.08, zones1[i].z);
+    scene.add(z1);
+  }
+
+  // Class 1 Div.2 - extends beyond Div.1
+  var div2Mat = new THREE.MeshBasicMaterial({color: 0xff6644, transparent: true, opacity: 0.07, side: THREE.DoubleSide});
+  var zones2 = [
+    {x: -10, z: -70, w: 100, h: 40},
+    {x: -60, z: -42, w: 28, h: 28},
+    {x: 50, z: -68, w: 38, h: 28},
+    {x: -25, z: -82, w: 26, h: 16},
+    {x: -72, z: -24, w: 22, h: 22},
+  ];
+  for (var j = 0; j < zones2.length; j++) {
+    var z2 = new THREE.Mesh(new THREE.PlaneGeometry(zones2[j].w, zones2[j].h), div2Mat);
+    z2.rotation.x = -Math.PI / 2;
+    z2.position.set(zones2[j].x, 0.06, zones2[j].z);
+    scene.add(z2);
+  }
+}
+
+/* =============================================
+   3D LABELS
+   ============================================= */
+function mkLabel(text, x, y, z) {
+  var canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  var ctx = canvas.getContext('2d');
+  // Background
+  ctx.fillStyle = 'rgba(8,12,24,0.88)';
+  ctx.beginPath();
+  ctx.moveTo(4, 2);
+  ctx.lineTo(252, 2);
+  ctx.quadraticCurveTo(254, 2, 254, 4);
+  ctx.lineTo(254, 60);
+  ctx.quadraticCurveTo(254, 62, 252, 62);
+  ctx.lineTo(4, 62);
+  ctx.quadraticCurveTo(2, 62, 2, 60);
+  ctx.lineTo(2, 4);
+  ctx.quadraticCurveTo(2, 2, 4, 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#3a80d0';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // Text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 13px Segoe UI, Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 32);
+
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  var sprMat = new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false});
+  var spr = new THREE.Sprite(sprMat);
+  spr.position.set(x, y, z);
+  spr.scale.set(7, 1.75, 1);
+  scene.add(spr);
+  labelArr.push(spr);
+}
+
+function buildLabels() {
+  mkLabel('60-V-100  1st Stage Sep.', -35, 6, -70);
+  mkLabel('60-V-200  2nd Stage Sep.', -15, 6, -70);
+  mkLabel('60-V-250  3rd Stage Sep.', 8, 5.5, -70);
+  mkLabel('60-V-320  4th Stage Sep.', 28, 5, -70);
+  mkLabel('60-X-550  HP Gas Scrubber', -52, 15, -68);
+  mkLabel('60-X-560  LP Gas Scrubber', -52, 13, -60);
+  mkLabel('60-V-120  Test Separator', -65, 4.5, -42);
+  mkLabel('40-V-230  Desalter', -50, 5, -46);
+  mkLabel('40-V-350  Dehydrator', -50, 5, -38);
+  mkLabel('40-V-550  HP Relief KO', -68, 9, -70);
+  mkLabel('40-V-560  LP Relief KO', -68, 8, -62);
+  mkLabel('Finger Separators 60-SK-1001~6', 55, 10, -77);
+  mkLabel('MCT Bank Separators', 49, 5, -58);
+  mkLabel('60-TK-1  Main Crude Tank', -62, 20, 42);
+  mkLabel('60-TK-2  Second Crude Tank', 42, 17, 65);
+  mkLabel('60-TK-FW  Fire Water Tank', -80, 13, 12);
+  mkLabel('60-T-100  Test Tank', -65, 7, -28);
+  mkLabel('Process Pumps', -18, 4, -82);
+  mkLabel('Test / Transfer Pumps', -68, 3, -24);
+  mkLabel('Chemical Injection', -15, 4, -40);
+  mkLabel('60-G-700  Emergency Gen.', 82, 11, -88);
+  mkLabel('60-G-600  Main Power', 82, 11, -65);
+  mkLabel('40-S-600  Gas Compressor', 82, 9, -12);
+  mkLabel('Control Room (CCR)', 82, 8, 36);
+  mkLabel('Administration', 82, 7, 56);
+  mkLabel('Flare Stack', 0, 46, 108);
+  mkLabel('Workers Camp / LSC', 90, 6, 85);
+  mkLabel('Pipe Rack-1', -5, 9, 30);
+  mkLabel('Pipe Rack-2', -22, 9, 30);
+  mkLabel('Pipe Rack-3', 77, 9, -100);
+  mkLabel('Kroehne Meter', -57, 3, -58);
+}
+
+/* =============================================
+   PLACE ALL EQUIPMENT
+   ============================================= */
+function buildVessels() {
+  // Horizontal vessels
+  var hData = [
+    {tag:'60-V-100',desc:'1st Stage Separator',x:-35,z:-70,l:14,r:2.2,band:0x2060cc},
+    {tag:'60-V-200',desc:'2nd Stage Separator',x:-15,z:-70,l:14,r:2.2,band:0x2060cc},
+    {tag:'60-V-250',desc:'3rd Stage Separator',x:8,z:-70,l:13,r:2.0,band:0x20a040},
+    {tag:'60-V-320',desc:'4th Stage Separator',x:28,z:-70,l:11,r:1.8,band:0x20a040},
+    {tag:'60-V-120',desc:'Test Separator',x:-65,z:-42,l:10,r:1.5,band:0xe0c020},
+    {tag:'40-V-350',desc:'Dehydrator',x:-50,z:-38,l:10,r:1.8,band:null},
+    {tag:'40-V-230',desc:'Desalter',x:-50,z:-46,l:12,r:2.0,band:null},
+    {tag:'40-V-600',desc:'MCT Bank 1st Stage',x:37,z:-58,l:8,r:1.4,band:null},
+    {tag:'40-V-210',desc:'MCT Bank 2nd Stage',x:45,z:-58,l:8,r:1.4,band:null},
+    {tag:'40-V-223',desc:'MCT Bank 3rd Stage',x:53,z:-58,l:8,r:1.4,band:null},
+    {tag:'40-V-229',desc:'MCT Bank 4th Stage',x:61,z:-58,l:8,r:1.4,band:null}
+  ];
+  for (var i = 0; i < hData.length; i++) mkHV(hData[i]);
+
+  // Box ground vessels
+  mkBoxV({tag:'60-V-280',desc:'Ground Vessel',x:10,z:-56,l:20,w:10,h:3});
+  mkBoxV({tag:'60-V-290',desc:'Ground Vessel',x:10,z:-46,l:20,w:10,h:3});
+
+  // Vertical vessels - detailed (scrubbers, KO drums)
+  var vDetail = [
+    {tag:'40-V-550',desc:'HP Relief KO Drum',x:-68,z:-70,h:6,r:1.2,band:null},
+    {tag:'40-V-560',desc:'LP Relief KO Drum',x:-68,z:-62,h:5,r:1.0,band:null},
+    {tag:'60-X-550',desc:'HP Gas Scrubber',x:-52,z:-68,h:12,r:1.8,band:0xe08020},
+    {tag:'60-X-560',desc:'LP Gas Scrubber',x:-52,z:-60,h:10,r:1.5,band:0xe08020}
+  ];
+  for (var j = 0; j < vDetail.length; j++) mkVV(vDetail[j], true);
+
+  // Small service vessels
+  var vSmall = [
+    {tag:'60-V-500A',desc:'Service Gas Vessel A',x:38,z:-68,h:5,r:1.0,band:null},
+    {tag:'60-V-500B',desc:'Service Gas Vessel B',x:44,z:-68,h:5,r:1.0,band:null},
+    {tag:'60-V-500C',desc:'Service Gas Vessel C',x:50,z:-68,h:5,r:1.0,band:null},
+    {tag:'60-V-510',desc:'Service Gas Vessel',x:10,z:-82,h:6,r:1.2,band:null},
+    {tag:'60-V-660',desc:'Service Gas Vessel',x:-10,z:-82,h:5,r:1.0,band:null},
+    {tag:'60-V-663',desc:'Service Gas Vessel',x:-16,z:-82,h:5,r:1.0,band:null},
+    {tag:'60-V-670',desc:'Service Gas Vessel',x:-22,z:-82,h:5,r:1.0,band:null}
+  ];
+  for (var k = 0; k < vSmall.length; k++) mkVV(vSmall[k], false);
+}
+
+function buildFingerSeparators() {
+  var startX = 43, startZ = -77, spacing = 5.5;
+  for (var fi = 0; fi < 6; fi++) {
+    var fx = startX + fi * spacing;
+    var g = new THREE.Group();
+    // Skirt
+    var sk = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.2, 0.8, 16), mConcrete);
+    sk.position.y = 0.4;
+    g.add(sk);
+    // Body
+    var bd = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 5.5, 16), mInsul);
+    bd.position.y = 3.55;
+    bd.castShadow = true;
+    g.add(bd);
+    // Cone top
+    var cone = new THREE.Mesh(new THREE.ConeGeometry(1.0, 0.8, 16), mSS);
+    cone.position.y = 6.7;
+    g.add(cone);
+    // Vent nozzle
+    var vent = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8), mCS);
+    vent.position.y = 7.4;
+    g.add(vent);
+    // Platform at 5m
+    mkPlatform(g, 1.8, 5);
+    // Simple ladder
+    mkLadder(g, 1.2, 0, 6);
+    g.position.set(fx, 0, startZ);
+    scene.add(g);
+    regClick(g, '60-SK-' + (1001 + fi), 'Finger Separator ' + (fi + 1), 'Vertical Separator', 'EXISTING', 'Class 1 Div.1');
+  }
+
+  // Inlet manifold (red pipe)
+  var manGeo = new THREE.CylinderGeometry(0.15, 0.15, 6 * 5.5 - 5.5, 8);
+  manGeo.rotateZ(Math.PI / 2);
+  var manifold = new THREE.Mesh(manGeo, mFW);
+  manifold.position.set(startX + 2.5 * 5.5 - 5.5 / 2, 0.6, startZ - 1.5);
+  scene.add(manifold);
+
+  // Gas outlet header (grey pipe) at top
+  var hdrGeo = new THREE.CylinderGeometry(0.1, 0.1, 6 * 5.5 - 5.5, 8);
+  hdrGeo.rotateZ(Math.PI / 2);
+  var header = new THREE.Mesh(hdrGeo, mCS);
+  header.position.set(startX + 2.5 * 5.5 - 5.5 / 2, 6.5, startZ - 1.5);
+  scene.add(header);
+
+  
+// Skeletal supports for manifold/header
+for(var sk = 0; sk < 4; sk++){
+    var sup = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 6), mStruct);
+    sup.position.set(startX + sk * 5.5, 0.3, startZ - 1.5);
+    g.add(sup);
+}
+
+/* =============================================
+   STORAGE TANKS
+   ============================================= */
+function buildTanks(){
+  // Main Crude Tanks
+  mkTank({tag:'60-TK-1',desc:'Main Crude Tank',x:-62,z:42,r:12,h:14,bermR:18});
+  mkTank({tag:'60-TK-2',desc:'Second Crude Tank',x:42,z:65,r:12,h:14,bermR:18});
+  // Fire Water Tank
+  mkSmallTank({tag:'60-TK-FW',desc:'Fire Water Tank',x:-80,z:12,r:5,h:6,blue:true,bund:true});
+  // Test Tank
+  mkSmallTank({tag:'60-T-100',desc:'Test Tank',x:-65,z:-28,r:3.5,h:5,blue:false,bund:true});
+}
+
+/* =============================================
+   PUMPS
+   ============================================= */
+function buildPumps(){
+  // Process Pumps (North area)
+  var pData = [
+    {tag:'60-P-101',desc:'Crude Transfer Pump A',x:-25,z:-82},
+    {tag:'60-P-102',desc:'Crude Transfer Pump B',x:-20,z:-82},
+    {tag:'60-P-103',desc:'Crude Transfer Pump C',x:-15,z:-82},
+    {tag:'60-P-201',desc:'Water Injection Pump A',x:-10,z:-82},
+    {tag:'60-P-202',desc:'Water Injection Pump B',x:-5,z:-82}
+  ];
+  for(var i=0; i<pData.length; i++) mkPump(pData[i]);
+
+  // Test/Transfer Pumps
+  var tData = [
+    {tag:'60-P-301',desc:'Test Transfer Pump A',x:-68,z:-24},
+    {tag:'60-P-302',desc:'Test Transfer Pump B',x:-64,z:-24},
+    {tag:'60-P-303',desc:'Test Transfer Pump C',x:-60,z:-24}
+  ];
+  for(var j=0; j<tData.length; j++) mkPump(tData[j]);
+
+  // Chemical Injection Skids (Using Pump/Box logic)
+  mkChemSkid({tag:'60-X-700',desc:'Chemical Injection Skid 1',x:-15,z:-40});
+  mkChemSkid({tag:'60-X-701',desc:'Chemical Injection Skid 2',x:-5,z:-40});
+}
+
+/* =============================================
+   BUILDINGS
+   ============================================= */
+function buildBuildings(){
+  // Power Generation
+  mkBld({tag:'60-G-600',desc:'Main Power Gen',x:82,z:-65,w:20,d:12,h:6,pow:true,new_:false});
+  mkBld({tag:'60-G-700',desc:'Emergency Gen',x:82,z:-88,w:12,d:10,h:5,pow:true,new_:false});
+  
+  // Admin & Control
+  mkBld({tag:'60-B-100',desc:'Control Room (CCR)',x:82,z:36,w:16,d:10,h:5,admin:false,new_:false});
+  mkBld({tag:'60-B-200',desc:'Administration',x:82,z:56,w:18,d:12,h:4,admin:true,new_:false});
+
+  // Compressor Building
+  mkBld({tag:'40-S-600',desc:'Gas Compressor',x:82,z:-12,w:14,d:14,h:7,pow:true,new_:false});
+}
+
+/* =============================================
+   PIPE RACKS
+   ============================================= */
+function buildRacks(){
+  // Main process racks (N-S)
+  mkPipeRack({tag:'PR-1',desc:'Main Pipe Rack-1',x:-5,z:30,len:80,dx:0,dz:1});
+  mkPipeRack({tag:'PR-2',desc:'Main Pipe Rack-2',x:-22,z:30,len:80,dx:0,dz:1});
+  
+  // Header rack (E-W)
+  mkPipeRack({tag:'PR-3',desc:'Header Pipe Rack',x:77,z:-100,len:90,dx:0,dz:1});
+}
+
+/* =============================================
+   MAIN ASSEMBLY
+   ============================================= */
+function buildAll() {
+  makeMats();
+  initScene();
+  buildGround();
+  buildFence();
+  buildRoads();
+  
+  buildVessels();
+  buildFingerSeparators();
+  buildTanks();
+  buildPumps();
+  buildBuildings();
+  buildRacks();
+  
+  buildFireWater();
+  buildFlare();
+  buildCamp();
+  buildHazardZones();
+  buildLabels();
+
+  document.getElementById('eCnt').innerText = eqCount;
+  
+  // Fade out loading
+  var fill = document.getElementById('loadFill');
+  fill.style.width = '100%';
+  setTimeout(function(){
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(function(){
+      document.getElementById('loading').style.display = 'none';
+    }, 600);
+    animate();
+  }, 800);
+}
+
+/* =============================================
+   CONTROLS & UI
+   ============================================= */
+function setView(v) {
+  autoRot = false;
+  document.getElementById('btnAR').classList.remove('on');
+  
+  if(v === 'persp') { theta = 0.75; phi = 0.85; rad = 380; }
+  if(v === 'top') { theta = 0; phi = 0.001; rad = 300; }
+  if(v === 'iso') { theta = Math.PI/4; phi = Math.PI/4; rad = 350; }
+  if(v === 'north') { theta = 0; phi = Math.PI/2; rad = 250; tgt.set(0,12,0); }
+  if(v === 'east') { theta = Math.PI/2; phi = Math.PI/2; rad = 250; tgt.set(0,12,0); }
+  updateCam();
+}
+
+function togWF() {
+  wfOn = !wfOn;
+  document.getElementById('btnWF').classList.toggle('on', wfOn);
+  allMats.forEach(function(m){ m.wireframe = wfOn; });
+}
+
+function togSh() {
+  shOn = !shOn;
+  document.getElementById('btnSh').classList.toggle('on', shOn);
+  renderer.shadowMap.enabled = shOn;
+  scene.traverse(function(c){
+    if(c.isMesh) {
+      c.castShadow = shOn;
+      c.receiveShadow = shOn;
+    }
+  });
+}
+
+function togLb() {
+  lbVis = !lbVis;
+  document.getElementById('btnLb').classList.toggle('on', lbVis);
+  labelArr.forEach(function(l){ l.visible = lbVis; });
+}
+
+function togAR() {
+  autoRot = !autoRot;
+  document.getElementById('btnAR').classList.toggle('on', autoRot);
+}
+
+/* =============================================
+   INPUT HANDLING
+   ============================================= */
+function onDown(e) {
+  e.preventDefault();
+  mDown = true;
+  rDown = e.button === 2 || (e.touches && e.touches.length > 1);
+  lmx = e.clientX || e.touches[0].clientX;
+  lmy = e.clientY || e.touches[0].clientY;
+  tDist0 = 0;
+}
+
+function onMove(e) {
+  if (!mDown) return;
+  var cx = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+  var cy = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+  var dx = cx - lmx;
+  var dy = cy - lmy;
+  
+  if (rDown) {
+    // Pan
+    var panSpeed = 0.5 * (rad / 300);
+    var fwd = new THREE.Vector3();
+    camera.getWorldDirection(fwd);
+    fwd.y = 0; fwd.normalize();
+    var rgt = new THREE.Vector3();
+    rgt.crossVectors(fwd, new THREE.Vector3(0,1,0));
+    
+    tgt.addScaledVector(rgt, -dx * panSpeed);
+    tgt.addScaledVector(fwd, dy * panSpeed);
+  } else {
+    // Rotate
+    theta -= dx * 0.005;
+    phi -= dy * 0.005;
+    phi = Math.max(0.01, Math.min(Math.PI - 0.01, phi));
+  }
+  
+  lmx = cx;
+  lmy = cy;
+  tDist0 += Math.abs(dx) + Math.abs(dy);
+  updateCam();
+}
+
+function onUp(e) {
+  mDown = false;
+  rDown = false;
+  
+  // Click detection
+  if (tDist0 < 5) {
+    var cx = e.clientX || (e.changedTouches ? e.changedTouches[0].clientX : 0);
+    var cy = e.clientY || (e.changedTouches ? e.changedTouches[0].clientY : 0);
+    mouse.x = (cx / window.innerWidth) * 2 - 1;
+    mouse.y = -(cy / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(clickObjs);
+    if (intersects.length > 0) {
+      var d = intersects[0].object.userData;
+      if(d.tag) {
+        document.getElementById('iT').innerText = d.desc;
+        document.getElementById('iTag').innerText = d.tag;
+        document.getElementById('iDesc').innerText = d.desc;
+        document.getElementById('iType').innerText = d.type;
+        document.getElementById('iStat').innerText = d.status;
+        document.getElementById('iHac').innerText = d.hac;
+        document.getElementById('info').style.display = 'block';
+        
+        // Highlight effect
+        clickObjs.forEach(function(o){ 
+          if(o.material && o.material.emissive) o.material.emissive.setHex(0x000000); 
+        });
+        if(intersects[0].object.material && intersects[0].object.material.emissive) {
+          intersects[0].object.material.emissive.setHex(0x333333);
+        }
+      }
+    } else {
+      document.getElementById('info').style.display = 'none';
+      clickObjs.forEach(function(o){ 
+        if(o.material && o.material.emissive) o.material.emissive.setHex(0x000000); 
+      });
+    }
+  }
+}
+
+/* =============================================
+   ANIMATION LOOP
+   ============================================= */
+function animate() {
+  requestAnimationFrame(animate);
+  var t = clock.getElapsedTime();
+
+  if (autoRot) {
+    theta += 0.002;
+    updateCam();
+  }
+
+  // Animate Flare
+  if (flareCns.length > 0) {
+    var flicker = 1 + Math.sin(t * 10) * 0.1 + Math.cos(t * 23) * 0.05;
+    flareCns.forEach(function(c) {
+      c.scale.y = flicker;
+    });
+    if(flarePt) flarePt.intensity = 3 + Math.random() * 2;
+  }
+
+  // Blink Warning Light
+  if (avLt) {
+    avLt.material.color.setHex(Math.floor(t * 2) % 2 === 0 ? 0xff0000 : 0x330000);
+  }
+
+  renderer.render(scene, camera);
+}
+
+// Event Listeners
+document.addEventListener('mousedown', onDown);
+document.addEventListener('mousemove', onMove);
+document.addEventListener('mouseup', onUp);
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('touchstart', onDown, {passive: false});
+document.addEventListener('touchmove', onMove, {passive: false});
+document.addEventListener('touchend', onUp);
+
+// Start
+window.onload = buildAll;
+
+</script>
+</body>
+</html>

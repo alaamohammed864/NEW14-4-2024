@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INDUSTRIAL DIGITAL TWIN — ARMv6 SIMULATION</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg-deep: #111214;
+    --bg-panel: #191b1e;
+    --bg-card: #1e2124;
+    --bg-hover: #252830;
+    --border: #2a2d33;
+    --border-bright: #3a3d45;
+    --orange: #FF8C00;
+    --orange-dim: #c06800;
+    --orange-glow: rgba(255,140,0,0.15);
+    --orange-glow-strong: rgba(255,140,0,0.35);
+    --white: #f0f2f5;
+    --grey-text: #8a8f9a;
+    --grey-dim: #4a4f5a;
+    --green: #39ff8a;
+    --green-dim: #1a7a45;
+    --red: #ff4040;
+    --cyan: #00d4ff;
+    --panel-shadow: 0 4px 24px rgba(0,0,0,0.6);
+    --orange-shadow: 0 0 20px rgba(255,140,0,0.3);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--white);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ───────────────────────── */
+  #header {
+    height: 48px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border-bright);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 0;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .header-logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 4px;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-right: 24px;
+    text-shadow: var(--orange-shadow);
+  }
+  .header-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border: 1px solid var(--border-bright);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--grey-text);
+    margin-right: 10px;
+    background: var(--bg-card);
+  }
+  .header-badge .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+  .dot-orange { background: var(--orange) !important; box-shadow: 0 0 8px var(--orange) !important; }
+  .header-badge.active { border-color: var(--orange-dim); color: var(--orange); }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  #clock {
+    margin-left: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--white);
+    letter-spacing: 2px;
+  }
+  .clock-date { color: var(--grey-text); font-size: 11px; margin-left: 12px; }
+
+  /* ── MAIN GRID ─────────────────────── */
+  #main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 220px 1fr 260px;
+    grid-template-rows: 1fr 160px;
+    gap: 1px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .panel {
+    background: var(--bg-panel);
+    overflow: hidden;
+    position: relative;
+  }
+  .panel-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--grey-text);
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::before {
+    content: '';
+    width: 3px; height: 14px;
+    background: var(--orange);
+    box-shadow: 0 0 6px var(--orange);
+    flex-shrink: 0;
+  }
+
+  /* ── LEFT PANEL ─────────────────────── */
+  #left { grid-row: 1 / 2; display: flex; flex-direction: column; }
+
+  /* Gauges */
+  .gauges-wrap { padding: 10px 8px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+  .gauge-row { display: flex; align-items: center; gap: 10px; }
+  .gauge-canvas-wrap { position: relative; width: 70px; height: 70px; flex-shrink: 0; }
+  .gauge-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--grey-text);
+    text-transform: uppercase;
+  }
+  .gauge-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    color: var(--orange);
+    text-shadow: 0 0 10px var(--orange);
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .gauge-unit { font-size: 11px; color: var(--grey-dim); }
+
+  /* Sliders */
+  .sliders-wrap { padding: 8px 12px 10px; border-top: 1px solid var(--border); }
+  .slider-title { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--grey-text); letter-spacing:1px; margin-bottom:8px; }
+  .slider-row { margin-bottom: 8px; }
+  .slider-label-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--grey-text); font-family:'Share Tech Mono',monospace; margin-bottom: 3px; }
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border-bright);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: var(--orange);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--orange);
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track { border-radius: 2px; }
+
+  /* ── CENTER (3D CANVAS) ─────────────── */
+  #center { grid-column: 2; grid-row: 1; position: relative; background: #0d0f12; }
+  #three-canvas { width: 100%; height: 100%; display: block; }
+
+  /* PiP */
+  #pip {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 180px;
+    height: 120px;
+    border: 1px solid var(--orange-dim);
+    background: #0a0c0f;
+    overflow: hidden;
+    box-shadow: var(--orange-shadow);
+  }
+  #pip-canvas { width: 100%; height: 100%; display: block; }
+  .pip-label {
+    position: absolute;
+    top: 4px; left: 6px;
+    font-family: 'Share Tech Mono',monospace;
+    font-size: 9px;
+    color: var(--orange);
+    letter-spacing: 1px;
+    opacity: 0.9;
+  }
+
+  /* Scan lines overlay */
+  #center::after {
+    content:'';
+    position:absolute; inset:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none;
+    z-index:5;
+  }
+
+  /* Corner brackets */
+  .corner-bracket {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--orange);
+    border-style: solid;
+    z-index: 6;
+    opacity: 0.7;
+  }
+  .cb-tl { top:8px; left:8px; border-width:2px 0 0 2px; }
+  .cb-tr { top:8px; right:8px; border-width:2px 2px 0 0; }
+  .cb-bl { bottom:8px; left:8px; border-width:0 0 2px 2px; }
+  .cb-br { bottom:8px; right:8px; border-width:0 2px 2px 0; }
+
+  /* ── RIGHT PANEL ─────────────────────── */
+  #right { grid-column: 3; grid-row: 1; display: flex; flex-direction: column; }
+
+  /* Force graph */
+  #force-graph-wrap { flex: 1; padding: 8px 10px; min-height: 0; }
+  #force-canvas { width: 100%; height: 100%; display: block; }
+
+  /* Stats */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+  }
+  .stat-cell {
+    background: var(--bg-card);
+    padding: 8px 10px;
+  }
+  .stat-cell-label { font-size: 10px; font-family:'Share Tech Mono',monospace; color: var(--grey-text); letter-spacing: 1px; }
+  .stat-cell-val { font-family:'Share Tech Mono',monospace; font-size: 16px; color: var(--white); margin-top: 2px; }
+  .stat-cell-val.orange { color: var(--orange); text-shadow: 0 0 8px var(--orange); }
+  .stat-cell-val.green { color: var(--green); text-shadow: 0 0 8px var(--green); }
+
+  /* ── BOTTOM LEFT ─────────────────────── */
+  #bottom-left {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+  }
+  .playback-wrap { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+  .playback-btns { display: flex; gap: 8px; }
+  .pb-btn {
+    flex: 1;
+    padding: 7px 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    color: var(--grey-text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .pb-btn:hover, .pb-btn.active {
+    background: var(--orange-glow);
+    border-color: var(--orange);
+    color: var(--orange);
+    box-shadow: inset 0 0 12px var(--orange-glow);
+  }
+  .speed-row { display: flex; align-items: center; gap: 8px; font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--grey-text); }
+  #speed-val { color: var(--orange); min-width: 30px; }
+  #speed-slider { flex: 1; }
+
+  /* ── BOTTOM CENTER ─────────────────────── */
+  #bottom-center {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+  }
+  .cycle-bar {
+    padding: 6px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family:'Share Tech Mono',monospace;
+    font-size:11px;
+    color: var(--grey-text);
+  }
+  .cycle-item { display: flex; align-items: center; gap: 5px; }
+  .cycle-item .cval { color: var(--orange); font-size: 14px; }
+  #progress-wrap { padding: 8px 12px 0; }
+  #progress-bar-bg {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--orange-dim), var(--orange));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 8px var(--orange);
+  }
+
+  /* ── TERMINAL ─────────────────────────── */
+  #terminal {
+    grid-column: 3;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    background: #0e1012;
+  }
+  #terminal-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  #terminal-log::-webkit-scrollbar { width: 3px; }
+  #terminal-log::-webkit-scrollbar-track { background: transparent; }
+  #terminal-log::-webkit-scrollbar-thumb { background: var(--orange-dim); }
+  .log-line { display: flex; gap: 6px; }
+  .log-time { color: var(--grey-dim); flex-shrink: 0; }
+  .log-msg { color: #b0b8c8; }
+  .log-msg.success { color: var(--green); }
+  .log-msg.warn { color: var(--orange); }
+  .log-msg.info { color: var(--cyan); }
+  .log-msg.error { color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="header-logo">ARMv6 // DIGITAL TWIN</div>
+  <div class="header-badge active"><span class="dot dot-orange"></span>SIMULATION: RUNNING</div>
+  <div class="header-badge"><span class="dot"></span>STATUS: OPTIMAL</div>
+  <div class="header-badge">UNIT: UR6-INDUSTRIAL</div>
+  <div id="clock">--:--:--</div>
+  <div class="clock-date">2026.03.28</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT: Gauges + Sliders -->
+  <div class="panel" id="left">
+    <div class="panel-title">JOINT TELEMETRY</div>
+    <div class="gauges-wrap">
+      <div class="gauge-row">
+        <div class="gauge-canvas-wrap"><canvas id="g1" width="70" height="70"></canvas></div>
+        <div>
+          <div class="gauge-label">Joint 1 / BASE</div>
+          <div class="gauge-val" id="gv1">0<span class="gauge-unit">°</span></div>
+        </div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-canvas-wrap"><canvas id="g2" width="70" height="70"></canvas></div>
+        <div>
+          <div class="gauge-label">Joint 2 / SHOULDER</div>
+          <div class="gauge-val" id="gv2">0<span class="gauge-unit">°</span></div>
+        </div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-canvas-wrap"><canvas id="g3" width="70" height="70"></canvas></div>
+        <div>
+          <div class="gauge-label">Joint 3 / ELBOW</div>
+          <div class="gauge-val" id="gv3">0<span class="gauge-unit">°</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="sliders-wrap">
+      <div class="slider-title">&gt;&gt; MANUAL OVERRIDE</div>
+      <div class="slider-row">
+        <div class="slider-label-row"><span>J1 BASE</span><span id="sl1v">90°</span></div>
+        <input type="range" id="sl1" min="0" max="180" value="90">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label-row"><span>J2 SHOULDER</span><span id="sl2v">60°</span></div>
+        <input type="range" id="sl2" min="0" max="180" value="60">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label-row"><span>J3 ELBOW</span><span id="sl3v">45°</span></div>
+        <input type="range" id="sl3" min="0" max="180" value="45">
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: 3D Scene -->
+  <div class="panel" id="center">
+    <canvas id="three-canvas"></canvas>
+    <div class="corner-bracket cb-tl"></div>
+    <div class="corner-bracket cb-tr"></div>
+    <div class="corner-bracket cb-bl"></div>
+    <div class="corner-bracket cb-br"></div>
+    <div id="pip">
+      <canvas id="pip-canvas"></canvas>
+      <div class="pip-label">◉ CAM 2 // END EFFECTOR</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Force Graph + Stats -->
+  <div class="panel" id="right">
+    <div class="panel-title">GRIPPER FORCE ANALYSIS</div>
+    <div id="force-graph-wrap">
+      <canvas id="force-canvas"></canvas>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-cell">
+        <div class="stat-cell-label">FORCE PEAK</div>
+        <div class="stat-cell-val orange" id="stat-peak">0.0N</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">CYCLE TIME</div>
+        <div class="stat-cell-val green" id="stat-cycle">0.0s</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">PAYLOAD</div>
+        <div class="stat-cell-val" id="stat-payload">2.4kg</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-cell-label">EFFICIENCY</div>
+        <div class="stat-cell-val green" id="stat-eff">98.2%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM LEFT: Playback -->
+  <div class="panel" id="bottom-left">
+    <div class="panel-title">TIME CONTROL</div>
+    <div class="playback-wrap">
+      <div class="playback-btns">
+        <button class="pb-btn active" id="btn-play">▶ PLAY</button>
+        <button class="pb-btn" id="btn-pause">⏸ PAUSE</button>
+        <button class="pb-btn" id="btn-reset">⟳ RESET</button>
+      </div>
+      <div class="speed-row">
+        <span>SPEED</span>
+        <input type="range" id="speed-slider" min="1" max="16" value="1" step="1">
+        <span id="speed-val">1x</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CENTER: Progress -->
+  <div class="panel" id="bottom-center">
+    <div class="panel-title">CYCLE PROGRESS</div>
+    <div id="progress-wrap">
+      <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+    </div>
+    <div class="cycle-bar">
+      <div class="cycle-item">PHASE: <span class="cval" id="phase-label">IDLE</span></div>
+      <div class="cycle-item">CYCLES: <span class="cval" id="cycle-count">0</span></div>
+      <div class="cycle-item">PICKED: <span class="cval" id="pick-count">0</span></div>
+      <div class="cycle-item">PLACED: <span class="cval" id="place-count">0</span></div>
+      <div class="cycle-item">UPTIME: <span class="cval" id="uptime">00:00</span></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM RIGHT: Terminal -->
+  <div class="panel" id="terminal">
+    <div class="panel-title">SYSTEM TERMINAL</div>
+    <div id="terminal-log"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// UTILITIES
+// ============================================================
+const $ = id => document.getElementById(id);
+let simRunning = true;
+let simSpeed = 1;
+let simTime = 0;
+let elapsedReal = 0;
+let cycleCount = 0;
+let pickCount = 0;
+let placeCount = 0;
+
+// Clock
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  $('clock').textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Terminal
+const termLog = $('terminal-log');
+function log(msg, type='') {
+  const now = new Date();
+  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">[${ts}]</span><span class="log-msg ${type}">&gt;&gt; ${msg}</span>`;
+  termLog.appendChild(line);
+  termLog.scrollTop = termLog.scrollHeight;
+  // keep max 100 lines
+  while(termLog.children.length > 100) termLog.removeChild(termLog.firstChild);
+}
+
+log('SYSTEM BOOT — ARMv6 DIGITAL TWIN', 'info');
+log('Three.js renderer initialized', 'info');
+log('Kinematics engine loaded', 'info');
+log('Pick-and-Place logic active', 'success');
+
+// ============================================================
+// GAUGE DRAWING
+// ============================================================
+function drawGauge(canvas, value, max=180) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, R = W/2 - 5;
+  const t = value / max;
+  const startA = Math.PI * 0.75, endA = Math.PI * 2.25;
+  const curA = startA + t * (endA - startA);
+
+  // Color: green → orange → red
+  const r = t < 0.5 ? Math.round(255 * t * 2) : 255;
+  const g = t < 0.5 ? 200 : Math.round(200 * (1 - (t-0.5)*2));
+  const col = `rgb(${r},${Math.max(g,0)},0)`;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Track bg
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,startA,endA);
+  ctx.strokeStyle = '#2a2d33';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Fill
+  if(t > 0) {
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,startA,curA);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // glow
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Tick marks
+  for(let i=0;i<=6;i++) {
+    const a = startA + (i/6)*(endA-startA);
+    const x1 = cx + (R-10)*Math.cos(a), y1 = cy + (R-10)*Math.sin(a);
+    const x2 = cx + (R-5)*Math.cos(a), y2 = cy + (R-5)*Math.sin(a);
+    ctx.beginPath();
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.strokeStyle = '#4a4f5a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(cx,cy,3,0,Math.PI*2);
+  ctx.fillStyle = col;
+  ctx.shadowColor = col; ctx.shadowBlur = 8;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+// ============================================================
+// FORCE GRAPH
+// ============================================================
+const forceData = new Array(120).fill(0);
+let forceCanvas, forceCtx;
+
+function initForceGraph() {
+  forceCanvas = $('force-canvas');
+  forceCtx = forceCanvas.getContext('2d');
+  resizeForceCanvas();
+}
+
+function resizeForceCanvas() {
+  const wrap = $('force-graph-wrap');
+  forceCanvas.width = wrap.clientWidth;
+  forceCanvas.height = wrap.clientHeight;
+}
+
+function drawForceGraph(currentForce) {
+  const ctx = forceCtx;
+  const W = forceCanvas.width, H = forceCanvas.height;
+  if(!W || !H) return;
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = '#252830';
+  ctx.lineWidth = 1;
+  for(let i=1;i<4;i++) {
+    const y = H * i/4;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  for(let i=1;i<6;i++) {
+    const x = W * i/6;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+
+  // Y labels
+  ctx.font = '9px Share Tech Mono';
+  ctx.fillStyle = '#4a4f5a';
+  ctx.textAlign = 'right';
+  const maxF = 50;
+  for(let i=0;i<=4;i++) {
+    const y = H - H*i/4;
+    ctx.fillText(`${Math.round(maxF*i/4)}N`, 30, y-2);
+  }
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, 'rgba(255,140,0,0.25)');
+  grad.addColorStop(1, 'rgba(255,140,0,0)');
+  ctx.beginPath();
+  for(let i=0;i<forceData.length;i++) {
+    const x = 32 + (W-36)*(i/(forceData.length-1));
+    const y = H - (forceData[i]/maxF)*H*0.85;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.lineTo(32+(W-36),H); ctx.lineTo(32,H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = '#FF8C00';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#FF8C00';
+  ctx.shadowBlur = 6;
+  for(let i=0;i<forceData.length;i++) {
+    const x = 32 + (W-36)*(i/(forceData.length-1));
+    const y = H - (forceData[i]/maxF)*H*0.85;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Current marker
+  const lastX = 32+(W-36);
+  const lastY = H - (currentForce/maxF)*H*0.85;
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#FF8C00';
+  ctx.shadowColor = '#FF8C00'; ctx.shadowBlur = 12;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Current value label
+  ctx.fillStyle = '#FF8C00';
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 11px Share Tech Mono';
+  ctx.fillText(`${currentForce.toFixed(1)}N`, lastX+2, lastY-8);
+}
+
+// ============================================================
+// THREE.JS SCENE
+// ============================================================
+let scene, camera, renderer, pipCamera, pipRenderer;
+let arm = {}; // joint objects
+let boxes = [];
+let conveyor;
+let conveyorMat;
+let gripperOpen = true;
+let heldBox = null;
+let animPhase = 'idle'; // idle, moveToBox, grasp, lift, moveToConveyor, release, returnHome
+let phaseTimer = 0;
+let targetBox = null;
+let jointAngles = [90, 60, 45]; // degrees
+let manualMode = false;
+
+// Arm dimensions
+const ARM = {
+  baseH: 0.2,
+  j1H: 0.5,
+  j2L: 1.2,
+  j3L: 0.9,
+  j4L: 0.5,
+};
+
+function initThree() {
+  const canvas = $('three-canvas');
+  const container = $('center');
+  const W = container.clientWidth, H = container.clientHeight;
+
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0d0f12);
+  scene.fog = new THREE.Fog(0x0d0f12, 12, 25);
+
+  // Main Camera
+  camera = new THREE.PerspectiveCamera(50, W/H, 0.01, 100);
+  camera.position.set(5, 4, 6);
+  camera.lookAt(0, 1, 0);
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.physicallyCorrectLights = true;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  // PiP camera (end-effector view)
+  const pipCanvas = $('pip-canvas');
+  pipCanvas.width = 180; pipCanvas.height = 120;
+  pipCamera = new THREE.PerspectiveCamera(60, 180/120, 0.01, 50);
+  pipRenderer = new THREE.WebGLRenderer({ canvas: pipCanvas, antialias: true });
+  pipRenderer.setSize(180, 120);
+  pipRenderer.shadowMap.enabled = false;
+  pipRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  pipRenderer.toneMappingExposure = 1.0;
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0x1a1f2e, 3);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xfff0e0, 4);
+  dirLight.position.set(5, 10, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(2048, 2048);
+  dirLight.shadow.camera.near = 0.1;
+  dirLight.shadow.camera.far = 30;
+  dirLight.shadow.camera.left = -8;
+  dirLight.shadow.camera.right = 8;
+  dirLight.shadow.camera.top = 8;
+  dirLight.shadow.camera.bottom = -8;
+  scene.add(dirLight);
+
+  const fillLight = new THREE.PointLight(0xff8c00, 1.5, 8);
+  fillLight.position.set(-3, 3, 2);
+  scene.add(fillLight);
+
+  const backLight = new THREE.PointLight(0x4080ff, 0.8, 10);
+  backLight.position.set(-4, 2, -4);
+  scene.add(backLight);
+
+  // Ground Grid
+  buildGround();
+
+  // Arm
+  buildArm();
+
+  // Conveyor
+  buildConveyor();
+
+  // Box spawner
+  spawnBox();
+
+  // Resize
+  window.addEventListener('resize', onResize);
+}
+
+function buildGround() {
+  // Floor
+  const floorGeo = new THREE.PlaneGeometry(20, 20);
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x13151a,
+    roughness: 0.95,
+    metalness: 0.1,
+  });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // Grid lines
+  const grid = new THREE.GridHelper(20, 40, 0x2a2d33, 0x1e2124);
+  grid.material.opacity = 0.6;
+  grid.material.transparent = true;
+  scene.add(grid);
+
+  // Base plate
+  const plateGeo = new THREE.BoxGeometry(3, 0.05, 3);
+  const plateMat = new THREE.MeshStandardMaterial({ color: 0x1a1d22, roughness: 0.8, metalness: 0.3 });
+  const plate = new THREE.Mesh(plateGeo, plateMat);
+  plate.position.y = 0.025;
+  plate.receiveShadow = true;
+  plate.castShadow = true;
+  scene.add(plate);
+}
+
+function makeMetal(color, roughness=0.3, metalness=0.85) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
+
+function buildArm() {
+  // Materials
+  const matBody = makeMetal(0x2d3138, 0.4, 0.9);
+  const matJoint = makeMetal(0xff8c00, 0.25, 0.8);
+  const matDark = makeMetal(0x1a1d22, 0.6, 0.7);
+  const matAccent = makeMetal(0xe0e8ff, 0.3, 0.95);
+
+  // BASE
+  const baseGroup = new THREE.Group();
+  const baseGeo = new THREE.CylinderGeometry(0.35, 0.42, 0.25, 16);
+  const baseMesh = new THREE.Mesh(baseGeo, matDark);
+  baseMesh.castShadow = true;
+  baseMesh.position.y = 0.125;
+  baseGroup.add(baseMesh);
+  scene.add(baseGroup);
+  arm.base = baseGroup;
+
+  // JOINT 1 — rotation around Y (turntable)
+  const j1Group = new THREE.Group();
+  j1Group.position.y = 0.25;
+  baseGroup.add(j1Group);
+  arm.j1 = j1Group;
+
+  // Lower link
+  const link1Geo = new THREE.BoxGeometry(0.18, 0.55, 0.18);
+  const link1 = new THREE.Mesh(link1Geo, matBody);
+  link1.castShadow = true;
+  link1.position.y = 0.275;
+  j1Group.add(link1);
+
+  // J1 joint ring
+  const jr1 = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.12, 12), matJoint);
+  jr1.castShadow = true;
+  jr1.position.y = 0.08;
+  j1Group.add(jr1);
+
+  // JOINT 2 — rotation around Z (shoulder)
+  const j2Group = new THREE.Group();
+  j2Group.position.y = 0.55;
+  j1Group.add(j2Group);
+  arm.j2 = j2Group;
+
+  // J2 ring
+  const jr2 = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.22, 12), matJoint);
+  jr2.rotation.z = Math.PI/2;
+  jr2.castShadow = true;
+  j2Group.add(jr2);
+
+  // Upper arm link
+  const link2Group = new THREE.Group();
+  j2Group.add(link2Group);
+  arm.link2 = link2Group;
+
+  const link2Geo = new THREE.BoxGeometry(0.14, ARM.j2L, 0.14);
+  const link2 = new THREE.Mesh(link2Geo, matBody);
+  link2.castShadow = true;
+  link2.position.y = ARM.j2L/2;
+  link2Group.add(link2);
+
+  // Accent stripe
+  const stripeGeo = new THREE.BoxGeometry(0.16, ARM.j2L*0.7, 0.02);
+  const stripe = new THREE.Mesh(stripeGeo, makeMetal(0xff8c00, 0.3, 0.6));
+  stripe.position.y = ARM.j2L/2;
+  stripe.position.z = 0.08;
+  link2Group.add(stripe);
+
+  // JOINT 3 — rotation around Z (elbow)
+  const j3Group = new THREE.Group();
+  j3Group.position.y = ARM.j2L;
+  link2Group.add(j3Group);
+  arm.j3 = j3Group;
+
+  const jr3 = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.2, 12), matJoint);
+  jr3.rotation.z = Math.PI/2;
+  jr3.castShadow = true;
+  j3Group.add(jr3);
+
+  // Forearm
+  const link3Group = new THREE.Group();
+  j3Group.add(link3Group);
+  arm.link3 = link3Group;
+
+  const link3Geo = new THREE.BoxGeometry(0.11, ARM.j3L, 0.11);
+  const link3 = new THREE.Mesh(link3Geo, matBody);
+  link3.castShadow = true;
+  link3.position.y = ARM.j3L/2;
+  link3Group.add(link3);
+
+  // WRIST + GRIPPER
+  const wristGroup = new THREE.Group();
+  wristGroup.position.y = ARM.j3L;
+  link3Group.add(wristGroup);
+  arm.wrist = wristGroup;
+
+  const jr4 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.15, 12), matJoint);
+  jr4.castShadow = true;
+  wristGroup.add(jr4);
+
+  // Gripper housing
+  const gripHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.18, 10), matDark);
+  gripHousing.castShadow = true;
+  gripHousing.position.y = 0.17;
+  wristGroup.add(gripHousing);
+
+  // Gripper fingers (2)
+  const fingerGeo = new THREE.BoxGeometry(0.04, 0.18, 0.05);
+  arm.finger1 = new THREE.Mesh(fingerGeo, matAccent);
+  arm.finger2 = new THREE.Mesh(fingerGeo, matAccent);
+  arm.finger1.castShadow = true;
+  arm.finger2.castShadow = true;
+  arm.finger1.position.set(0.08, 0.35, 0);
+  arm.finger2.position.set(-0.08, 0.35, 0);
+  wristGroup.add(arm.finger1);
+  wristGroup.add(arm.finger2);
+
+  // End effector reference point
+  arm.endEffector = new THREE.Object3D();
+  arm.endEffector.position.y = 0.44;
+  wristGroup.add(arm.endEffector);
+
+  // Set initial joint rotations
+  setJointAngles(90, 60, 45);
+}
+
+function setJointAngles(j1deg, j2deg, j3deg, smooth=false) {
+  jointAngles = [j1deg, j2deg, j3deg];
+  const j1 = (j1deg - 90) * Math.PI/180;
+  const j2 = -(j2deg - 90) * Math.PI/180;
+  const j3 = -(j3deg - 45) * Math.PI/180;
+
+  if(!smooth) {
+    arm.j1.rotation.y = j1;
+    arm.link2.rotation.z = j2;
+    arm.link3.rotation.z = j3;
+  }
+}
+
+function lerpJoints(target, speed, dt) {
+  const j1cur = arm.j1.rotation.y;
+  const j2cur = arm.link2.rotation.z;
+  const j3cur = arm.link3.rotation.z;
+  const j1t = (target[0] - 90) * Math.PI/180;
+  const j2t = -(target[1] - 90) * Math.PI/180;
+  const j3t = -(target[2] - 45) * Math.PI/180;
+  const s = Math.min(1, speed * dt);
+  arm.j1.rotation.y += (j1t - j1cur) * s;
+  arm.link2.rotation.z += (j2t - j2cur) * s;
+  arm.link3.rotation.z += (j3t - j3cur) * s;
+  // read back
+  jointAngles[0] = arm.j1.rotation.y * 180/Math.PI + 90;
+  jointAngles[1] = -arm.link2.rotation.z * 180/Math.PI + 90;
+  jointAngles[2] = -arm.link3.rotation.z * 180/Math.PI + 45;
+}
+
+function buildConveyor() {
+  // Belt body
+  const beltGeo = new THREE.BoxGeometry(6, 0.2, 0.7);
+  const beltMat = new THREE.MeshStandardMaterial({ color: 0x1c1f24, roughness: 0.9, metalness: 0.2 });
+  const belt = new THREE.Mesh(beltGeo, beltMat);
+  belt.position.set(2.5, 0.1, -1.5);
+  belt.receiveShadow = true;
+  belt.castShadow = true;
+  scene.add(belt);
+
+  // Belt surface (animated)
+  const surfGeo = new THREE.BoxGeometry(6, 0.02, 0.68);
+  conveyorMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2d33,
+    roughness: 0.8,
+    metalness: 0.1,
+  });
+  const surf = new THREE.Mesh(surfGeo, conveyorMat);
+  surf.position.set(2.5, 0.21, -1.5);
+  scene.add(surf);
+  conveyor = surf;
+
+  // Rollers
+  for(let i=-2;i<=5;i++) {
+    const rollerGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.75, 8);
+    const rollerMat = new THREE.MeshStandardMaterial({ color: 0x3d4148, roughness: 0.5, metalness: 0.7 });
+    const roller = new THREE.Mesh(rollerGeo, rollerMat);
+    roller.rotation.x = Math.PI/2;
+    roller.position.set(i, 0.1, -1.5);
+    roller.castShadow = true;
+    scene.add(roller);
+  }
+
+  // Side rails
+  for(let side of [-1, 1]) {
+    const railGeo = new THREE.BoxGeometry(6, 0.05, 0.04);
+    const railMat = new THREE.MeshStandardMaterial({ color: 0xff8c00, roughness: 0.4, metalness: 0.8, emissive: 0xff8c00, emissiveIntensity: 0.15 });
+    const rail = new THREE.Mesh(railGeo, railMat);
+    rail.position.set(2.5, 0.22, -1.5 + side * 0.37);
+    scene.add(rail);
+  }
+
+  // Support legs
+  for(let x of [-0.5, 5.5]) {
+    const legGeo = new THREE.BoxGeometry(0.06, 0.8, 0.06);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x25282e, roughness: 0.8, metalness: 0.5 });
+    for(let z of [-1.7, -1.3]) {
+      const leg = new THREE.Mesh(legGeo, legMat);
+      leg.position.set(x, 0.4, z);
+      scene.add(leg);
+    }
+  }
+}
+
+function spawnBox() {
+  const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+  const hue = [0x8b4513, 0x5a3e28, 0x7a5c44][Math.floor(Math.random()*3)];
+  const mat = new THREE.MeshStandardMaterial({ color: hue, roughness: 0.85, metalness: 0.05 });
+  const box = new THREE.Mesh(geo, mat);
+  box.position.set(0.5, 0.45, 0.5);
+  box.castShadow = true;
+  box.receiveShadow = true;
+  // Add label stripe
+  const stripeGeo = new THREE.BoxGeometry(0.31, 0.08, 0.31);
+  const stripeMat = new THREE.MeshStandardMaterial({ color: 0xff8c00, roughness: 0.9, emissive: 0xff8c00, emissiveIntensity: 0.1 });
+  const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+  stripe.position.y = 0;
+  box.add(stripe);
+  scene.add(box);
+  boxes.push(box);
+  targetBox = box;
+  return box;
+}
+
+// ============================================================
+// PICK & PLACE STATE MACHINE
+// ============================================================
+const PHASES = {
+  IDLE: 'IDLE',
+  MOVE_TO_BOX: 'MOVE_TO_BOX',
+  GRASP: 'GRASP',
+  LIFT: 'LIFT',
+  MOVE_TO_DROP: 'MOVE_TO_DROP',
+  RELEASE: 'RELEASE',
+  RETURN: 'RETURN',
+};
+let phase = PHASES.IDLE;
+let phaseProgress = 0;
+let currentForce = 0;
+
+const jointTargets = {
+  [PHASES.IDLE]:       [90, 60, 45],
+  [PHASES.MOVE_TO_BOX]: [45, 100, 80],
+  [PHASES.GRASP]:      [45, 108, 88],
+  [PHASES.LIFT]:       [45, 70, 50],
+  [PHASES.MOVE_TO_DROP]: [130, 85, 65],
+  [PHASES.RELEASE]:    [130, 90, 70],
+  [PHASES.RETURN]:     [90, 60, 45],
+};
+const phaseDurations = {
+  [PHASES.IDLE]: 1.5,
+  [PHASES.MOVE_TO_BOX]: 2.0,
+  [PHASES.GRASP]: 0.8,
+  [PHASES.LIFT]: 1.2,
+  [PHASES.MOVE_TO_DROP]: 2.2,
+  [PHASES.RELEASE]: 0.6,
+  [PHASES.RETURN]: 1.8,
+};
+
+const phaseOrder = [
+  PHASES.IDLE, PHASES.MOVE_TO_BOX, PHASES.GRASP,
+  PHASES.LIFT, PHASES.MOVE_TO_DROP, PHASES.RELEASE, PHASES.RETURN
+];
+let phaseIdx = 0;
+
+function getWorldPos(obj) {
+  const v = new THREE.Vector3();
+  obj.getWorldPosition(v);
+  return v;
+}
+
+function updatePickPlace(dt) {
+  if(!simRunning) return;
+  const duration = phaseDurations[phase];
+  phaseProgress += dt / duration;
+  const t = Math.min(phaseProgress, 1);
+
+  // Lerp joints
+  lerpJoints(jointTargets[phase], 3, dt);
+
+  // Gripper & force logic
+  if(phase === PHASES.GRASP) {
+    const fingerDist = 0.04 + (1-t)*0.05;
+    arm.finger1.position.x = fingerDist;
+    arm.finger2.position.x = -fingerDist;
+    currentForce = t * 35 + Math.sin(simTime*8)*2;
+    if(t > 0.85 && !heldBox && targetBox) {
+      heldBox = targetBox;
+      log('Grasp: Success', 'success');
+      pickCount++;
+      $('pick-count').textContent = pickCount;
+    }
+  } else if(phase === PHASES.RELEASE) {
+    arm.finger1.position.x = 0.08;
+    arm.finger2.position.x = -0.08;
+    currentForce = Math.max(0, currentForce - 40*dt);
+    if(t > 0.5 && heldBox) {
+      heldBox.position.set(2.5, 0.35, -1.5);
+      heldBox = null;
+      log('Payload Released', 'warn');
+      placeCount++;
+      $('place-count').textContent = placeCount;
+    }
+  } else {
+    if(phase === PHASES.MOVE_TO_BOX || phase === PHASES.IDLE) {
+      arm.finger1.position.x = 0.08;
+      arm.finger2.position.x = -0.08;
+      currentForce = Math.max(0, currentForce - 20*dt);
+    }
+    if(phase === PHASES.LIFT || phase === PHASES.MOVE_TO_DROP) {
+      currentForce = 28 + Math.sin(simTime*5)*3;
+    }
+  }
+
+  // Move held box with end effector
+  if(heldBox) {
+    const wp = getWorldPos(arm.endEffector);
+    heldBox.position.set(wp.x, wp.y, wp.z);
+  }
+
+  // Phase complete
+  if(phaseProgress >= 1) {
+    phaseProgress = 0;
+    phaseIdx = (phaseIdx + 1) % phaseOrder.length;
+    phase = phaseOrder[phaseIdx];
+
+    if(phase === PHASES.IDLE) {
+      cycleCount++;
+      $('cycle-count').textContent = cycleCount;
+      // Spawn new box
+      if(targetBox) {
+        // move old box off
+        targetBox.position.set(-5, 0.35, -1.5);
+      }
+      spawnBox();
+      log(`Cycle #${cycleCount} complete`, 'success');
+    }
+    if(phase === PHASES.MOVE_TO_BOX) log('Moving to Target', 'info');
+    if(phase === PHASES.GRASP) log('Initiating Grasp Sequence', 'info');
+    if(phase === PHASES.LIFT) log('Payload Secured — Lifting', 'info');
+    if(phase === PHASES.MOVE_TO_DROP) log('Transporting to Conveyor', 'info');
+    if(phase === PHASES.RETURN) log('Returning to Home Position', 'info');
+
+    $('phase-label').textContent = phase.replace('_',' ');
+  }
+
+  $('progress-bar-fill').style.width = (t * 100) + '%';
+}
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+let lastTime = null;
+let forceTick = 0;
+let uptimeSeconds = 0;
+
+function animate(ts) {
+  requestAnimationFrame(animate);
+  if(!lastTime) lastTime = ts;
+  const rawDt = (ts - lastTime)/1000;
+  lastTime = ts;
+  const dt = rawDt * simSpeed;
+
+  if(simRunning) {
+    simTime += dt;
+    elapsedReal += rawDt;
+    uptimeSeconds += rawDt;
+
+    // Conveyor belt animation (visual only)
+    // Not possible to scroll texture without UV manipulation; skip
+
+    // Run state machine
+    updatePickPlace(dt);
+
+    // Force graph
+    forceTick += dt;
+    if(forceTick > 0.1) {
+      forceTick = 0;
+      forceData.shift();
+      forceData.push(Math.max(0, currentForce));
+    }
+
+    // Update gauges
+    const j1d = Math.max(0, Math.min(180, jointAngles[0]));
+    const j2d = Math.max(0, Math.min(180, jointAngles[1]));
+    const j3d = Math.max(0, Math.min(180, jointAngles[2]));
+    drawGauge($('g1'), j1d);
+    drawGauge($('g2'), j2d);
+    drawGauge($('g3'), j3d);
+    $('gv1').innerHTML = Math.round(j1d) + '<span class="gauge-unit">°</span>';
+    $('gv2').innerHTML = Math.round(j2d) + '<span class="gauge-unit">°</span>';
+    $('gv3').innerHTML = Math.round(j3d) + '<span class="gauge-unit">°</span>';
+
+    // Stats
+    $('stat-peak').textContent = Math.max(...forceData).toFixed(1) + 'N';
+    $('stat-cycle').textContent = (simTime % 10).toFixed(1) + 's';
+
+    // Uptime
+    const um = Math.floor(uptimeSeconds/60), us = Math.floor(uptimeSeconds%60);
+    $('uptime').textContent = String(um).padStart(2,'0')+':'+String(us).padStart(2,'0');
+
+    // Force graph
+    drawForceGraph(currentForce);
+
+    // Animate conveyor boxes (slide along belt)
+    boxes.forEach(b => {
+      if(!heldBox || heldBox !== b) {
+        if(b.position.z < -1.4 && b.position.x > 0) {
+          b.position.x += 0.5 * dt * simSpeed;
+          if(b.position.x > 6) {
+            b.position.x = -1;
+            b.position.z = -1.5;
+          }
+        }
+      }
+    });
+
+    // PiP camera follows end effector
+    if(arm.endEffector) {
+      const wp = getWorldPos(arm.endEffector);
+      pipCamera.position.set(wp.x, wp.y + 0.5, wp.z + 0.8);
+      pipCamera.lookAt(wp.x, wp.y, wp.z);
+    }
+  }
+
+  renderer.render(scene, camera);
+  pipRenderer.render(scene, pipCamera);
+}
+
+// ============================================================
+// CONTROLS
+// ============================================================
+function initControls() {
+  // Sliders
+  ['sl1','sl2','sl3'].forEach((id, i) => {
+    const el = $(id);
+    const val = $(`sl${i+1}v`);
+    el.addEventListener('input', () => {
+      val.textContent = el.value + '°';
+      manualMode = true;
+      const angles = [
+        parseInt($('sl1').value),
+        parseInt($('sl2').value),
+        parseInt($('sl3').value),
+      ];
+      setJointAngles(...angles);
+      manualMode = false;
+    });
+  });
+
+  // Playback
+  $('btn-play').addEventListener('click', () => {
+    simRunning = true;
+    $('btn-play').classList.add('active');
+    $('btn-pause').classList.remove('active');
+    log('Simulation resumed', 'info');
+  });
+  $('btn-pause').addEventListener('click', () => {
+    simRunning = false;
+    $('btn-pause').classList.add('active');
+    $('btn-play').classList.remove('active');
+    log('Simulation paused', 'warn');
+  });
+  $('btn-reset').addEventListener('click', () => {
+    simTime = 0;
+    phaseIdx = 0;
+    phase = PHASES.IDLE;
+    phaseProgress = 0;
+    cycleCount = 0;
+    pickCount = 0;
+    placeCount = 0;
+    uptimeSeconds = 0;
+    forceData.fill(0);
+    $('cycle-count').textContent = '0';
+    $('pick-count').textContent = '0';
+    $('place-count').textContent = '0';
+    log('Simulation reset', 'warn');
+  });
+
+  $('speed-slider').addEventListener('input', (e) => {
+    simSpeed = parseInt(e.target.value);
+    $('speed-val').textContent = simSpeed + 'x';
+  });
+
+  // Orbit (simple mouse drag)
+  let isDragging = false, prevMouse = {x:0, y:0};
+  const centerEl = $('center');
+  let phi = 0.6, theta = 0.7, radius = 9;
+  function updateCam() {
+    camera.position.set(
+      radius * Math.sin(theta) * Math.cos(phi),
+      radius * Math.sin(phi) + 1,
+      radius * Math.cos(theta) * Math.cos(phi)
+    );
+    camera.lookAt(0, 1, 0);
+  }
+  centerEl.addEventListener('mousedown', e => { isDragging = true; prevMouse = {x:e.clientX, y:e.clientY}; });
+  window.addEventListener('mouseup', () => isDragging = false);
+  window.addEventListener('mousemove', e => {
+    if(!isDragging) return;
+    theta -= (e.clientX - prevMouse.x) * 0.008;
+    phi = Math.max(0.1, Math.min(1.4, phi + (e.clientY - prevMouse.y) * 0.006));
+    prevMouse = {x:e.clientX, y:e.clientY};
+    updateCam();
+  });
+  centerEl.addEventListener('wheel', e => {
+    radius = Math.max(4, Math.min(18, radius + e.deltaY * 0.01));
+    updateCam();
+  });
+}
+
+function onResize() {
+  const container = $('center');
+  const W = container.clientWidth, H = container.clientHeight;
+  camera.aspect = W/H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+  resizeForceCanvas();
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+initForceGraph();
+initThree();
+initControls();
+requestAnimationFrame(animate);
+
+// Initial gauge draw
+drawGauge($('g1'), 90);
+drawGauge($('g2'), 60);
+drawGauge($('g3'), 45);
+
+// Status bar flicker effect
+let statusTick = 0;
+setInterval(() => {
+  statusTick++;
+  const eff = 97 + Math.random() * 2;
+  $('stat-eff').textContent = eff.toFixed(1) + '%';
+}, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مخطط P&ID ثلاثي الأبعاد</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060912;
+  --panel:#0d1424;
+  --panel2:#111827;
+  --border:#1e2d47;
+  --border2:#2a3f5f;
+  --accent:#00d4ff;
+  --accent2:#0066ff;
+  --green:#00ff88;
+  --yellow:#ffcc00;
+  --red:#ff3344;
+  --orange:#ff6600;
+  --purple:#aa55ff;
+  --text:#c8d8f0;
+  --text2:#6a8ab0;
+  --text3:#3a5070;
+}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow:hidden;height:100vh}
+#c{display:block;width:100%;height:100vh;cursor:grab}
+#c:active{cursor:grabbing}
+
+/* ── HUD Header ── */
+#hud-top{
+  position:fixed;top:0;left:0;right:0;height:52px;
+  background:linear-gradient(180deg,rgba(6,9,18,0.98) 0%,rgba(6,9,18,0.0) 100%);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;pointer-events:none;z-index:20;
+  border-bottom:1px solid rgba(0,212,255,0.1);
+}
+#hud-top h1{font-size:13px;font-weight:700;letter-spacing:3px;color:var(--accent);text-transform:uppercase}
+#hud-top .sub{font-size:9px;color:var(--text2);letter-spacing:2px;margin-top:2px}
+.header-stats{display:flex;gap:24px;pointer-events:auto}
+.hstat{text-align:center}
+.hstat .val{font-size:14px;font-weight:700;color:var(--green);font-family:'Courier New',monospace}
+.hstat .lbl{font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+
+/* ── Toolbar ── */
+#toolbar{
+  position:fixed;top:60px;right:16px;z-index:30;
+  display:flex;flex-direction:column;gap:6px;
+}
+.tb-btn{
+  background:rgba(13,20,36,0.92);border:1px solid var(--border2);
+  color:var(--text);padding:7px 12px;border-radius:6px;cursor:pointer;
+  font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  transition:all 0.2s;min-width:130px;text-align:center;
+  font-family:'Courier New',monospace;
+}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,0.06)}
+.tb-btn.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,0.06)}
+
+/* ── Info Panel ── */
+#info-panel{
+  position:fixed;bottom:20px;left:16px;width:280px;
+  background:rgba(13,20,36,0.95);border:1px solid var(--border2);
+  border-radius:10px;padding:14px;z-index:30;
+  backdrop-filter:blur(10px);
+  transition:opacity 0.3s;
+}
+#info-panel.hidden{opacity:0;pointer-events:none}
+.ip-title{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+.ip-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:10px}
+.ip-key{color:var(--text2)}
+.ip-val{color:var(--text);font-family:'Courier New',monospace}
+.ip-val.ok{color:var(--green)}
+.ip-val.warn{color:var(--yellow)}
+.ip-val.alarm{color:var(--red)}
+
+/* ── Legend ── */
+#legend{
+  position:fixed;bottom:20px;right:16px;width:190px;
+  background:rgba(13,20,36,0.92);border:1px solid var(--border2);
+  border-radius:10px;padding:12px;z-index:30;font-size:9px;
+}
+.lg-title{color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-size:8px}
+.lg-row{display:flex;align-items:center;gap:8px;padding:2px 0;color:var(--text2)}
+.lg-color{width:24px;height:3px;border-radius:2px;flex-shrink:0}
+.lg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:2px solid}
+
+/* ── Tooltip ── */
+#tt{
+  position:fixed;background:rgba(0,0,0,0.85);border:1px solid var(--border2);
+  border-radius:6px;padding:6px 10px;font-size:10px;color:var(--accent);
+  pointer-events:none;z-index:50;display:none;letter-spacing:1px;
+  backdrop-filter:blur(6px);
+}
+
+/* ── Mini compass ── */
+#compass{
+  position:fixed;top:70px;left:16px;width:64px;height:64px;z-index:30;
+  background:rgba(13,20,36,0.85);border:1px solid var(--border2);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+#compass canvas{border-radius:50%}
+
+/* ── Scanlines overlay ── */
+#scanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:10;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);
+  opacity:0.5;
+}
+
+/* ── Loading ── */
+#loading{
+  position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:100;
+}
+#loading .logo{font-size:28px;font-weight:900;color:var(--accent);letter-spacing:6px;margin-bottom:12px}
+#loading .prog{width:280px;height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+#loading .prog-bar{height:100%;background:var(--accent);width:0;transition:width 0.1s;border-radius:2px}
+#loading .msg{font-size:10px;color:var(--text2);margin-top:10px;letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="logo">P &amp; I D</div>
+  <div style="font-size:10px;color:var(--text2);letter-spacing:3px;margin-bottom:20px">THREE-DIMENSIONAL PROCESS DIAGRAM</div>
+  <div class="prog"><div class="prog-bar" id="prog-bar"></div></div>
+  <div class="msg" id="load-msg">تحميل المكتبات…</div>
+</div>
+
+<div id="scanlines"></div>
+<canvas id="c"></canvas>
+
+<div id="hud-top">
+  <div>
+    <h1>P&amp;ID — منشأة معالجة الغاز الطبيعي</h1>
+    <div class="sub">Natural Gas Processing Facility · Rev A2 · 3D VIEW</div>
+  </div>
+  <div class="header-stats">
+    <div class="hstat"><div class="val" id="stat-flow">12,400</div><div class="lbl">Nm³/h Feed</div></div>
+    <div class="hstat"><div class="val" id="stat-press" style="color:var(--yellow)">85.2</div><div class="lbl">bar Inlet</div></div>
+    <div class="hstat"><div class="val" id="stat-temp">43.8°C</div><div class="lbl">Inlet Temp</div></div>
+    <div class="hstat"><div class="val" id="stat-eff">97.4%</div><div class="lbl">Efficiency</div></div>
+  </div>
+</div>
+
+<div id="toolbar">
+  <div class="tb-btn on" id="btn-anim" onclick="toggleAnim()">⚡ تدفق حي</div>
+  <div class="tb-btn" id="btn-labels" onclick="toggleLabels()">🏷 التسميات</div>
+  <div class="tb-btn" id="btn-xray" onclick="toggleXray()">🔬 شفافية</div>
+  <div class="tb-btn" id="btn-top" onclick="setView('top')">⬆ مسقط علوي</div>
+  <div class="tb-btn" id="btn-front" onclick="setView('front')">↗ منظور</div>
+  <div class="tb-btn" id="btn-iso" onclick="setView('iso')">🎲 إيزومتري</div>
+  <div class="tb-btn" onclick="resetCamera()">🔄 إعادة ضبط</div>
+</div>
+
+<div id="info-panel" class="hidden">
+  <div class="ip-title" id="ip-title">—</div>
+  <div id="ip-body"></div>
+</div>
+
+<div id="legend">
+  <div class="lg-title">مفتاح الأنابيب</div>
+  <div class="lg-row"><div class="lg-color" style="background:#ff3344"></div>خط ساخن / عملية</div>
+  <div class="lg-row"><div class="lg-color" style="background:#0088ff"></div>خط بارد</div>
+  <div class="lg-row"><div class="lg-color" style="background:#ffcc00"></div>خط غاز</div>
+  <div class="lg-row"><div class="lg-color" style="background:#00ff88"></div>سائل عملية</div>
+  <div class="lg-row"><div class="lg-color" style="background:#aa55ff"></div>إشارة أدوات</div>
+  <div style="margin-top:8px" class="lg-title">المعدات</div>
+  <div class="lg-row"><div class="lg-dot" style="border-color:#00d4ff;background:rgba(0,212,255,0.15)"></div>وعاء / برج</div>
+  <div class="lg-row"><div class="lg-dot" style="border-color:#00ff88;background:rgba(0,255,136,0.15)"></div>مضخة / ضاغط</div>
+  <div class="lg-row"><div class="lg-dot" style="border-color:#ff6600;background:rgba(255,102,0,0.15)"></div>صمام تحكم</div>
+  <div class="lg-row"><div class="lg-dot" style="border-color:#ff3344;background:rgba(255,51,68,0.15)"></div>مبادل حراري</div>
+</div>
+
+<div id="tt"></div>
+
+<script>
+// ── Progress loader ──────────────────────────────
+function setProgress(p,msg){
+  document.getElementById('prog-bar').style.width=p+'%';
+  document.getElementById('load-msg').textContent=msg;
+}
+setProgress(10,'تحميل Three.js…');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+setProgress(40,'بناء المشهد ثلاثي الأبعاد…');
+
+// ── Scene setup ──────────────────────────────────
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060912);
+scene.fog = new THREE.FogExp2(0x060912, 0.012);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(25, 18, 30);
+camera.lookAt(0,0,0);
+
+// ── Grid floor ────────────────────────────────────
+const grid = new THREE.GridHelper(80, 80, 0x1a2a3a, 0x0d1a28);
+grid.position.y = -0.05;
+scene.add(grid);
+
+// ── Ambient & directional lights ──────────────────
+scene.add(new THREE.AmbientLight(0x0a1428, 3));
+const sun = new THREE.DirectionalLight(0x2060ff, 2);
+sun.position.set(20,30,20);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near=0.1;sun.shadow.camera.far=200;
+sun.shadow.camera.left=-40;sun.shadow.camera.right=40;
+sun.shadow.camera.top=40;sun.shadow.camera.bottom=-40;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x002244,1.5);
+fill.position.set(-15,10,-20);
+scene.add(fill);
+const rimLight = new THREE.DirectionalLight(0x00d4ff,0.8);
+rimLight.position.set(0,20,-30);
+scene.add(rimLight);
+
+// ── Material helpers ──────────────────────────────
+const M = (col,opts={}) => new THREE.MeshStandardMaterial({color:new THREE.Color(col),roughness:0.35,metalness:0.7,...opts});
+const mSteel = M(0x1a2840,{roughness:0.3,metalness:0.8});
+const mGlass = M(0x004466,{roughness:0,metalness:0,transparent:true,opacity:0.18,side:THREE.DoubleSide});
+const mGlassGreen = M(0x003322,{roughness:0,metalness:0,transparent:true,opacity:0.2,side:THREE.DoubleSide});
+
+// ── Sprite label helper ────────────────────────────
+function makeLabel(text, pos, color='#00d4ff', size=128){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,256,64);
+  ctx.fillStyle='rgba(6,9,18,0.85)';
+  ctx.roundRect(2,2,252,60,8);
+  ctx.fill();
+  ctx.strokeStyle=color;ctx.lineWidth=1;
+  ctx.roundRect(2,2,252,60,8);
+  ctx.stroke();
+  ctx.fillStyle=color;
+  ctx.font='bold 20px "Courier New"';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(text,128,32);
+  const tex=new THREE.CanvasTexture(cv);
+  const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});
+  const sp=new THREE.Sprite(mat);
+  sp.scale.set(3,0.75,1);
+  sp.position.set(...pos);
+  sp.visible=true;
+  return sp;
+}
+
+// ── Glow point light helper ───────────────────────
+function glow(col,x,y,z,intensity=2,dist=8){
+  const l=new THREE.PointLight(col,intensity,dist);
+  l.position.set(x,y,z);
+  scene.add(l);
+  return l;
+}
+
+// ── Equipment registry ────────────────────────────
+const equipment = [];
+const labels = [];
+const pipes3d = [];
+let animActive=true, labelsVisible=true, xray=false;
+let selectedObj=null;
+
+// ── Vessel factory ────────────────────────────────
+function addVessel(opts){
+  const {id,x,z,rx=1.2,ry=3,type='cylinder',color=0x0a1e36,info,name,glowColor=0x00d4ff} = opts;
+  const grp = new THREE.Group();
+  grp.position.set(x,ry/2,z);
+
+  let body;
+  if(type==='column'){
+    // Tall distillation column
+    const geo = new THREE.CylinderGeometry(rx,rx*1.1,ry,24);
+    body = new THREE.Mesh(geo, M(color,{roughness:0.3,metalness:0.75}));
+    body.castShadow=true;
+    // Trays
+    for(let i=1;i<5;i++){
+      const tray = new THREE.Mesh(new THREE.CylinderGeometry(rx*0.9,rx*0.9,0.06,16),M(0x1a3050));
+      tray.position.y = -ry/2 + ry*i/5;
+      grp.add(tray);
+    }
+    // Top cap
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(rx,0.6,16),M(0x152840));
+    cap.position.y = ry/2+0.3;
+    grp.add(cap);
+  } else if(type==='sphere'){
+    const geo = new THREE.SphereGeometry(rx,24,24);
+    body = new THREE.Mesh(geo, M(color));
+    body.castShadow=true;
+    // Legs
+    for(let i=0;i<3;i++){
+      const ang = i*Math.PI*2/3;
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,rx*0.8,8),M(0x0d1e30));
+      leg.position.set(Math.cos(ang)*rx*0.7,-rx*0.6,Math.sin(ang)*rx*0.7);
+      grp.add(leg);
+    }
+  } else {
+    // Standard cylinder vessel
+    const geo = new THREE.CylinderGeometry(rx,rx,ry,24);
+    body = new THREE.Mesh(geo, M(color,{roughness:0.35,metalness:0.7}));
+    body.castShadow=true;
+    // Caps
+    const capGeo = new THREE.SphereGeometry(rx,16,8,0,Math.PI*2,0,Math.PI/2);
+    const capT = new THREE.Mesh(capGeo,M(color));
+    capT.position.y=ry/2;
+    const capB = new THREE.Mesh(capGeo,M(color));
+    capB.rotation.x=Math.PI;capB.position.y=-ry/2;
+    grp.add(capT,capB);
+    // Insulation bands
+    for(let i=0;i<4;i++){
+      const band=new THREE.Mesh(new THREE.TorusGeometry(rx+0.03,0.04,8,24),M(0x222));
+      band.position.y=-ry/2+ry*i/3;
+      grp.add(band);
+    }
+  }
+
+  // Liquid level glass indicator
+  const lvl = info&&info.level ? parseFloat(info.level)/100 : 0.5;
+  if(type!=='sphere'){
+    const glassGeo = new THREE.CylinderGeometry(rx*0.12,rx*0.12,ry*0.85,8);
+    const glass = new THREE.Mesh(glassGeo, mGlass);
+    glass.position.set(rx+0.02,0,0);
+    const liqGeo = new THREE.CylinderGeometry(rx*0.1,rx*0.1,ry*0.85*lvl,8);
+    const liq = new THREE.Mesh(liqGeo, M(0x0044aa,{transparent:true,opacity:0.7,roughness:0,metalness:0}));
+    liq.position.set(rx+0.02,-ry*0.85*(1-lvl)/2,0);
+    grp.add(glass,liq);
+  }
+
+  // Glow aura
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(rx+0.3,16,16),
+    new THREE.MeshStandardMaterial({color:glowColor,transparent:true,opacity:0.04,side:THREE.BackSide}));
+  grp.add(sphere);
+
+  grp.add(body);
+  body.userData={id,name,type:'vessel',info};
+  grp.userData={id,name,type:'vessel',info};
+  scene.add(grp);
+  equipment.push({mesh:grp,body,type:'vessel',id,info,name});
+  glow(glowColor,x,ry,z,1.5,6);
+
+  // Label
+  const lbl = makeLabel(id,[x,ry+1.6,z],'#00d4ff');
+  scene.add(lbl); labels.push(lbl);
+
+  return grp;
+}
+
+// ── Pump/Compressor factory ────────────────────────
+function addPump(opts){
+  const {id,x,z,r=0.7,compressor=false,status='running',name,info} = opts;
+  const grp=new THREE.Group();
+  grp.position.set(x,r,z);
+
+  const col = compressor ? 0x1a2e10 : 0x0a1e30;
+  const body=new THREE.Mesh(new THREE.SphereGeometry(r,20,20),M(col,{metalness:0.85,roughness:0.2}));
+  body.castShadow=true;
+
+  // Impeller disc
+  const disc=new THREE.Mesh(new THREE.CylinderGeometry(r*0.8,r*0.8,r*0.3,16),M(0x0d2040,{metalness:0.9,roughness:0.1}));
+  disc.rotation.x=Math.PI/2;
+
+  // Inlet/outlet flanges
+  const flange=()=>new THREE.Mesh(new THREE.CylinderGeometry(r*0.28,r*0.28,0.25,12),M(0x1a2840,{metalness:0.9}));
+  const fin=flange(); fin.rotation.z=Math.PI/2; fin.position.set(-r-0.1,0,0);
+  const fout=flange(); fout.rotation.z=Math.PI/2; fout.position.set(r+0.1,0,0);
+
+  // Base plate
+  const base=new THREE.Mesh(new THREE.BoxGeometry(r*2.8,0.18,r*2),M(0x0a1428));
+  base.position.y=-r*0.95;
+
+  // Status glow
+  const statusCol = status==='running' ? 0x00ff88 : status==='standby' ? 0xffcc00 : 0xff3344;
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(0.15,8,8),new THREE.MeshStandardMaterial({color:statusCol,emissive:statusCol,emissiveIntensity:2,roughness:0}));
+  dot.position.set(r*0.65,r*0.65,0);
+  glow(statusCol,x,r*2,z,2,4);
+
+  grp.add(body,disc,fin,fout,base,dot);
+  body.userData={id,name,type:'pump',info};
+  grp.userData={id,name,type:'pump',info};
+  scene.add(grp);
+  equipment.push({mesh:grp,body,type:'pump',id,info,name});
+
+  const lbl=makeLabel(id,[x,r*2+1.2,z],'#00ff88');
+  scene.add(lbl);labels.push(lbl);
+  return grp;
+}
+
+// ── Heat exchanger factory ─────────────────────────
+function addHeatExchanger(opts){
+  const {id,x,z,w=3,r=0.6,name,info} = opts;
+  const grp=new THREE.Group();
+  grp.position.set(x,r,z);
+
+  const shell=new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,24),M(0x1a0a0a,{metalness:0.8,roughness:0.3}));
+  shell.rotation.z=Math.PI/2;
+  // Tube bundle lines
+  for(let i=0;i<6;i++){
+    const ang=i*Math.PI/3;
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,w+0.1,6),M(0x2a1020,{metalness:0.9,roughness:0.1}));
+    tube.rotation.z=Math.PI/2;
+    tube.position.set(0,Math.sin(ang)*r*0.55,Math.cos(ang)*r*0.55);
+    grp.add(tube);
+  }
+  // End caps
+  const capL=new THREE.Mesh(new THREE.SphereGeometry(r,12,8,0,Math.PI*2,0,Math.PI/2),M(0x1a1520));
+  capL.rotation.z=-Math.PI/2; capL.position.x=-w/2;
+  const capR=new THREE.Mesh(new THREE.SphereGeometry(r,12,8,0,Math.PI*2,0,Math.PI/2),M(0x1a1520));
+  capR.rotation.z=Math.PI/2; capR.position.x=w/2;
+
+  grp.add(shell,capL,capR);
+  shell.userData={id,name,type:'hx',info};
+  grp.userData={id,name,type:'hx',info};
+  scene.add(grp);
+  equipment.push({mesh:grp,body:shell,type:'hx',id,info,name});
+  glow(0xff3344,x,r*2,z,1.5,5);
+
+  const lbl=makeLabel(id,[x,r*2+1,z],'#ff4466');
+  scene.add(lbl);labels.push(lbl);
+  return grp;
+}
+
+// ── Valve factory ─────────────────────────────────
+function addValve(opts){
+  const {id,x,y=0.5,z,type='control',name,info} = opts;
+  const grp=new THREE.Group();
+  grp.position.set(x,y,z);
+
+  const col = type==='relief' ? 0x330a0a : 0x1a1000;
+  const acol = type==='relief' ? 0xff3344 : 0xff6600;
+
+  // Body (bow-tie shape = two cones)
+  const coneA=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,8),M(col));
+  coneA.position.y=0.25; coneA.rotation.z=Math.PI;
+  const coneB=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,8),M(col));
+  coneB.position.y=-0.25;
+  const middle=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.1,8),M(acol,{emissive:acol,emissiveIntensity:0.5}));
+  // Stem + actuator
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.6,6),M(0x334));
+  stem.position.y=0.7;
+  const actuator=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,12),M(0x0d1a2a,{metalness:0.7}));
+  actuator.position.y=1.1;
+  // Actuator glow
+  const aGlow=new THREE.Mesh(new THREE.SphereGeometry(0.25,12,12),new THREE.MeshStandardMaterial({color:acol,transparent:true,opacity:0.15,side:THREE.BackSide}));
+  aGlow.position.y=1.1;
+  const tag=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.2,0.05),M(0x050d18));
+  tag.position.y=1.4;
+
+  grp.add(coneA,coneB,middle,stem,actuator,aGlow,tag);
+  grp.userData={id,name,type:'valve',info};
+  scene.add(grp);
+  equipment.push({mesh:grp,body:grp,type:'valve',id,info,name});
+
+  const lbl=makeLabel(id,[x,y+2.0,z],'#ff6600',96);
+  lbl.scale.set(2,0.5,1);
+  scene.add(lbl);labels.push(lbl);
+  return grp;
+}
+
+// ── Instrument factory ────────────────────────────
+function addInstrument(opts){
+  const {id,x,y=0.5,z,tag='PT',alarm=false,name,info} = opts;
+  const grp=new THREE.Group();
+  grp.position.set(x,y,z);
+  const col=alarm?0x330000:0x08102a;
+  const acol=alarm?0xff0022:0xaa55ff;
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.3,16),M(col,{metalness:0.6}));
+  const face=new THREE.Mesh(new THREE.CircleGeometry(0.22,16),new THREE.MeshStandardMaterial({color:0x000814,emissive:acol,emissiveIntensity:alarm?3:1}));
+  face.position.y=0.16; face.rotation.x=-Math.PI/2;
+  const mount=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.5,6),M(0x0d1828));
+  mount.position.y=-0.4;
+  if(alarm){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.04,8,20),new THREE.MeshStandardMaterial({color:0xff0022,emissive:0xff0022,emissiveIntensity:2}));
+    ring.rotation.x=Math.PI/2;
+    grp.add(ring);
+  }
+  grp.add(body,face,mount);
+  grp.userData={id,name,type:'instrument',info};
+  scene.add(grp);
+  equipment.push({mesh:grp,body,type:'instrument',id,info,name});
+  glow(acol,x,y+1,z,1,3);
+  return grp;
+}
+
+// ── Pipe factory ──────────────────────────────────
+function addPipe(pts, color, r=0.12, dashed=false, animated=true){
+  const col=new THREE.Color(color);
+  const mat = new THREE.MeshStandardMaterial({color:col,roughness:0.4,metalness:0.7,emissive:col,emissiveIntensity:0.15});
+  const allMeshes=[];
+  for(let i=0;i<pts.length-1;i++){
+    const a=new THREE.Vector3(...pts[i]);
+    const b=new THREE.Vector3(...pts[i+1]);
+    const dir=new THREE.Vector3().subVectors(b,a);
+    const len=dir.length();
+    if(len<0.01) continue;
+    const geo=new THREE.CylinderGeometry(r,r,len,8,1);
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.copy(a).addScaledVector(dir.normalize(),len/2);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
+    mesh.castShadow=true;
+    scene.add(mesh);
+    allMeshes.push(mesh);
+    // Elbow joint
+    const joint=new THREE.Mesh(new THREE.SphereGeometry(r*1.1,8,8),mat);
+    joint.position.copy(a);
+    scene.add(joint);
+    allMeshes.push(joint);
+    // Flange rings at endpoints
+    if(i===0){
+      const fl=new THREE.Mesh(new THREE.TorusGeometry(r*1.6,r*0.3,6,12),M(0x1a2840,{metalness:0.9}));
+      fl.position.copy(a);
+      fl.quaternion.copy(mesh.quaternion);
+      scene.add(fl);
+    }
+    if(i===pts.length-2){
+      const fl=new THREE.Mesh(new THREE.TorusGeometry(r*1.6,r*0.3,6,12),M(0x1a2840,{metalness:0.9}));
+      fl.position.copy(b);
+      fl.quaternion.copy(mesh.quaternion);
+      scene.add(fl);
+    }
+  }
+  if(animated){
+    pipes3d.push({meshes:allMeshes, color:col, t:0, active:animated});
+  }
+  return allMeshes;
+}
+
+setProgress(60,'إنشاء المعدات…');
+
+// ═══════════════════════════════════════════════════
+// PLACE ALL EQUIPMENT
+// ═══════════════════════════════════════════════════
+
+// ── Section A: Gas Separation (left) ─────────────
+addVessel({id:'V-101',x:-14,z:-2,rx:1.4,ry:5,type:'cylinder',color:0x0a1e36,glowColor:0x00d4ff,
+  name:'فاصل الغاز الرئيسي',
+  info:{level:'62%',temp:'45°C',press:'85 bar',flow:'12,400 Nm³/h',desc:'High-Pressure Gas Separator'}});
+addVessel({id:'V-102',x:-8,z:-2,rx:1.1,ry:4,type:'cylinder',color:0x0a1e2e,
+  name:'فاصل السائل',
+  info:{level:'41%',temp:'38°C',press:'80 bar',flow:'850 m³/h',desc:'Liquid Knockout Drum'}});
+addVessel({id:'V-103',x:-8,z:4,rx:0.9,ry:3,type:'cylinder',color:0x0a1828,
+  name:'وعاء التهدئة',
+  info:{level:'55%',temp:'35°C',press:'5 bar',flow:'320 m³/h',desc:'Surge Vessel'}});
+
+// ── Section B: Thermal Processing (center-left) ──
+addVessel({id:'T-201',x:-1,z:-3,rx:1.3,ry:7,type:'column',color:0x1a0e0a,glowColor:0xff4422,
+  name:'برج التقطير الرئيسي',
+  info:{level:'48%',temp:'185°C',press:'12 bar',flow:'8,200 kg/h',desc:'Main Distillation Column'}});
+addVessel({id:'T-202',x:4,z:-3,rx:1.1,ry:6,type:'column',color:0x1a0e0a,glowColor:0xff6622,
+  name:'برج الامتصاص',
+  info:{level:'33%',temp:'55°C',press:'18 bar',flow:'5,400 kg/h',desc:'Absorption Tower'}});
+addHeatExchanger({id:'E-201',x:1,z:2,w:3.5,r:0.7,name:'مبادل حراري رئيسي',
+  info:{duty:'12.4 MW',hotT:'185→95°C',coldT:'25→115°C',desc:'Main Process HX'}});
+addHeatExchanger({id:'E-202',x:6,z:2,w:3,r:0.6,name:'مبادل غاز/سائل',
+  info:{duty:'4.8 MW',hotT:'140→70°C',coldT:'30→80°C',desc:'Gas/Liquid HX'}});
+
+// ── Section C: HP Compression (center) ───────────
+addPump({id:'C-301',x:10,z:-2,r:1.0,compressor:true,status:'running',name:'ضاغط الغاز الرئيسي',
+  info:{speed:'3550 rpm',power:'450 kW',flow:'8200 Nm³/h',head:'2.8 bar',desc:'Main Gas Compressor'}});
+addPump({id:'C-302',x:10,z:1,r:1.0,compressor:true,status:'standby',name:'ضاغط الغاز الاحتياطي',
+  info:{speed:'0 rpm',power:'0 kW',flow:'—',head:'—',desc:'Standby Compressor'}});
+addVessel({id:'V-301',x:14,z:-1,rx:1.0,ry:3.5,type:'sphere',color:0x0a1e14,glowColor:0x00ff88,
+  name:'وعاء الضغط العالي',
+  info:{level:'72%',temp:'60°C',press:'140 bar',flow:'3,200 m³/h',desc:'HP Buffer Vessel'}});
+addHeatExchanger({id:'E-301',x:16,z:3,w:2.5,r:0.55,name:'مبادل ما قبل التبريد',
+  info:{duty:'3.1 MW',hotT:'120→60°C',coldT:'5→40°C',desc:'Pre-cooling HX'}});
+
+// ── Section D: Distribution (right) ──────────────
+addVessel({id:'TK-401',x:21,z:-2,rx:2.2,ry:4,type:'cylinder',color:0x0a1428,
+  name:'خزان التخزين الرئيسي',
+  info:{level:'85%',temp:'28°C',press:'2 bar',flow:'15,000 m³',desc:'Main Storage Tank'}});
+addVessel({id:'TK-402',x:21,z:4,rx:1.6,ry:3,type:'cylinder',color:0x100a14,
+  name:'خزان الوقود',
+  info:{level:'60%',temp:'25°C',press:'1.5 bar',flow:'4,200 m³',desc:'Fuel Storage Tank'}});
+
+// ── Pumps ──────────────────────────────────────────
+addPump({id:'P-101A',x:-10,z:2,r:0.65,status:'running',name:'مضخة نقل السائل A',
+  info:{speed:'1480 rpm',power:'75 kW',flow:'420 m³/h',head:'85 m',desc:'Transfer Pump A'}});
+addPump({id:'P-101B',x:-8,z:2,r:0.65,status:'standby',name:'مضخة نقل السائل B',
+  info:{speed:'0 rpm',power:'0 kW',flow:'—',head:'—',desc:'Transfer Pump B (Standby)'}});
+addPump({id:'P-201',x:2,z:5,r:0.75,status:'running',name:'مضخة الإرجاع',
+  info:{speed:'1785 rpm',power:'110 kW',flow:'580 m³/h',head:'120 m',desc:'Reflux Pump'}});
+addPump({id:'P-401',x:19,z:2,r:0.75,status:'running',name:'مضخة نقل المنتج',
+  info:{speed:'1450 rpm',power:'132 kW',flow:'620 m³/h',head:'95 m',desc:'Product Transfer Pump'}});
+
+// ── Valves ─────────────────────────────────────────
+addValve({id:'FCV-101',x:-16,y:1.5,z:-2,type:'control',name:'صمام تحكم التدفق 101',info:{signal:'65%',set:'1,200 m³/h'}});
+addValve({id:'PCV-101',x:-14,y:1.5,z:4,type:'control',name:'صمام تحكم الضغط 101',info:{signal:'45%',set:'82 bar'}});
+addValve({id:'TCV-201',x:1,y:1.5,z:6,type:'control',name:'صمام تحكم الحرارة 201',info:{signal:'78%',set:'180°C'}});
+addValve({id:'FCV-201',x:4,y:1.5,z:6,type:'control',name:'صمام تحكم التدفق 201',info:{signal:'70%',set:'8,000 kg/h'}});
+addValve({id:'PCV-301',x:10,y:1.5,z:-6,type:'control',name:'صمام ضغط عالي 301',info:{signal:'58%',set:'138 bar'}});
+addValve({id:'PRV-101',x:-18,y:1.5,z:-2,type:'relief',name:'صمام تخفيف الضغط 101',info:{signal:'—',set:'95 bar'}});
+addValve({id:'HV-401',x:19,y:1.5,z:-5,type:'control',name:'صمام يدوي رئيسي 401',info:{signal:'مفتوح',set:'100%'}});
+
+// ── Instruments ────────────────────────────────────
+addInstrument({id:'PT-101',x:-16,y:1.5,z:0,tag:'PT',alarm:false,name:'مقياس ضغط الدخل',info:{value:'84.2 bar',range:'0-100 bar'}});
+addInstrument({id:'TT-101',x:-16,y:1.5,z:1.5,tag:'TT',alarm:false,name:'مقياس حرارة الدخل',info:{value:'43.8°C',range:'0-100°C'}});
+addInstrument({id:'FT-101',x:-16,y:1.5,z:3,tag:'FT',alarm:false,name:'مقياس تدفق الغاز',info:{value:'12,240 Nm³/h',range:'0-15000'}});
+addInstrument({id:'TT-201',x:0,y:1.5,z:-7,tag:'TT',alarm:true,name:'حرارة البرج العلوي',info:{value:'188.4°C',range:'0-250°C',alarm:'HIGH ALARM'}});
+addInstrument({id:'PT-301',x:12,y:1.5,z:-5,tag:'PT',alarm:false,name:'ضغط الضاغط',info:{value:'138.5 bar',range:'0-160 bar'}});
+addInstrument({id:'LT-401',x:23,y:1.5,z:0,tag:'LT',alarm:false,name:'مستوى خزان المنتج',info:{value:'85.1%',range:'0-100%'}});
+addInstrument({id:'AT-101',x:-16,y:1.5,z:-1.5,tag:'AT',alarm:false,name:'محلل جودة الغاز',info:{value:'98.2% CH₄',range:'—'}});
+
+setProgress(75,'رسم الأنابيب…');
+
+// ═══════════════════════════════════════════════════
+// PIPES
+// ═══════════════════════════════════════════════════
+// Feed inlet
+addPipe([[-22,1,-2],[-18.5,1,-2],[-15.5,1,-2]],0xff3344,0.16,false,true);
+// V-101 → V-102 gas
+addPipe([[-12.6,4,-2],[-10,4,-2],[-9.1,4,-2]],0xffcc00,0.14,false,true);
+// V-101 → FCV-101
+addPipe([[-14,4,-2],[-14,4,-6]],0xffcc00,0.12);
+// V-102 → T-201 feed
+addPipe([[-6.9,3,-2],[-4,3,-2],[-4,3,-3],[-2.3,3,-3]],0xffcc00,0.14,false,true);
+// V-102 liquid bottom → P-101
+addPipe([[-8,0.5,-2],[-8,0.5,0.5],[-10.5,0.5,1.5]],0x00ff88,0.12,false,true);
+// P-101 → V-103
+addPipe([[-9.4,0.7,1.5],[-8,0.7,1.5],[-8,0.7,3.5],[-8,0.7,4.5]],0x00ff88,0.12,false,true);
+// T-201 → E-201 hot
+addPipe([[-1,3.5,-3],[-1,3.5,0],[1,1.5,0],[1,0.7,0.5]],0xff3344,0.13,false,true);
+// E-201 → P-201
+addPipe([[1,0.7,2],[1,0.7,4.5],[2,0.7,4.5]],0x00ff88,0.12,false,true);
+// T-202 → C-301
+addPipe([[5.1,3,-3],[7,3,-3],[8.5,3,-2],[8.5,3,-1],[9,1,-2]],0xffcc00,0.15,false,true);
+// C-301 → E-301
+addPipe([[11,1,-2],[13,1,-2],[15,1,2],[15,1,3],[15.5,0.7,3]],0xff3344,0.13,false,true);
+// E-301 → V-301
+addPipe([[16.5,0.7,3],[17,0.7,1],[17,0.7,-0.5],[15.2,1,-1]],0x00ff88,0.13,false,true);
+// V-301 → P-401 → TK-401
+addPipe([[12.8,1,-1],[18.5,1,-1],[18.5,1,-2],[18.8,0.7,-2]],0x00ff88,0.14,false,true);
+addPipe([[19.7,0.7,-2],[22.5,1,-2],[22.5,2,-2],[18.8,2,-2]],0x00ff88,0.14,false,true);
+// Product outlet
+addPipe([[23.2,2,-2],[26,2,-2],[28,2,-2]],0x00ff88,0.16,false,true);
+// TK-401 → TK-402
+addPipe([[19.8,1.5,-2],[21,1.5,0],[21,1.5,3],[21,1.5,4]],0x0088ff,0.12,false,true);
+// Instrument gas (purple dashed)
+addPipe([[-8,1,-7],[0,1,-7],[10,1,-7],[21,1,-7]],0xaa55ff,0.05,true,false);
+// Steam header (gray)
+addPipe([[-1,6,-3],[6,6,-3],[10,6,-3]],0x446688,0.09,true,false);
+// E-201 cold in
+addPipe([[1,0.7,5],[1,0.7,4],[1,0.7,2]],0x0088ff,0.12,false,true);
+// E-202 hot/cold
+addPipe([[4,3,-3],[5,3,0],[5,0.7,1],[6.5,0.7,1.5]],0xff3344,0.12,false,true);
+addPipe([[6.5,0.7,2.5],[6.5,0.7,3],[8,0.7,3],[8,1,-2]],0x0088ff,0.12,false,true);
+// Flare header (orange thin)
+addPipe([[-14,7,-2],[-1,7,-3],[10,7,-2],[21,7,-2]],0xff4400,0.06,true,false);
+// Recycle line
+addPipe([[9,1,-2],[8,1,-8],[0,1,-8],[0,1,-3.5]],0x00aaff,0.10,false,true);
+
+setProgress(88,'إضافة التفاصيل…');
+
+// ═══════════════════════════════════════════════════
+// SECTION LABELS (floating text planes)
+// ═══════════════════════════════════════════════════
+function addSectionLabel(text, x, z, col){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=80;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,512,80);
+  ctx.fillStyle='rgba(6,9,18,0.7)';
+  ctx.roundRect(4,4,504,72,12); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5;
+  ctx.roundRect(4,4,504,72,12); ctx.stroke();
+  ctx.fillStyle=col; ctx.font='bold 22px "Courier New"';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(text,256,40);
+  const tex=new THREE.CanvasTexture(cv);
+  const plane=new THREE.Mesh(new THREE.PlaneGeometry(8,1.25),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,side:THREE.DoubleSide}));
+  plane.position.set(x,7.5,z);
+  scene.add(plane);
+}
+addSectionLabel('وحدة فصل الغاز',-11,5,'#00d4ff');
+addSectionLabel('المعالجة الحرارية',2,5,'#ff4422');
+addSectionLabel('وحدة الضغط العالي',12,5,'#ffcc00');
+addSectionLabel('وحدة التوزيع',21,5,'#00ff88');
+
+// ── Particle system for flow visualization ────────
+const PART_COUNT = 800;
+const partPositions = new Float32Array(PART_COUNT * 3);
+const partColors = new Float32Array(PART_COUNT * 3);
+const partGeo = new THREE.BufferGeometry();
+const partVels = [];
+
+const flowPaths = [
+  {pts:[[-22,1,-2],[28,1,-2]], color:[1,0.8,0]},
+  {pts:[[-8,4,-2],[-1,4,-3]], color:[1,0.2,0.1]},
+  {pts:[[-1,3.5,-3],[1,0.7,0.5]], color:[1,0.1,0.1]},
+  {pts:[[9,1,-2],[14,1,-1]], color:[0,1,0.5]},
+  {pts:[[14,1,-1],[23,1,-2]], color:[0,1,0.5]},
+];
+
+for(let i=0;i<PART_COUNT;i++){
+  const path = flowPaths[Math.floor(Math.random()*flowPaths.length)];
+  const t = Math.random();
+  const a = new THREE.Vector3(...path.pts[0]);
+  const b = new THREE.Vector3(...path.pts[path.pts.length-1]);
+  const pos = a.clone().lerp(b,t);
+  partPositions[i*3]=pos.x + (Math.random()-0.5)*0.4;
+  partPositions[i*3+1]=pos.y + (Math.random()-0.5)*0.15;
+  partPositions[i*3+2]=pos.z + (Math.random()-0.5)*0.4;
+  partColors[i*3]=path.color[0];
+  partColors[i*3+1]=path.color[1];
+  partColors[i*3+2]=path.color[2];
+  partVels.push({path, t, speed:0.0015+Math.random()*0.003});
+}
+partGeo.setAttribute('position',new THREE.BufferAttribute(partPositions,3));
+partGeo.setAttribute('color',new THREE.BufferAttribute(partColors,3));
+const partMat = new THREE.PointsMaterial({size:0.15,vertexColors:true,transparent:true,opacity:0.8,depthWrite:false});
+const particles = new THREE.Points(partGeo,partMat);
+scene.add(particles);
+
+// ── Orbit Controls (manual implementation) ────────
+let isDragging=false, lastX=0, lastY=0;
+let theta=0.6, phi=0.7, radius=50;
+let targetTheta=0.6, targetPhi=0.7, targetRadius=50;
+const pivot = new THREE.Vector3(4,2,0);
+
+canvas.addEventListener('mousedown',e=>{isDragging=true;lastX=e.clientX;lastY=e.clientY;});
+window.addEventListener('mouseup',()=>isDragging=false);
+window.addEventListener('mousemove',e=>{
+  if(!isDragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  targetTheta -= dx*0.006;
+  targetPhi = Math.max(0.05,Math.min(Math.PI/2.1, targetPhi - dy*0.006));
+});
+canvas.addEventListener('wheel',e=>{
+  targetRadius = Math.max(8, Math.min(80, targetRadius + e.deltaY*0.04));
+  e.preventDefault();
+},{passive:false});
+
+// Touch support
+let lastTouchDist=0;
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){isDragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;}
+  if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastTouchDist=Math.sqrt(dx*dx+dy*dy);}
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===1&&isDragging){
+    const dx=e.touches[0].clientX-lastX,dy=e.touches[0].clientY-lastY;
+    lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;
+    targetTheta-=dx*0.006;
+    targetPhi=Math.max(0.05,Math.min(Math.PI/2.1,targetPhi-dy*0.006));
+  }
+  if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    targetRadius=Math.max(8,Math.min(80,targetRadius+(lastTouchDist-dist)*0.08));
+    lastTouchDist=dist;
+  }
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>isDragging=false);
+
+// ── Raycasting for click ───────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tt = document.getElementById('tt');
+
+canvas.addEventListener('mousemove',e=>{
+  mouse.set((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);
+  raycaster.setFromCamera(mouse,camera);
+  const clickables = equipment.map(eq=>eq.body).filter(Boolean);
+  const hits = raycaster.intersectObjects(clickables,true);
+  if(hits.length>0){
+    const obj=hits[0].object;
+    let ud = obj.userData;
+    if(!ud.id){ const p=obj.parent; if(p&&p.userData.id) ud=p.userData; }
+    if(ud.id){
+      tt.style.display='block';
+      tt.style.left=(e.clientX+14)+'px';
+      tt.style.top=(e.clientY-20)+'px';
+      tt.textContent=ud.id+' — '+ud.name;
+      canvas.style.cursor='pointer';
+    }
+  } else {
+    tt.style.display='none';
+    canvas.style.cursor=isDragging?'grabbing':'grab';
+  }
+});
+
+canvas.addEventListener('click',e=>{
+  mouse.set((e.clientX/innerWidth)*2-1,-(e.clientY/innerHeight)*2+1);
+  raycaster.setFromCamera(mouse,camera);
+  const clickables = equipment.map(eq=>eq.body).filter(Boolean);
+  const hits = raycaster.intersectObjects(clickables,true);
+  if(hits.length>0){
+    const obj=hits[0].object;
+    let eq = equipment.find(e=>e.body===obj||e.mesh===obj||e.mesh===obj.parent||e.body===obj.parent);
+    if(!eq && obj.parent){
+      eq = equipment.find(e=>e.body===obj.parent||e.mesh===obj.parent);
+    }
+    if(eq) showInfoPanel(eq);
+  } else {
+    document.getElementById('info-panel').classList.add('hidden');
+  }
+});
+
+function showInfoPanel(eq){
+  const panel=document.getElementById('info-panel');
+  document.getElementById('ip-title').textContent=eq.id+' — '+getTypeName(eq.type);
+  let html='';
+  if(eq.info){
+    const fields={level:'المستوى',temp:'الحرارة',press:'الضغط',flow:'التدفق',desc:'الوصف',
+      speed:'السرعة',power:'الطاقة',head:'الارتفاع',duty:'الحمل الحراري',
+      hotT:'الطرف الساخن',coldT:'الطرف البارد',signal:'الإشارة',set:'النقطة',
+      value:'القراءة',range:'المدى',alarm:'التنبيه'};
+    html+=`<div class="ip-row"><span class="ip-key">الاسم</span><span class="ip-val">${eq.name}</span></div>`;
+    Object.entries(fields).forEach(([k,label])=>{
+      if(eq.info[k]) html+=`<div class="ip-row"><span class="ip-key">${label}</span><span class="ip-val ${k==='alarm'?'alarm':''}">${eq.info[k]}</span></div>`;
+    });
+  }
+  document.getElementById('ip-body').innerHTML=html;
+  panel.classList.remove('hidden');
+}
+
+function getTypeName(t){
+  return {vessel:'وعاء/خزان/برج',pump:'مضخة/ضاغط',valve:'صمام',instrument:'أداة قياس',hx:'مبادل حراري'}[t]||t;
+}
+
+// ── Controls functions ────────────────────────────
+function toggleAnim(){
+  animActive=!animActive;
+  document.getElementById('btn-anim').classList.toggle('on',animActive);
+  particles.visible=animActive;
+}
+function toggleLabels(){
+  labelsVisible=!labelsVisible;
+  document.getElementById('btn-labels').classList.toggle('on',labelsVisible);
+  labels.forEach(l=>l.visible=labelsVisible);
+}
+function toggleXray(){
+  xray=!xray;
+  document.getElementById('btn-xray').classList.toggle('on',xray);
+  scene.traverse(obj=>{
+    if(obj.isMesh && obj.material && !obj.material.emissive){
+      obj.material.transparent=xray;
+      obj.material.opacity=xray?0.35:1;
+    }
+  });
+}
+function setView(v){
+  if(v==='top'){targetPhi=0.08;targetRadius=55;}
+  else if(v==='front'){targetTheta=0;targetPhi=0.5;targetRadius=45;}
+  else if(v==='iso'){targetTheta=Math.PI/4;targetPhi=Math.PI/4;targetRadius=50;}
+}
+function resetCamera(){targetTheta=0.6;targetPhi=0.7;targetRadius=50;}
+
+// ── Resize ─────────────────────────────────────────
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// ── HUD live update ───────────────────────────────
+let hudT=0;
+function updateHUD(){
+  hudT+=0.01;
+  document.getElementById('stat-flow').textContent=(12400+Math.sin(hudT)*80).toFixed(0).toLocaleString();
+  document.getElementById('stat-press').textContent=(85.2+Math.sin(hudT*0.7)*0.4).toFixed(1);
+  document.getElementById('stat-temp').textContent=(43.8+Math.sin(hudT*1.1)*0.3).toFixed(1)+'°C';
+  document.getElementById('stat-eff').textContent=(97.4+Math.sin(hudT*0.3)*0.15).toFixed(1)+'%';
+}
+
+// ── Pulse lights ──────────────────────────────────
+const pulseLights=[];
+scene.traverse(obj=>{if(obj.isPointLight) pulseLights.push(obj);});
+let pulseT=0;
+
+// ── Main render loop ──────────────────────────────
+setProgress(96,'إنهاء التحميل…');
+function animate(){
+  requestAnimationFrame(animate);
+
+  // Smooth camera
+  theta += (targetTheta-theta)*0.06;
+  phi   += (targetPhi-phi)*0.06;
+  radius+= (targetRadius-radius)*0.06;
+  camera.position.set(
+    pivot.x + radius*Math.sin(phi)*Math.sin(theta),
+    pivot.y + radius*Math.cos(phi),
+    pivot.z + radius*Math.sin(phi)*Math.cos(theta)
+  );
+  camera.lookAt(pivot);
+
+  // Particles
+  if(animActive){
+    const pos=partGeo.attributes.position.array;
+    for(let i=0;i<PART_COUNT;i++){
+      const v=partVels[i];
+      v.t+=v.speed;
+      if(v.t>1) v.t=0;
+      const a=new THREE.Vector3(...v.path.pts[0]);
+      const b=new THREE.Vector3(...v.path.pts[v.path.pts.length-1]);
+      const p=a.clone().lerp(b,v.t);
+      pos[i*3]=p.x+(Math.sin(v.t*20+i)*0.12);
+      pos[i*3+1]=p.y+(Math.cos(v.t*15+i)*0.08);
+      pos[i*3+2]=p.z+(Math.sin(v.t*25+i)*0.12);
+    }
+    partGeo.attributes.position.needsUpdate=true;
+  }
+
+  // Pulse lights
+  pulseT+=0.02;
+  pulseLights.forEach((l,i)=>{
+    l.intensity=1.5+Math.sin(pulseT+i*0.7)*0.5;
+  });
+
+  updateHUD();
+  renderer.render(scene,camera);
+}
+
+// Remove loading screen
+setTimeout(()=>{
+  setProgress(100,'جاهز!');
+  setTimeout(()=>{
+    document.getElementById('loading').style.opacity='0';
+    document.getElementById('loading').style.transition='opacity 0.5s';
+    setTimeout(()=>document.getElementById('loading').style.display='none',500);
+  },300);
+  animate();
+},200);
+</script>
+</body>
+</html>

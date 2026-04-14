@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مخطط P&ID ثلاثي الأبعاد</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{--bg:#080c14;--bg2:#0f1520;--card:#161e2e;--card2:#1c263a;--bdr:#253048;--accent:#00e5a0;--accent2:rgba(0,229,160,.15);--warn:#f59e0b;--danger:#ef4444;--info:#38bdf8;--txt:#e4eaf2;--txt2:#7e90a8;--muted:#4a5a70}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--txt);overflow:hidden;height:100vh}
+.top-bar{position:fixed;top:0;left:0;right:0;height:52px;background:linear-gradient(180deg,rgba(15,21,32,.98),rgba(15,21,32,.92));backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100}
+.logo-s{display:flex;align-items:center;gap:10px}
+.logo-i{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#00b880);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--bg)}
+.ttl{font-size:15px;font-weight:600}
+.sub{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.tb{display:flex;align-items:center;gap:3px}
+.tbtn{width:34px;height:34px;border:1px solid transparent;background:0 0;color:var(--txt2);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;position:relative}
+.tbtn:hover{background:var(--card);color:var(--txt);border-color:var(--bdr)}
+.tbtn.on{background:var(--accent2);color:var(--accent);border-color:rgba(0,229,160,.3)}
+.tbtn .tp{position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--bdr);padding:2px 7px;border-radius:4px;font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;color:var(--txt2)}
+.tbtn:hover .tp{opacity:1}
+.tsep{width:1px;height:22px;background:var(--bdr);margin:0 5px}
+.stbar{display:flex;align-items:center;gap:12px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+.stdot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px rgba(0,229,160,.4);animation:pd 2s infinite}
+@keyframes pd{0%,100%{opacity:1}50%{opacity:.4}}
+.live{display:inline-flex;align-items:center;gap:4px;font-size:9px;color:var(--accent);background:var(--accent2);padding:1px 6px;border-radius:3px}
+.live i{font-size:5px;animation:pd 1s infinite}
+.mc{position:fixed;top:52px;left:0;right:0;bottom:0;display:flex}
+.sp{width:290px;background:var(--bg2);border-left:1px solid var(--bdr);display:flex;flex-direction:column;z-index:50}
+.ptabs{display:flex;border-bottom:1px solid var(--bdr)}
+.ptab{flex:1;padding:9px;text-align:center;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.ptab:hover{color:var(--txt2);background:rgba(255,255,255,.02)}
+.ptab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.pb{flex:1;overflow-y:auto;padding:14px}
+.pb::-webkit-scrollbar{width:3px}
+.pb::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+.psec{margin-bottom:18px}
+.psec-t{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.psec-t i{font-size:9px;color:var(--accent)}
+.ec{background:var(--card);border:1px solid var(--bdr);border-radius:7px;padding:10px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.ec:hover{background:var(--card2);border-color:rgba(0,229,160,.2)}
+.ec.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 16px rgba(0,229,160,.08)}
+.ec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ec-t{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.ec-t .ib{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.sb{font-size:9px;padding:1px 7px;border-radius:9px;font-weight:500}
+.sr{background:rgba(0,229,160,.15);color:var(--accent)}
+.ss{background:rgba(245,158,11,.15);color:var(--warn)}
+.ec-p{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.pi{font-size:9px}
+.pi-l{color:var(--muted)}
+.pi-v{font-family:'JetBrains Mono',monospace;color:var(--txt);font-weight:500}
+.dp{display:none}.dp.vis{display:block}
+.dh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.dt{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.dc{width:26px;height:26px;border:1px solid var(--bdr);background:0 0;color:var(--muted);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s}
+.dc:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--danger)}
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.df{background:rgba(0,0,0,.2);border-radius:5px;padding:8px}
+.df-l{font-size:9px;color:var(--muted);margin-bottom:3px}
+.df-v{font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.dr{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.dr:last-child{border-bottom:none}
+.dr-l{font-size:10px;color:var(--txt2)}
+.dr-v{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500}
+.rb{width:55px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-right:6px}
+.rb-f{height:100%;border-radius:2px;transition:width .5s}
+.ca{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at 30% 40%,rgba(0,229,160,.02) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(56,189,248,.02) 0%,transparent 60%),var(--bg)}
+.ca canvas{display:block}
+.ipop{position:fixed;background:var(--card);border:1px solid var(--bdr);border-radius:9px;padding:12px;min-width:200px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:200;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.ipop.vis{opacity:1}
+.ipop-t{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+.ipop-r{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+.ipop-l{color:var(--muted)}
+.ipop-v{font-family:'JetBrains Mono',monospace;font-weight:500}
+.tbox{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:6px;align-items:center}
+.tst{background:var(--card);border:1px solid var(--bdr);border-radius:7px;padding:8px 16px;font-size:11px;display:flex;align-items:center;gap:7px;box-shadow:0 6px 24px rgba(0,0,0,.4);animation:ti .3s;white-space:nowrap}
+.tst.fo{animation:to .3s forwards}
+@keyframes ti{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes to{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-8px)}}
+.zc{position:absolute;bottom:16px;left:16px;display:flex;align-items:center;gap:3px;background:var(--card);border:1px solid var(--bdr);border-radius:9px;padding:3px;z-index:60}
+.zb{width:30px;height:30px;border:none;background:0 0;color:var(--txt2);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s}
+.zb:hover{background:rgba(255,255,255,.06);color:var(--txt)}
+.zl{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);min-width:40px;text-align:center}
+.hint{position:absolute;bottom:16px;right:16px;font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;z-index:60;background:rgba(22,30,46,.8);padding:6px 12px;border-radius:6px;border:1px solid var(--bdr)}
+@media(max-width:800px){.sp{width:240px}.hint{display:none}}
+</style>
+</head>
+<body>
+<header class="top-bar">
+<div class="logo-s"><div class="logo-i"><i class="fas fa-cube"></i></div><div><div class="ttl">مخطط P&ID ثلاثي الأبعاد</div><div class="sub">3D PROCESS & INSTRUMENTATION DIAGRAM</div></div></div>
+<div class="tb">
+<button class="tbtn" id="btnFlow"><i class="fas fa-water"></i><span class="tp">تبديل التدفق</span></button>
+<button class="tbtn" id="btnInst"><i class="fas fa-tachometer-alt"></i><span class="tp">القياسات</span></button>
+<button class="tbtn" id="btnLbl"><i class="fas fa-tags"></i><span class="tp">التسميات</span></button>
+<div class="tsep"></div>
+<button class="tbtn" id="btnReset"><i class="fas fa-compress-arrows-alt"></i><span class="tp">إعادة التعيين</span></button>
+<button class="tbtn" id="btnTop"><i class="fas fa-arrow-down"></i><span class="tp">منظر علوي</span></button>
+<button class="tbtn" id="btnFront"><i class="fas fa-arrow-right"></i><span class="tp">منظر أمامي</span></button>
+</div>
+<div class="stbar"><div class="stdot"></div><span>متصل</span><span>|</span><span>12 وحدة</span><span>|</span><span class="live"><i class="fas fa-circle"></i> LIVE</span></div>
+</header>
+<div class="mc">
+<aside class="sp" id="sp">
+<div class="ptabs"><div class="ptab on" data-t="list">قائمة المعدات</div><div class="ptab" data-t="det">التفاصيل</div></div>
+<div class="pb" id="tList"><div class="psec"><div class="psec-t"><i class="fas fa-circle"></i> خزانات</div><div id="lT"></div></div><div class="psec"><div class="psec-t"><i class="fas fa-circle"></i> مضخات</div><div id="lP"></div></div><div class="psec"><div class="psec-t"><i class="fas fa-circle"></i> مبادلات حرارية</div><div id="lH"></div></div><div class="psec"><div class="psec-t"><i class="fas fa-circle"></i> صمامات تحكم</div><div id="lV"></div></div><div class="psec"><div class="psec-t"><i class="fas fa-circle"></i> مفاعل</div><div id="lR"></div></div></div>
+<div class="pb" id="tDet" style="display:none"><div id="dPh" style="text-align:center;padding:36px 0;color:var(--muted)"><i class="fas fa-hand-pointer" style="font-size:28px;margin-bottom:10px;display:block;opacity:.3"></i><div style="font-size:12px">اختر وحدة من المخطط</div><div style="font-size:10px;margin-top:3px">لعرض تفاصيلها هنا</div></div><div id="dCt" class="dp"></div></div>
+</aside>
+<div class="ca" id="ca">
+<div class="zc"><button class="zb" id="btnZIn"><i class="fas fa-plus"></i></button><span class="zl" id="zL">100%</span><button class="zb" id="btnZOut"><i class="fas fa-minus"></i></button><button class="zb" id="btnFit"><i class="fas fa-expand"></i></button></div>
+<div class="hint">سحب: تدوير | عجلة: تقريب | كليك يمين: تحريك</div>
+</div>
+</div>
+<div class="ipop" id="ip"></div>
+<div class="tbox" id="tb"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+/* === بيانات المعدات === */
+const S = .06;
+const EQ = [
+  {id:'TK-101',type:'tank',name:'خزان التغذية',ox:120,oz:0,r:3.5,h:7,status:'running',
+   params:{السعة:'50 m³',المادة:'الماء الخام',الضغط:'1.5 bar',الحرارة:'25°C'},
+   details:{'رقم الوحدة':'TK-101',النوع:'خزان أرضي أفقي',الحجم:'50 m³',المادة:'كربون ستيل A516',العزل:'50mm حراري',التصميم:'ضغط 2 bar / 80°C',الفحص:'NDT كل 24 شهر'},
+   readings:[{label:'المستوى',value:'72%',pct:72,c:'#00e5a0'},{label:'الضغط',value:'1.5 bar',pct:50,c:'#38bdf8'},{label:'الحرارة',value:'25.3°C',pct:32,c:'#f59e0b'}]},
+  {id:'P-101',type:'pump',name:'مضخة التغذية',ox:280,oz:0,r:1.5,h:2.5,status:'running',
+   params:{التدفق:'120 m³/h','الضغط الخرج':'4.5 bar',السرعة:'1480 rpm',القدرة:'37 kW'},
+   details:{'رقم الوحدة':'P-101',النوع:'طرد مركزي',التدفق:'120 m³/h',الرأس:'35 m',السرعة:'1480 rpm',المادة:'SS316',الختم:'ميكانيكي',المحرك:'37 kW / 380V'},
+   readings:[{label:'التدفق',value:'118 m³/h',pct:78,c:'#00e5a0'},{label:'الضغط',value:'4.3 bar',pct:65,c:'#38bdf8'},{label:'الاهتزاز',value:'2.1 mm/s',pct:30,c:'#00e5a0'}]},
+  {id:'V-101',type:'valve',name:'صمام تحكم التدفق',ox:380,oz:0,r:.8,h:2.2,status:'running',
+   params:{النوع:'كراتي',الحجم:'4 inch',الفتحة:'65%','الإشارة':'4-20mA'},
+   details:{'رقم الوحدة':'V-101',النوع:'صمام تحكم كراتي',الحجم:'DN100',المادة:'SS316',المشغل:'هوائي نابضي','نطاق الفتحة':'0-100%','إشارة التحكم':'4-20 mA'},
+   readings:[{label:'الفتحة',value:'65%',pct:65,c:'#00e5a0'},{label:'الإشارة',value:'11.2 mA',pct:45,c:'#38bdf8'}]},
+  {id:'E-101',type:'hex',name:'مبادل حراري',ox:500,oz:0,r:2.5,h:4,status:'running',
+   params:{النوع:'أنابيب في غلاف',المساحة:'45 m²','الجانب الساخن':'85°C','الجانب البارد':'35°C'},
+   details:{'رقم الوحدة':'E-101',النوع:'مبادل أنابيب في غلاف',المساحة:'45 m²',الأنابيب:'SS316L / 19mm',الغلاف:'كربون ستيل',التصميم:'10 bar / 150°C',الباسونات:'25%'},
+   readings:[{label:'T دخول',value:'85.2°C',pct:72,c:'#f59e0b'},{label:'T خروج',value:'35.1°C',pct:35,c:'#38bdf8'},{label:'DP',value:'0.4 bar',pct:20,c:'#00e5a0'}]},
+  {id:'TK-102',type:'tank',name:'خزان وسطي',ox:680,oz:0,r:3,h:6.5,status:'running',
+   params:{السعة:'30 m³',المادة:'محلول معالج',الضغط:'1.2 bar',الحرارة:'35°C'},
+   details:{'رقم الوحدة':'TK-102',النوع:'خزان أرضي عمودي',الحجم:'30 m³',المادة:'SS304L',المحرك:'75 rpm',العزل:'بدون',التصميم:'ضغط 2 bar / 60°C'},
+   readings:[{label:'المستوى',value:'55%',pct:55,c:'#00e5a0'},{label:'الضغط',value:'1.2 bar',pct:40,c:'#38bdf8'},{label:'pH',value:'7.2',pct:72,c:'#00e5a0'}]},
+  {id:'P-102',type:'pump',name:'مضخة النقل',ox:840,oz:0,r:1.5,h:2.5,status:'running',
+   params:{التدفق:'80 m³/h','الضغط الخرج':'6 bar',السرعة:'1480 rpm',القدرة:'30 kW'},
+   details:{'رقم الوحدة':'P-102',النوع:'طرد مركزي',التدفق:'80 m³/h',الرأس:'50 m',السرعة:'1480 rpm',المادة:'SS316',الختم:'ميكانيكي مزدوج',المحرك:'30 kW'},
+   readings:[{label:'التدفق',value:'78 m³/h',pct:72,c:'#00e5a0'},{label:'الضغط',value:'5.8 bar',pct:70,c:'#38bdf8'},{label:'الاهتزاز',value:'1.8 mm/s',pct:25,c:'#00e5a0'}]},
+  {id:'R-101',type:'reactor',name:'المفاعل الكيميائي',ox:1040,oz:0,r:4,h:8,status:'running',
+   params:{السعة:'20 m³','وقت الإقامة':'45 min',الحرارة:'180°C',الضغط:'8 bar'},
+   details:{'رقم الوحدة':'R-101',النوع:'مفاعل مع مزيج',الحجم:'20 m³',المادة:'SS316L',المحرك:'37 kW / 60 rpm',المراوح:'توربينية',التصميم:'10 bar / 200°C',الحافظ:'3 مناطق'},
+   readings:[{label:'الحرارة',value:'178.5°C',pct:85,c:'#f59e0b'},{label:'الضغط',value:'7.8 bar',pct:78,c:'#38bdf8'},{label:'المستوى',value:'62%',pct:62,c:'#00e5a0'},{label:'pH',value:'5.4',pct:54,c:'#f59e0b'}]},
+  {id:'V-102',type:'valve',name:'صمام أمان المفاعل',ox:1040,oz:3,yB:7.5,r:.7,h:1.8,status:'standby',
+   params:{النوع:'كروي',الحجم:'3 inch',الفتحة:'0%','الإشارة':'ON/OFF'},
+   details:{'رقم الوحدة':'V-102',النوع:'صمام أمان',الحجم:'DN80','ضغط الفتح':'9 bar',المادة:'SS316',الشهادة:'ASME VIII',الحالة:'مغلقة'},
+   readings:[{label:'الحالة',value:'مغلق',pct:0,c:'#00e5a0'},{label:'ضبط',value:'9.0 bar',pct:90,c:'#f59e0b'}]},
+  {id:'E-102',type:'hex',name:'مبادل تبريد',ox:1200,oz:3,r:2,h:3.5,status:'running',
+   params:{النوع:'لوحي',المساحة:'25 m²','الجانب الساخن':'180°C','الجانب البارد':'45°C'},
+   details:{'رقم الوحدة':'E-102',النوع:'مبادل لوحي',المساحة:'25 m²',الألواح:'SS316 / 0.6mm','عدد الألواح':'85',التصميم:'10 bar / 200°C',الحشوة:'EPDM'},
+   readings:[{label:'T دخول',value:'178°C',pct:88,c:'#f59e0b'},{label:'T خروج',value:'45°C',pct:38,c:'#38bdf8'},{label:'DP',value:'0.6 bar',pct:30,c:'#00e5a0'}]},
+  {id:'TK-103',type:'tank',name:'خزان المنتج',ox:1370,oz:0,r:3.5,h:7,status:'running',
+   params:{السعة:'40 m³',المادة:'المنتج النهائي',الضغط:'1 bar',الحرارة:'40°C'},
+   details:{'رقم الوحدة':'TK-103',النوع:'خزان أرضي أفقي',الحجم:'40 m³',المادة:'SS304L',العزل:'25mm',التنفيس:'P/V valve',التصميم:'ضغط 1.5 bar / 60°C'},
+   readings:[{label:'المستوى',value:'38%',pct:38,c:'#38bdf8'},{label:'الحرارة',value:'39.8°C',pct:40,c:'#f59e0b'},{label:'الضغط',value:'0.1 bar',pct:10,c:'#00e5a0'}]},
+  {id:'P-103',type:'pump',name:'مضخة التعبئة',ox:1530,oz:0,r:1.5,h:2.5,status:'standby',
+   params:{التدفق:'50 m³/h','الضغط الخرج':'3 bar',السرعة:'1480 rpm',القدرة:'15 kW'},
+   details:{'رقم الوحدة':'P-103',النوع:'طرد مركزي',التدفق:'50 m³/h',الرأس:'25 m',السرعة:'1480 rpm',المادة:'SS316L',الختم:'مغناطيسي',المحرك:'15 kW / ATEX'},
+   readings:[{label:'الحالة',value:'احتياطي',pct:0,c:'#f59e0b'},{label:'التدفق',value:'0 m³/h',pct:0,c:'#5a6a80'}]},
+  {id:'V-103',type:'valve',name:'صمام إخراج المنتج',ox:1280,oz:0,r:.8,h:2.2,status:'running',
+   params:{النوع:'فراشة',الحجم:'6 inch',الفتحة:'80%','الإشارة':'4-20mA'},
+   details:{'رقم الوحدة':'V-103',النوع:'صمام فراشة',الحجم:'DN150',المادة:'Ductile Iron / SS316',المشغل:'هوائي','نطاق الفتحة':'0-90°'},
+   readings:[{label:'الفتحة',value:'80%',pct:80,c:'#00e5a0'},{label:'التدفق',value:'42 m³/h',pct:68,c:'#38bdf8'}]}
+];
+
+/* حساب المواقع ثلاثية الأبعاد */
+EQ.forEach(e => {
+  e.x = e.ox * S;
+  e.z = e.oz;
+  e.yB = e.yB || 0;
+});
+
+/* === بيانات الأنابيب === */
+function cPt(id, side) {
+  const e = EQ.find(q => q.id === id);
+  if (!e) return new THREE.Vector3();
+  const yb = e.yB || 0;
+  if (e.type === 'tank' || e.type === 'reactor') {
+    const py = yb + e.h * 0.4;
+    if (side === 'right') return new THREE.Vector3(e.x + e.r, py, e.z);
+    if (side === 'left')  return new THREE.Vector3(e.x - e.r, py, e.z);
+    if (side === 'top')   return new THREE.Vector3(e.x, yb + e.h, e.z);
+    if (side === 'bottom')return new THREE.Vector3(e.x, yb, e.z);
+  }
+  if (e.type === 'pump') {
+    const py = yb + e.r;
+    if (side === 'right') return new THREE.Vector3(e.x + e.r + .6, py, e.z);
+    if (side === 'left')  return new THREE.Vector3(e.x - e.r - .6, py, e.z);
+  }
+  if (e.type === 'valve') {
+    const py = yb + e.h * 0.5;
+    if (side === 'right') return new THREE.Vector3(e.x + e.r, py, e.z);
+    if (side === 'left')  return new THREE.Vector3(e.x - e.r, py, e.z);
+    if (side === 'bottom')return new THREE.Vector3(e.x, yb, e.z);
+  }
+  if (e.type === 'hex') {
+    const py = yb + e.h * 0.5;
+    if (side === 'right') return new THREE.Vector3(e.x + e.r, py, e.z);
+    if (side === 'left')  return new THREE.Vector3(e.x - e.r, py, e.z);
+    if (side === 'bottom')return new THREE.Vector3(e.x, yb, e.z);
+  }
+  return new THREE.Vector3(e.x, 2.5, e.z);
+}
+
+const PIPES = [
+  {id:'p1', from:'TK-101',fs:'right',to:'P-101',ts:'left',flow:true},
+  {id:'p2', from:'P-101',fs:'right',to:'V-101',ts:'left',flow:true},
+  {id:'p3', from:'V-101',fs:'right',to:'E-101',ts:'left',flow:true},
+  {id:'p4', from:'E-101',fs:'right',to:'TK-102',ts:'left',flow:true},
+  {id:'p5', from:'TK-102',fs:'right',to:'P-102',ts:'left',flow:true},
+  {id:'p6', from:'P-102',fs:'right',to:'R-101',ts:'left',flow:true},
+  {id:'p7', from:'R-101',fs:'right',to:'V-103',ts:'left',flow:true},
+  {id:'p8', from:'V-103',fs:'right',to:'TK-103',ts:'left',flow:true},
+  {id:'p9', from:'TK-103',fs:'right',to:'P-103',ts:'left',flow:false},
+  {id:'p10',from:'R-101',fs:'top',to:'V-102',ts:'bottom',flow:false},
+  {id:'p11',from:'V-102',fs:'right',to:'E-102',ts:'left',flow:false},
+  {id:'p12',from:'E-102',fs:'bottom',to:'TK-102',ts:'bottom',flow:false,custom:true}
+];
+
+/* توليد منحنى الأنبوب */
+function makePipeCurve(pipe) {
+  const a = cPt(pipe.from, pipe.fs), b = cPt(pipe.to, pipe.ts);
+  if (pipe.custom) {
+    const pts = [
+      a.clone(),
+      new THREE.Vector3(a.x, .3, a.z),
+      new THREE.Vector3(a.x, .3, -2),
+      new THREE.Vector3(b.x, .3, -2),
+      new THREE.Vector3(b.x, .3, b.z),
+      b.clone()
+    ];
+    return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', .3);
+  }
+  if (Math.abs(a.z - b.z) > .1) {
+    const mz = (a.z + b.z) / 2;
+    return new THREE.CatmullRomCurve3([
+      a.clone(), new THREE.Vector3(a.x, a.y, mz),
+      new THREE.Vector3(b.x, b.y, mz), b.clone()
+    ], false, 'catmullrom', .3);
+  }
+  const mx = (a.x + b.x) / 2;
+  if (Math.abs(a.x - b.x) < .5) return new THREE.CatmullRomCurve3([a.clone(), b.clone()]);
+  if (Math.abs(a.y - b.y) < .5) {
+    return new THREE.CatmullRomCurve3([a.clone(), new THREE.Vector3(mx, a.y, a.z), b.clone()], false, 'catmullrom', .2);
+  }
+  return new THREE.CatmullRomCurve3([a.clone(), new THREE.Vector3(a.x, b.y, a.z), b.clone()], false, 'catmullrom', .2);
+}
+
+/* === المتغيرات العامة === */
+let scene, camera, renderer, controls;
+let selId = null, hovId = null;
+let eqMeshes = {}, pipeObjs = {};
+let flowParticles = [], labelSprites = [];
+let dustPoints = null; // مرجع محفوظ للغبار
+let raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2(-9, -9);
+let flowOn = true, instOn = true, lblOn = true;
+let clock = new THREE.Clock();
+let camTarget = null, camLookTarget = null, camAnimating = false;
+
+/* === التهيئة الرئيسية === */
+function init() {
+  const area = document.getElementById('ca');
+  const W = area.clientWidth, H = area.clientHeight;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x080c14);
+  scene.fog = new THREE.FogExp2(0x080c14, .006);
+
+  camera = new THREE.PerspectiveCamera(50, W / H, .1, 500);
+  camera.position.set(50, 30, 65);
+
+  renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  area.insertBefore(renderer.domElement, area.firstChild);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(50, 3, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = .08;
+  controls.minDistance = 8;
+  controls.maxDistance = 180;
+  controls.maxPolarAngle = Math.PI / 2 - .02;
+  controls.update();
+
+  /* إضاءة */
+  scene.add(new THREE.AmbientLight(0x1a2030, .6));
+  scene.add(new THREE.HemisphereLight(0x1a2a40, 0x0a0a10, .4));
+
+  const dLight = new THREE.DirectionalLight(0xeef0ff, 1.2);
+  dLight.position.set(40, 50, 30);
+  dLight.castShadow = true;
+  dLight.shadow.mapSize.set(2048, 2048);
+  dLight.shadow.camera.left = -80; dLight.shadow.camera.right = 80;
+  dLight.shadow.camera.top = 30;  dLight.shadow.camera.bottom = -10;
+  dLight.shadow.camera.far = 150;
+  dLight.shadow.bias = -.001;
+  scene.add(dLight);
+
+  const pL1 = new THREE.PointLight(0x00e5a0, .3, 80);
+  pL1.position.set(50, 10, 5);
+  scene.add(pL1);
+
+  const pL2 = new THREE.PointLight(0x38bdf8, .2, 60);
+  pL2.position.set(80, 8, 8);
+  scene.add(pL2);
+
+  /* أرضية وشبكة */
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(300, 300),
+    new THREE.MeshStandardMaterial({color: 0x0c1018, roughness: .9, metalness: .1})
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -.01;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const grid = new THREE.GridHelper(200, 200, 0x152030, 0x101820);
+  grid.position.y = .01;
+  scene.add(grid);
+
+  /* بناء عناصر المشهد */
+  buildEquipment();
+  buildPipes();
+  buildInstruments();
+  buildLabels();
+  buildDust();
+  buildSidebar();
+  bindEvents();
+
+  animate();
+  setInterval(simRead, 3000);
+  toast('تم تحميل مخطط P&ID ثلاثي الأبعاد', 'success');
+}
+
+/* === مواد مشتركة === */
+function matBody() {
+  return new THREE.MeshStandardMaterial({color: 0x2a3a52, roughness: .35, metalness: .7});
+}
+function matAccent(c) {
+  return new THREE.MeshStandardMaterial({color: c, roughness: .3, metalness: .5, emissive: c, emissiveIntensity: .3});
+}
+
+/* === بناء المعدات === */
+function buildEquipment() {
+  EQ.forEach(eq => {
+    const g = new THREE.Group();
+    g.userData = {eqId: eq.id};
+    const bm = matBody();
+    const yb = eq.yB || 0;
+
+    if (eq.type === 'tank') {
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(eq.r, eq.r, eq.h, 24), bm);
+      cyl.position.y = yb + eq.h / 2; cyl.castShadow = true; g.add(cyl);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(eq.r, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), bm);
+      dome.position.y = yb + eq.h; dome.castShadow = true; g.add(dome);
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(eq.r + .05, .06, 8, 48),
+        new THREE.MeshStandardMaterial({color: 0x8899b0, metalness: .8, roughness: .2})
+      );
+      ring.position.y = yb + eq.h * .35; ring.rotation.x = Math.PI / 2; g.add(ring);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(eq.r + .3, eq.r + .5, .3, 24), bm);
+      base.position.y = yb + .15; base.castShadow = true; g.add(base);
+    }
+    else if (eq.type === 'pump') {
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(eq.r, eq.r, eq.h * .6, 20), bm);
+      cyl.rotation.z = Math.PI / 2; cyl.position.y = yb + eq.r; cyl.castShadow = true; g.add(cyl);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(eq.r * .7, eq.h * .5, 12),
+        new THREE.MeshStandardMaterial({color: 0x3a4a62, roughness: .3, metalness: .6}));
+      cone.rotation.z = -Math.PI / 2; cone.position.set(eq.r * .2, yb + eq.r, 0); g.add(cone);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(eq.r * 2.5, .3, eq.r * 2.5), bm);
+      base.position.y = yb + .15; base.castShadow = true; g.add(base);
+      const inP = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, eq.r + 1, 8), bm);
+      inP.rotation.z = Math.PI / 2; inP.position.set(-eq.r - .5, yb + eq.r, 0); g.add(inP);
+      const outP = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 1, 8), bm);
+      outP.rotation.z = Math.PI / 2; outP.position.set(eq.r + .8, yb + eq.r, 0); g.add(outP);
+    }
+    else if (eq.type === 'valve') {
+      const bw = .6, bh = 1;
+      const s1 = new THREE.Shape();
+      s1.moveTo(0, -bh); s1.lineTo(bw, 0); s1.lineTo(0, bh); s1.closePath();
+      const s2 = new THREE.Shape();
+      s2.moveTo(0, -bh); s2.lineTo(-bw, 0); s2.lineTo(0, bh); s2.closePath();
+      const ext = {depth: .3, bevelEnabled: false};
+      const g1 = new THREE.Mesh(new THREE.ExtrudeGeometry(s1, ext), bm);
+      g1.position.set(-.15, yb + eq.h * .5, -.15); g1.castShadow = true; g.add(g1);
+      const g2 = new THREE.Mesh(new THREE.ExtrudeGeometry(s2, ext), bm);
+      g2.position.set(.15, yb + eq.h * .5, -.15); g2.castShadow = true; g.add(g2);
+      const act = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .6, 12),
+        new THREE.MeshStandardMaterial({color: 0x3a4a62, roughness: .4, metalness: .5}));
+      act.position.y = yb + eq.h + .3; act.castShadow = true; g.add(act);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .5, 8), bm);
+      stem.position.y = yb + eq.h; g.add(stem);
+    }
+    else if (eq.type === 'hex') {
+      const box = new THREE.Mesh(new THREE.BoxGeometry(eq.r * 2, eq.h, eq.r * 1.6), bm);
+      box.position.y = yb + eq.h / 2; box.castShadow = true; g.add(box);
+      for (let i = 1; i <= 3; i++) {
+        const tube = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, eq.r * 1.8, 8),
+          new THREE.MeshStandardMaterial({color: 0x4a5a70, metalness: .6, roughness: .3}));
+        tube.rotation.z = Math.PI / 2; tube.position.y = yb + eq.h * (i / 4); g.add(tube);
+      }
+      const hL = new THREE.Mesh(new THREE.BoxGeometry(.15, .3, .3), matAccent(0xf59e0b));
+      hL.position.set(-eq.r - .1, yb + eq.h - .3, 0); g.add(hL);
+      const cL = new THREE.Mesh(new THREE.BoxGeometry(.15, .3, .3), matAccent(0x38bdf8));
+      cL.position.set(eq.r + .1, yb + .5, 0); g.add(cL);
+    }
+    else if (eq.type === 'reactor') {
+      const cyl = new THREE.Mesh(new THREE.CylinderGeometry(eq.r, eq.r, eq.h, 28), bm);
+      cyl.position.y = yb + eq.h / 2; cyl.castShadow = true; g.add(cyl);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(eq.r, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), bm);
+      dome.position.y = yb + eq.h; dome.castShadow = true; g.add(dome);
+      const jacket = new THREE.Mesh(
+        new THREE.CylinderGeometry(eq.r + .4, eq.r + .4, eq.h * .6, 28, 1, true),
+        new THREE.MeshStandardMaterial({color: 0x1a2535, roughness: .5, metalness: .3, side: THREE.DoubleSide, transparent: true, opacity: .4})
+      );
+      jacket.position.y = yb + eq.h * .5; g.add(jacket);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, eq.h + 2, 8),
+        new THREE.MeshStandardMaterial({color: 0x6a7a8a, metalness: .8, roughness: .2}));
+      shaft.position.y = yb + eq.h + 1; g.add(shaft);
+      const motor = new THREE.Mesh(new THREE.BoxGeometry(1, .6, 1),
+        new THREE.MeshStandardMaterial({color: 0x3a4a62, roughness: .4, metalness: .5}));
+      motor.position.y = yb + eq.h + 1.8; motor.castShadow = true; g.add(motor);
+      for (let i = 0; i < 2; i++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(2, .15, .3),
+          new THREE.MeshStandardMaterial({color: 0x5a6a7a, metalness: .6, roughness: .3}));
+        blade.position.y = yb + eq.h * .3 + i * 2;
+        blade.rotation.y = i * Math.PI / 2; g.add(blade);
+      }
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(eq.r + .5, eq.r + .7, .4, 28), bm);
+      base.position.y = yb + .2; base.castShadow = true; g.add(base);
+    }
+
+    /* مؤشر حالة متوهج */
+    const sc = eq.status === 'running' ? 0x00e5a0 : eq.status === 'standby' ? 0xf59e0b : 0xef4444;
+    const sMat = new THREE.MeshStandardMaterial({
+      color: sc, emissive: sc, emissiveIntensity: .8, roughness: .2, metalness: .3
+    });
+    const sMesh = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 12), sMat);
+    sMesh.position.set(eq.r * .7, yb + (eq.h || 2) + .8, 0);
+    sMesh.userData.isStatus = true;
+    g.add(sMesh);
+
+    /* ظل اصطناعي على الأرضية */
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(eq.r + 1, 24),
+      new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: .25})
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = .02;
+    g.add(shadow);
+
+    g.position.set(eq.x, 0, eq.z);
+    scene.add(g);
+
+    /* حفظ المراجع مع قيمة أساسية ثابتة للتذبذب */
+    eqMeshes[eq.id] = {group: g, bodyMat: bm, statusMat: sMat, statusMesh: sMesh, baseEmissive: .8};
+  });
+}
+
+/* === بناء الأنابيب === */
+function buildPipes() {
+  PIPES.forEach(pipe => {
+    const curve = makePipeCurve(pipe);
+    const tubeGeo = new THREE.TubeGeometry(curve, 40, .1, 8, false);
+    const pipeMat = new THREE.MeshStandardMaterial({color: 0x4a90d9, roughness: .3, metalness: .6});
+    const mesh = new THREE.Mesh(tubeGeo, pipeMat);
+    mesh.castShadow = true;
+    scene.add(mesh);
+
+    /* كرات نهاية الأنبوب */
+    const endGeo = new THREE.SphereGeometry(.14, 10, 10);
+    const e1 = new THREE.Mesh(endGeo, pipeMat);
+    e1.position.copy(curve.getPointAt(0)); scene.add(e1);
+    const e2 = new THREE.Mesh(endGeo, pipeMat);
+    e2.position.copy(curve.getPointAt(1)); scene.add(e2);
+
+    /* جسيمات التدفق */
+    const particles = [];
+    if (pipe.flow) {
+      for (let i = 0; i < 4; i++) {
+        const pMat = new THREE.MeshStandardMaterial({
+          color: 0x00e5a0, emissive: 0x00e5a0, emissiveIntensity: 1, roughness: 0, metalness: 0
+        });
+        const pMesh = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 8), pMat);
+        pMesh.userData.t = i / 4;
+        pMesh.userData.speed = .15 + Math.random() * .05;
+        scene.add(pMesh);
+        particles.push(pMesh);
+        flowParticles.push(pMesh);
+      }
+    }
+
+    /* سهم اتجاه */
+    const midPt = curve.getPointAt(.5);
+    const tangent = curve.getTangentAt(.5);
+    const arrowMat = new THREE.MeshStandardMaterial({
+      color: pipe.flow ? 0x00e5a0 : 0x5a6a80,
+      emissive: pipe.flow ? 0x00e5a0 : 0x000000,
+      emissiveIntensity: pipe.flow ? .5 : 0
+    });
+    const arrow = new THREE.Mesh(new THREE.ConeGeometry(.15, .4, 8), arrowMat);
+    arrow.position.copy(midPt);
+    arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+    scene.add(arrow);
+
+    /* إصلاح: حفظ pipeId مباشرة لتجنّب البحث المعقد */
+    pipeObjs[pipe.id] = {
+      mesh, curve, particles, pipeMat, arrowMat, arrow,
+      pipeId: pipe.id, // مرجع مباشر
+      hasFlow: pipe.flow
+    };
+  });
+}
+
+/* === أجهزة القياس === */
+function eqR(id) { const e = EQ.find(q => q.id === id); return e ? e.r : 2; }
+
+function buildInstruments() {
+  const list = [
+    {id:'LI-101',target:'TK-101'}, {id:'PI-101',target:'P-101'},
+    {id:'TI-101',target:'E-101'}, {id:'LI-102',target:'TK-102'},
+    {id:'PI-102',target:'P-102'}, {id:'TI-102',target:'R-101'},
+    {id:'LI-103',target:'TK-103'}
+  ];
+  list.forEach(inst => {
+    const eq = EQ.find(e => e.id === inst.target);
+    if (!eq) return;
+    const g = new THREE.Group();
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(.5, .08, 8, 24),
+      new THREE.MeshStandardMaterial({color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: .5, metalness: .5, roughness: .3})
+    );
+    g.add(ring);
+    const fill = new THREE.Mesh(
+      new THREE.CircleGeometry(.42, 16),
+      new THREE.MeshStandardMaterial({color: 0x0a0e17, roughness: .8})
+    );
+    fill.rotation.x = Math.PI / 2; // نفس اتجاه الحلقة
+    g.add(fill);
+    /* إصلاح: حساب الارتفاع مع yB ووضع الجهاز أمام المعدات */
+    const yb = eq.yB || 0;
+    g.position.set(eq.x, yb + eq.h * .5, eq.z + eqR(inst.target) + 1.5);
+    g.userData.isInstrument = true;
+    scene.add(g);
+  });
+}
+
+/* === التسميات === */
+function buildLabels() {
+  EQ.forEach(eq => {
+    const yb = eq.yB || 0;
+    const yTop = yb + (eq.h || 2) + 1.5;
+    const sp1 = makeSprite(eq.id, 36, '#e4eaf2', true);
+    sp1.position.set(eq.x, yTop, eq.z);
+    scene.add(sp1);
+    labelSprites.push(sp1);
+
+    const sp2 = makeSprite(eq.name, 22, '#5a6a80', false);
+    sp2.position.set(eq.x, yTop - .8, eq.z);
+    scene.add(sp2);
+    labelSprites.push(sp2);
+  });
+}
+
+function makeSprite(text, size, color, bold) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const fs = size || 28;
+  ctx.font = (bold ? '700 ' : '400 ') + fs + 'px JetBrains Mono, monospace';
+  const tw = ctx.measureText(text).width;
+  canvas.width = Math.max(64, tw + 24);
+  canvas.height = fs + 16;
+  ctx.font = (bold ? '700 ' : '400 ') + fs + 'px JetBrains Mono, monospace';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({map: tex, transparent: true, depthTest: false, sizeAttenuation: true});
+  const sp = new THREE.Sprite(mat);
+  const sc = canvas.width / 120;
+  sp.scale.set(sc, sc * .5, 1);
+  return sp;
+}
+
+/* === جسيمات الغبار === */
+function buildDust() {
+  const count = 200;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i * 3]     = Math.random() * 120 - 10;
+    pos[i * 3 + 1] = Math.random() * 25;
+    pos[i * 3 + 2] = Math.random() * 30 - 10;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({color: 0x3a4a60, size: .08, transparent: true, opacity: .4});
+  dustPoints = new THREE.Points(geo, mat);
+  scene.add(dustPoints);
+}
+
+/* === ربط الأحداث === */
+function bindEvents() {
+  renderer.domElement.addEventListener('mousemove', onMouse);
+  renderer.domElement.addEventListener('click', onClick);
+  window.addEventListener('resize', onResize);
+
+  /* أزرار شريط الأدوات */
+  document.getElementById('btnFlow').addEventListener('click', toggleFlow);
+  document.getElementById('btnInst').addEventListener('click', toggleInst);
+  document.getElementById('btnLbl').addEventListener('click', toggleLbl);
+  document.getElementById('btnReset').addEventListener('click', resetCam);
+  document.getElementById('btnTop').addEventListener('click', topView);
+  document.getElementById('btnFront').addEventListener('click', frontView);
+  document.getElementById('btnZIn').addEventListener('click', zoomIn);
+  document.getElementById('btnZOut').addEventListener('click', zoomOut);
+  document.getElementById('btnFit').addEventListener('click', fitAll);
+
+  /* تبديل التبويبات */
+  document.querySelectorAll('.ptab').forEach(tab => {
+    tab.addEventListener('click', () => swTab(tab.dataset.t));
+  });
+
+  /* تفويض أحداث بطاقات المعدات */
+  document.addEventListener('click', e => {
+    const card = e.target.closest('.ec[data-eid]');
+    if (card) selectEq(card.dataset.eid);
+  });
+}
+
+/* === التفاعل بالفأرة === */
+function onMouse(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const targets = [];
+  Object.values(eqMeshes).forEach(em => {
+    em.group.traverse(c => {
+      if (c.isMesh && !c.userData.isStatus) targets.push(c);
+    });
+  });
+  const hits = raycaster.intersectObjects(targets, false);
+  const ip = document.getElementById('ip');
+
+  if (hits.length > 0) {
+    let eqId = null;
+    let obj = hits[0].object;
+    let g = obj;
+    while (g.parent && !g.userData.eqId) g = g.parent;
+    eqId = g.userData.eqId;
+
+    if (eqId && eqId !== hovId) {
+      if (hovId) unhover(hovId);
+      hovId = eqId;
+      hover(eqId);
+    }
+    if (eqId) {
+      const eq = EQ.find(q => q.id === eqId);
+      const st = eq.status === 'running' ? 'تعمل' : eq.status === 'standby' ? 'احتياطي' : 'متوقفة';
+      const sc = eq.status === 'running' ? '#00e5a0' : eq.status === 'standby' ? '#f59e0b' : '#ef4444';
+      let rows = Object.entries(eq.params).slice(0, 2).map(kv =>
+        '<div class="ipop-r"><span class="ipop-l">' + kv[0] + '</span><span class="ipop-v">' + kv[1] + '</span></div>'
+      ).join('');
+      let rd = '';
+      if (eq.readings && eq.readings.length > 0) {
+        const r0 = eq.readings[0];
+        rd = '<div class="ipop-r"><span class="ipop-l">' + r0.label + '</span><span class="ipop-v" style="color:' + r0.c + '">' + r0.value + '</span></div>';
+      }
+      ip.innerHTML = '<div class="ipop-t"><span style="color:' + sc + '"><i class="fas fa-circle" style="font-size:7px"></i></span> ' + eq.id + ' - ' + eq.name + '</div>' +
+        '<div class="ipop-r"><span class="ipop-l">الحالة</span><span class="ipop-v" style="color:' + sc + '">' + st + '</span></div>' + rows + rd;
+      ip.classList.add('vis');
+      ip.style.left = (e.clientX + 14) + 'px';
+      ip.style.top = (e.clientY - 8) + 'px';
+      const r2 = ip.getBoundingClientRect();
+      if (r2.right > window.innerWidth - 300) ip.style.left = (e.clientX - r2.width - 14) + 'px';
+      if (r2.bottom > window.innerHeight) ip.style.top = (e.clientY - r2.height - 8) + 'px';
+    }
+  } else {
+    if (hovId) { unhover(hovId); hovId = null; }
+    ip.classList.remove('vis');
+  }
+}
+
+function onClick(e) {
+  if (hovId) {
+    selectEq(hovId);
+  } else {
+    /* إلغاء التحديد عند النقر على فراغ */
+    if (selId) closeDet();
+  }
+}
+
+function hover(id) {
+  const em = eqMeshes[id];
+  if (!em) return;
+  em.bodyMat.emissive.set(0x00e5a0);
+  em.bodyMat.emissiveIntensity = .15;
+  renderer.domElement.style.cursor = 'pointer';
+}
+function unhover(id) {
+  const em = eqMeshes[id];
+  if (!em || id === selId) return;
+  em.bodyMat.emissive.set(0x000000);
+  em.bodyMat.emissiveIntensity = 0;
+  renderer.domElement.style.cursor = 'default';
+}
+
+/* === التحديد وتفاصيل المعدات === */
+function selectEq(id) {
+  if (selId && selId !== id) {
+    const prev = eqMeshes[selId];
+    if (prev) { prev.bodyMat.emissive.set(0x000000); prev.bodyMat.emissiveIntensity = 0; }
+    resetPipeHL();
+  }
+  selId = id;
+  const em = eqMeshes[id];
+  em.bodyMat.emissive.set(0x00e5a0);
+  em.bodyMat.emissiveIntensity = .25;
+
+  document.querySelectorAll('.ec').forEach(c => c.classList.remove('sel'));
+  const card = document.querySelector('.ec[data-eid="' + id + '"]');
+  if (card) card.classList.add('sel');
+
+  showDet(EQ.find(e => e.id === id));
+  swTab('det');
+  hlPipes(id);
+
+  /* إصلاح: إزاحة الكاميرا بدلاً من وضعها داخل المعدات */
+  const eq = EQ.find(e => e.id === id);
+  if (eq) {
+    const center = new THREE.Vector3(eq.x, (eq.yB || 0) + eq.h / 2, eq.z);
+    const dir = new THREE.Vector3(eq.r + 8, eq.h / 2 + 5, eq.r + 10);
+    camTarget = center.clone().add(dir);
+    camLookTarget = center.clone();
+    camAnimating = true;
+  }
+}
+
+function updateCamAnim() {
+  if (!camAnimating) return;
+  camera.position.lerp(camTarget, .04);
+  controls.target.lerp(camLookTarget, .04);
+  if (camera.position.distanceTo(camTarget) < .3) camAnimating = false;
+}
+
+function hlPipes(id) {
+  resetPipeHL();
+  PIPES.forEach(p => {
+    if (p.from === id || p.to === id) {
+      const po = pipeObjs[p.id];
+      if (!po) return;
+      po.pipeMat.color.set(0x00e5a0);
+      po.pipeMat.emissive.set(0x00e5a0);
+      po.pipeMat.emissiveIntensity = .2;
+      po.arrowMat.color.set(0x00e5a0);
+      po.arrowMat.emissive.set(0x00e5a0);
+      po.arrowMat.emissiveIntensity = .8;
+    }
+  });
+}
+
+/* إصلاح: استخدام pipeId المحفوظ مباشرة بدلاً من البحث المعقد */
+function resetPipeHL() {
+  Object.values(pipeObjs).forEach(po => {
+    po.pipeMat.color.set(0x4a90d9);
+    po.pipeMat.emissive.set(0x000000);
+    po.pipeMat.emissiveIntensity = 0;
+    po.arrowMat.color.set(po.hasFlow ? 0x00e5a0 : 0x5a6a80);
+    po.arrowMat.emissive.set(po.hasFlow ? 0x00e5a0 : 0x000000);
+    po.arrowMat.emissiveIntensity = po.hasFlow ? .5 : 0;
+  });
+}
+
+function closeDet() {
+  if (selId) {
+    const em = eqMeshes[selId];
+    if (em) { em.bodyMat.emissive.set(0x000000); em.bodyMat.emissiveIntensity = 0; }
+  }
+  document.querySelectorAll('.ec').forEach(c => c.classList.remove('sel'));
+  selId = null;
+  resetPipeHL();
+  document.getElementById('dPh').style.display = 'block';
+  const dc = document.getElementById('dCt');
+  dc.classList.remove('vis');
+  dc.innerHTML = '';
+}
+
+/* === اللوحة الجانبية === */
+function buildSidebar() {
+  const map = {
+    lT: EQ.filter(e => e.type === 'tank'),
+    lP: EQ.filter(e => e.type === 'pump'),
+    lH: EQ.filter(e => e.type === 'hex'),
+    lV: EQ.filter(e => e.type === 'valve'),
+    lR: EQ.filter(e => e.type === 'reactor')
+  };
+  const icons = {tank: 'database', pump: 'fan', hex: 'exchange-alt', valve: 'sliders-h', reactor: 'flask'};
+  const colors = {tank: '#4a90d9', pump: '#00e5a0', hex: '#f59e0b', valve: '#38bdf8', reactor: '#c084fc'};
+  Object.entries(map).forEach(([elId, items]) => {
+    document.getElementById(elId).innerHTML = items.map(eq =>
+      cardHTML(eq, colors[eq.type], icons[eq.type])
+    ).join('');
+  });
+}
+
+function cardHTML(eq, col, icon) {
+  const st = eq.status === 'running' ? 'تعمل' : 'احتياطي';
+  const sc = eq.status === 'running' ? 'sr' : 'ss';
+  const ps = Object.entries(eq.params).slice(0, 2).map(kv =>
+    '<div class="pi"><span class="pi-l">' + kv[0] + ':</span> <span class="pi-v">' + kv[1] + '</span></div>'
+  ).join('');
+  return '<div class="ec" data-eid="' + eq.id + '"><div class="ec-h"><div class="ec-t"><div class="ib" style="background:' + col + '22;color:' + col + '"><i class="fas fa-' + icon + '"></i></div>' + eq.id + '</div><span class="sb ' + sc + '">' + st + '</span></div><div class="ec-p">' + ps + '</div></div>';
+}
+
+function showDet(eq) {
+  document.getElementById('dPh').style.display = 'none';
+  const cont = document.getElementById('dCt');
+  cont.classList.add('vis');
+  const st = eq.status === 'running' ? 'تعمل' : 'احتياطي';
+  const sc = eq.status === 'running' ? 'sr' : 'ss';
+  let fields = Object.entries(eq.details).map(kv =>
+    '<div class="df"><div class="df-l">' + kv[0] + '</div><div class="df-v">' + kv[1] + '</div></div>'
+  ).join('');
+  let rds = '';
+  if (eq.readings && eq.readings.length > 0) {
+    eq.readings.forEach(r => {
+      rds += '<div class="dr"><span class="dr-l">' + r.label + '</span><div style="display:flex;align-items:center;gap:5px"><div class="rb"><div class="rb-f" style="width:' + r.pct + '%;background:' + r.c + '"></div></div><span class="dr-v" style="color:' + r.c + '" data-rd="' + eq.id + '-' + r.label + '">' + r.value + '</span></div></div>';
+    });
+  }
+  cont.innerHTML =
+    '<div class="dh"><div class="dt">' + eq.id + '</div><button class="dc" id="btnCloseDet"><i class="fas fa-times"></i></button></div>' +
+    '<div style="margin-bottom:10px"><span class="sb ' + sc + '" style="font-size:10px;padding:2px 9px">' + st + '</span><span style="font-size:11px;color:#7e90a8;margin-right:7px">' + eq.name + '</span></div>' +
+    '<div class="psec"><div class="psec-t"><i class="fas fa-list-alt"></i> المواصفات الفنية</div><div class="dg">' + fields + '</div></div>' +
+    '<div class="psec"><div class="psec-t"><i class="fas fa-chart-bar"></i> القراءات الحية</div>' + rds + '</div>';
+
+  /* ربط زر الإغلاق المُنشأ ديناميكياً */
+  document.getElementById('btnCloseDet').addEventListener('click', closeDet);
+}
+
+function swTab(t) {
+  document.querySelectorAll('.ptab').forEach(el => el.classList.remove('on'));
+  const el = document.querySelector('.ptab[data-t="' + t + '"]');
+  if (el) el.classList.add('on');
+  document.getElementById('tList').style.display = t === 'list' ? 'block' : 'none';
+  document.getElementById('tDet').style.display  = t === 'det'  ? 'block' : 'none';
+}
+
+/* === محاكاة القراءات الحية === */
+function simRead() {
+  EQ.forEach(eq => {
+    if (!eq.readings) return;
+    eq.readings.forEach(r => {
+      if (r.value.includes('%'))         { let v = parseFloat(r.value); v = Math.max(5, Math.min(95, v + (Math.random() - .5) * 4)); r.value = v.toFixed(0) + '%'; r.pct = v; }
+      else if (r.value.includes('bar'))  { let v = parseFloat(r.value); v = Math.max(.1, v + (Math.random() - .5) * .2); r.value = v.toFixed(1) + ' bar'; r.pct = Math.min(100, (v / 10) * 100); }
+      else if (r.value.includes('\u00B0C')){ let v = parseFloat(r.value); v = Math.max(15, v + (Math.random() - .5) * 1.5); r.value = v.toFixed(1) + '\u00B0C'; r.pct = Math.min(100, (v / 200) * 100); }
+      else if (r.value.includes('m\u00B3/h')){ let v = parseFloat(r.value); v = Math.max(0, v + (Math.random() - .5) * 3); r.value = v.toFixed(0) + ' m\u00B3/h'; r.pct = Math.min(100, (v / 150) * 100); }
+      else if (r.value.includes('mm/s')) { let v = parseFloat(r.value); v = Math.max(.5, v + (Math.random() - .5) * .4); r.value = v.toFixed(1) + ' mm/s'; r.pct = Math.min(100, (v / 7) * 100); }
+      else if (r.value.includes('mA'))   { let v = parseFloat(r.value); v = Math.max(4, Math.min(20, v + (Math.random() - .5) * .5)); r.value = v.toFixed(1) + ' mA'; r.pct = ((v - 4) / 16) * 100; }
+    });
+  });
+  /* تحديث واجهة التفاصيل إذا كانت مفتوحة */
+  if (selId) {
+    const eq = EQ.find(e => e.id === selId);
+    if (eq && eq.readings) eq.readings.forEach(r => {
+      const el = document.querySelector('[data-rd="' + eq.id + '-' + r.label + '"]');
+      if (el) {
+        el.textContent = r.value;
+        const bar = el.closest('.dr');
+        if (bar) { const bf = bar.querySelector('.rb-f'); if (bf) bf.style.width = r.pct + '%'; }
+      }
+    });
+  }
+}
+
+/* === أدوات التحكم === */
+function toggleFlow() {
+  flowOn = !flowOn;
+  flowParticles.forEach(p => { p.visible = flowOn; });
+  document.getElementById('btnFlow').classList.toggle('on', flowOn);
+  toast(flowOn ? 'تم تفعيل التدفق' : 'تم إيقاف التدفق', 'info');
+}
+function toggleInst() {
+  instOn = !instOn;
+  scene.traverse(c => { if (c.userData && c.userData.isInstrument) c.visible = instOn; });
+  document.getElementById('btnInst').classList.toggle('on', instOn);
+  toast(instOn ? 'تم إظهار القياسات' : 'تم إخفاء القياسات', 'info');
+}
+function toggleLbl() {
+  lblOn = !lblOn;
+  labelSprites.forEach(s => { s.visible = lblOn; });
+  document.getElementById('btnLbl').classList.toggle('on', lblOn);
+  toast(lblOn ? 'تم إظهار التسميات' : 'تم إخفاء التسميات', 'info');
+}
+function resetCam() {
+  camAnimating = false;
+  camera.position.set(50, 30, 65);
+  controls.target.set(50, 3, 0);
+  controls.update();
+  toast('تم إعادة التعيين', 'info');
+}
+function topView() {
+  camTarget = new THREE.Vector3(50, 55, .1);
+  camLookTarget = new THREE.Vector3(50, 0, 0);
+  camAnimating = true;
+}
+function frontView() {
+  camTarget = new THREE.Vector3(50, 5, 55);
+  camLookTarget = new THREE.Vector3(50, 4, 0);
+  camAnimating = true;
+}
+function fitAll() {
+  camTarget = new THREE.Vector3(50, 30, 65);
+  camLookTarget = new THREE.Vector3(50, 3, 0);
+  camAnimating = true;
+}
+
+/* إصلاح: دالة التقريب/التبعيد بدون dollyIn/dollyOut غير الموجودين */
+function zoomIn() {
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = camera.position.distanceTo(controls.target);
+  const newDist = Math.max(controls.minDistance, dist * .75);
+  camera.position.copy(controls.target).add(dir.multiplyScalar(newDist));
+  controls.update();
+}
+function zoomOut() {
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = camera.position.distanceTo(controls.target);
+  const newDist = Math.min(controls.maxDistance, dist * 1.35);
+  camera.position.copy(controls.target).add(dir.multiplyScalar(newDist));
+  controls.update();
+}
+
+function toast(msg, type) {
+  const box = document.getElementById('tb');
+  const t = document.createElement('div');
+  t.className = 'tst';
+  const icons = {success: '<i class="fas fa-check-circle" style="color:#00e5a0"></i>', info: '<i class="fas fa-info-circle" style="color:#38bdf8"></i>'};
+  t.innerHTML = (icons[type] || icons.info) + ' <span>' + msg + '</span>';
+  box.appendChild(t);
+  setTimeout(() => { t.classList.add('fo'); setTimeout(() => t.remove(), 300); }, 2500);
+}
+
+function onResize() {
+  const area = document.getElementById('ca');
+  const W = area.clientWidth, H = area.clientHeight;
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+}
+
+/* === حلقة التحريك === */
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  /* تحريك جسيمات التدفق */
+  if (flowOn) {
+    flowParticles.forEach(p => {
+      p.userData.t += p.userData.speed * dt;
+      if (p.userData.t > 1) p.userData.t -= 1;
+      /* البحث عن الأنبوب الأب لهذه الجسيمة */
+      for (const key in pipeObjs) {
+        const po = pipeObjs[key];
+        if (po.particles && po.particles.includes(p)) {
+          const pt = po.curve.getPointAt(Math.max(0, Math.min(1, p.userData.t)));
+          p.position.copy(pt);
+          break;
+        }
+      }
+    });
+  }
+
+  /* إصلاح: تحريك الغبار باستخدام المرجع المحفوظ مباشرة */
+  if (dustPoints) {
+    const pos = dustPoints.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      pos.array[i * 3 + 1] += .003;
+      pos.array[i * 3] += Math.sin(t + i) * .002;
+      if (pos.array[i * 3 + 1] > 25) {
+        pos.array[i * 3 + 1] = 0;
+        pos.array[i * 3] = Math.random() * 120 - 10;
+      }
+    }
+    pos.needsUpdate = true;
+  }
+
+  /* إصلاح: تذبذب مؤشرات الحالة بقيمة أساسية ثابتة */
+  Object.values(eqMeshes).forEach(em => {
+    if (em.statusMesh) {
+      em.statusMat.emissiveIntensity = em.baseEmissive * (.5 + .5 * Math.sin(t * 3));
+    }
+  });
+
+  updateCamAnim();
+  controls.update();
+
+  /* تحديث نسبة التكبير */
+  const dist = camera.position.distanceTo(controls.target);
+  document.getElementById('zL').textContent = Math.round(50 / dist * 100) + '%';
+
+  renderer.render(scene, camera);
+}
+
+/* بدء التشغيل */
+init();
+</script>
+</body>
+</html>

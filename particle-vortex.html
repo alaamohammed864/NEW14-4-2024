@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VORTEX — Particle Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cyan: #00f5ff;
+    --purple: #b44fff;
+    --blue: #0066ff;
+    --magenta: #ff00aa;
+    --dark: #020408;
+    --glass-bg: rgba(0, 245, 255, 0.04);
+    --glass-border: rgba(0, 245, 255, 0.2);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--dark);
+    font-family: 'Share Tech Mono', monospace;
+    cursor: none;
+  }
+
+  #bg-canvas {
+    position: fixed; inset: 0;
+    z-index: 0;
+  }
+
+  #main-canvas {
+    position: fixed; inset: 0;
+    z-index: 1;
+  }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    width: 20px; height: 20px;
+    border: 1.5px solid var(--cyan);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease, border-color 0.2s;
+    mix-blend-mode: screen;
+  }
+  #cursor-dot {
+    position: fixed;
+    width: 4px; height: 4px;
+    background: var(--cyan);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 6px var(--cyan);
+  }
+
+  /* UI overlay */
+  #ui {
+    position: fixed;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .glass-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 4px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 0 20px rgba(0,245,255,0.08), inset 0 0 20px rgba(0,245,255,0.03);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .glass-panel:focus-within {
+    border-color: rgba(0, 245, 255, 0.6);
+    box-shadow: 0 0 40px rgba(0,245,255,0.18), 0 0 80px rgba(0,245,255,0.06), inset 0 0 20px rgba(0,245,255,0.06);
+  }
+
+  #text-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    width: 280px;
+    caret-color: var(--cyan);
+  }
+  #text-input::placeholder {
+    color: rgba(0,245,255,0.25);
+    font-weight: 400;
+    letter-spacing: 2px;
+  }
+
+  .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: rgba(0,245,255,0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  #mode-btns {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mode-btn {
+    background: transparent;
+    border: 1px solid rgba(0,245,255,0.2);
+    color: rgba(0,245,255,0.5);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    cursor: none;
+    text-transform: uppercase;
+    border-radius: 2px;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(8px);
+  }
+  .mode-btn:hover, .mode-btn.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 16px rgba(0,245,255,0.3), inset 0 0 16px rgba(0,245,255,0.05);
+    background: rgba(0,245,255,0.05);
+  }
+  .mode-btn.active {
+    box-shadow: 0 0 24px rgba(0,245,255,0.4), inset 0 0 20px rgba(0,245,255,0.08);
+  }
+
+  #status {
+    font-size: 9px;
+    color: rgba(0,245,255,0.25);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    transition: color 0.3s;
+  }
+
+  /* Scanline overlay */
+  #scanlines {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* Corner decorations */
+  .corner {
+    position: fixed;
+    width: 60px; height: 60px;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.4;
+  }
+  .corner::before, .corner::after {
+    content: '';
+    position: absolute;
+    background: var(--cyan);
+  }
+  .corner::before { width: 100%; height: 1px; }
+  .corner::after { width: 1px; height: 100%; }
+  .corner.tl { top: 20px; left: 20px; }
+  .corner.tr { top: 20px; right: 20px; transform: scaleX(-1); }
+  .corner.bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
+  .corner.br { bottom: 20px; right: 20px; transform: scale(-1); }
+
+  /* Title */
+  #title {
+    position: fixed;
+    top: 28px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    color: rgba(0,245,255,0.25);
+    z-index: 60;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* Particle count HUD */
+  #hud {
+    position: fixed;
+    top: 28px; right: 28px;
+    font-size: 9px;
+    color: rgba(0,245,255,0.2);
+    letter-spacing: 2px;
+    z-index: 60;
+    line-height: 1.8;
+    text-align: right;
+    pointer-events: none;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+  .corner { animation: pulse-border 4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="main-canvas"></canvas>
+
+<div id="scanlines"></div>
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div id="title">VORTEX INTELLIGENCE v2.0</div>
+
+<div id="hud">
+  <div id="hud-particles">PARTICLES: —</div>
+  <div id="hud-fps">FPS: —</div>
+  <div id="hud-mode">MODE: VORTEX</div>
+</div>
+
+<div id="ui">
+  <div id="mode-btns">
+    <button class="mode-btn active" id="btn-vortex">⟳ VORTEX</button>
+    <button class="mode-btn" id="btn-text">✦ TEXT</button>
+    <button class="mode-btn" id="btn-explode">⚡ EXPLODE</button>
+  </div>
+  <div class="glass-panel">
+    <span class="label">›</span>
+    <input id="text-input" type="text" placeholder="TYPE TO MORPH..." maxlength="16" spellcheck="false" autocomplete="off" />
+    <span class="label">‹</span>
+  </div>
+  <div id="status">HOVER TO REPEL · TYPE TO TRANSFORM</div>
+</div>
+
+<script>
+// ============================================================
+//  VORTEX INTELLIGENCE — Particle System
+//  Full interactive particle system with vortex, text morphing,
+//  mouse repulsion, and explode modes.
+// ============================================================
+
+(function() {
+  'use strict';
+
+  // ─── Canvas Setup ───────────────────────────────────────────
+  const bgCanvas = document.getElementById('bg-canvas');
+  const bgCtx = bgCanvas.getContext('2d');
+  const canvas = document.getElementById('main-canvas');
+  const ctx = canvas.getContext('2d');
+  const offCanvas = document.createElement('canvas');
+  const offCtx = offCanvas.getContext('2d');
+
+  let W, H;
+  function resize() {
+    W = canvas.width = bgCanvas.width = window.innerWidth;
+    H = canvas.height = bgCanvas.height = window.innerHeight;
+    drawBackground();
+    if (currentMode === 'text' && currentText) scheduleTextRemap();
+  }
+  window.addEventListener('resize', resize);
+
+  // ─── Particle Config ─────────────────────────────────────────
+  const PARTICLE_COUNT = 2800;
+  const MOUSE_RADIUS   = 110;
+  const EASE_TO_TARGET = 0.055;
+  const EASE_FRICTION  = 0.88;
+
+  // ─── State ───────────────────────────────────────────────────
+  let mouse = { x: -9999, y: -9999 };
+  let currentMode   = 'vortex'; // 'vortex' | 'text' | 'explode'
+  let currentText   = '';
+  let textPixels    = [];
+  let remapTimeout  = null;
+  let frameCount    = 0;
+  let lastFPS       = performance.now();
+  let fps           = 60;
+  let explodeTick   = 0;
+  let autoSwitchTimer = null;
+
+  // ─── Color palette ───────────────────────────────────────────
+  const COLORS = [
+    [0, 245, 255],    // cyan
+    [0, 150, 255],    // blue
+    [100, 80, 255],   // violet
+    [180, 60, 255],   // purple
+    [255, 0, 170],    // magenta
+    [0, 210, 200],    // teal
+  ];
+
+  // ─── Particle Class ──────────────────────────────────────────
+  class Particle {
+    constructor(i) {
+      this.index = i;
+      this.reset(true);
+    }
+
+    reset(init = false) {
+      // Spread across canvas initially
+      this.x  = Math.random() * W;
+      this.y  = Math.random() * H;
+      this.vx = (Math.random() - 0.5) * 2;
+      this.vy = (Math.random() - 0.5) * 2;
+
+      // Vortex orbit params — each particle has a unique orbit
+      this.angle   = Math.random() * Math.PI * 2;
+      this.radius  = 60 + Math.random() * 280;
+      this.speed   = (0.004 + Math.random() * 0.012) * (Math.random() < 0.5 ? 1 : -1);
+      this.radiusOsc = Math.random() * 60;
+      this.radiusOscSpeed = 0.002 + Math.random() * 0.006;
+      this.radiusOscPhase = Math.random() * Math.PI * 2;
+      this.wobble  = Math.random() * 0.03;
+      this.wobblePhase = Math.random() * Math.PI * 2;
+      this.depth   = 0.3 + Math.random() * 0.7; // parallax depth
+
+      // Visuals
+      const c = COLORS[Math.floor(Math.random() * COLORS.length)];
+      this.baseR  = c[0]; this.baseG = c[1]; this.baseB = c[2];
+      this.alpha  = 0.4 + Math.random() * 0.6;
+      this.size   = 0.8 + Math.random() * 1.6;
+      this.glowSize = this.size * (2 + Math.random() * 3);
+
+      // Target (for text mode)
+      this.tx = this.x; this.ty = this.y;
+      this.hasTarget = false;
+
+      if (init) {
+        this.x = Math.random() * W;
+        this.y = Math.random() * H;
+      }
+    }
+
+    getVortexTarget(t) {
+      const cx = W / 2, cy = H / 2;
+      const osc = this.radiusOsc * Math.sin(t * this.radiusOscSpeed + this.radiusOscPhase);
+      const r   = this.radius + osc;
+      const a   = this.angle + t * this.speed;
+      const wx  = Math.sin(t * this.wobble + this.wobblePhase) * 15;
+      const wy  = Math.cos(t * this.wobble + this.wobblePhase + 1) * 15;
+      return {
+        x: cx + Math.cos(a) * r * 1.6 + wx,
+        y: cy + Math.sin(a) * r * 0.7 + wy
+      };
+    }
+
+    update(t) {
+      let targetX, targetY;
+
+      if (currentMode === 'vortex') {
+        const vt = this.getVortexTarget(t);
+        targetX = vt.x;
+        targetY = vt.y;
+        this.hasTarget = false;
+
+      } else if (currentMode === 'text') {
+        if (this.hasTarget) {
+          targetX = this.tx;
+          targetY = this.ty;
+        } else {
+          // Orphan particles drift gently
+          const vt = this.getVortexTarget(t * 0.3);
+          targetX = vt.x;
+          targetY = vt.y;
+        }
+
+      } else if (currentMode === 'explode') {
+        // Fly outward, then slow
+        const ex = explodeTick * 0.01;
+        targetX = this.explodeX ?? this.x;
+        targetY = this.explodeY ?? this.y;
+        if (ex > 1) {
+          // After full explode, drift back to vortex slowly
+          const vt = this.getVortexTarget(t * 0.5);
+          targetX = vt.x; targetY = vt.y;
+        }
+      }
+
+      // Easing toward target
+      const dx = targetX - this.x;
+      const dy = targetY - this.y;
+      this.vx += dx * EASE_TO_TARGET;
+      this.vy += dy * EASE_TO_TARGET;
+
+      // Mouse repulsion
+      const mdx = this.x - mouse.x;
+      const mdy = this.y - mouse.y;
+      const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+      if (mdist < MOUSE_RADIUS && mdist > 0) {
+        const force = (MOUSE_RADIUS - mdist) / MOUSE_RADIUS;
+        const f2 = force * force;
+        this.vx += (mdx / mdist) * f2 * 6;
+        this.vy += (mdy / mdist) * f2 * 6;
+      }
+
+      // Friction & integration
+      this.vx *= EASE_FRICTION;
+      this.vy *= EASE_FRICTION;
+      this.x += this.vx;
+      this.y += this.vy;
+    }
+
+    draw() {
+      const a = this.alpha * this.depth;
+      const r = this.baseR, g = this.baseG, b = this.baseB;
+
+      // Glow halo
+      ctx.beginPath();
+      const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.glowSize);
+      grad.addColorStop(0, `rgba(${r},${g},${b},${a * 0.6})`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.fillStyle = grad;
+      ctx.arc(this.x, this.y, this.glowSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core dot
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${Math.min(1, a * 1.8)})`;
+      ctx.fill();
+    }
+  }
+
+  // ─── Initialize Particles ────────────────────────────────────
+  let particles = [];
+  function initParticles() {
+    particles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push(new Particle(i));
+    }
+  }
+
+  // ─── Background ──────────────────────────────────────────────
+  function drawBackground() {
+    bgCtx.fillStyle = '#020408';
+    bgCtx.fillRect(0, 0, W, H);
+
+    // Deep radial gradient
+    const grad = bgCtx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.8);
+    grad.addColorStop(0, 'rgba(0, 15, 35, 0.9)');
+    grad.addColorStop(0.5, 'rgba(0, 5, 15, 0.6)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    bgCtx.fillStyle = grad;
+    bgCtx.fillRect(0, 0, W, H);
+
+    // Faint grid
+    bgCtx.strokeStyle = 'rgba(0, 245, 255, 0.025)';
+    bgCtx.lineWidth = 1;
+    const gridSize = 80;
+    for (let x = 0; x < W; x += gridSize) {
+      bgCtx.beginPath(); bgCtx.moveTo(x, 0); bgCtx.lineTo(x, H); bgCtx.stroke();
+    }
+    for (let y = 0; y < H; y += gridSize) {
+      bgCtx.beginPath(); bgCtx.moveTo(0, y); bgCtx.lineTo(W, y); bgCtx.stroke();
+    }
+  }
+
+  // ─── Text → Pixel Mapping ────────────────────────────────────
+  function extractTextPixels(text) {
+    if (!text) return [];
+
+    const pw = Math.min(W * 0.85, 900);
+    const ph = 220;
+    offCanvas.width  = pw;
+    offCanvas.height = ph;
+    offCtx.clearRect(0, 0, pw, ph);
+
+    // Adaptive font size
+    let fontSize = Math.floor(pw / (text.length * 0.68));
+    fontSize = Math.max(36, Math.min(fontSize, 160));
+
+    offCtx.fillStyle = '#fff';
+    offCtx.font = `900 ${fontSize}px Orbitron, sans-serif`;
+    offCtx.textAlign = 'center';
+    offCtx.textBaseline = 'middle';
+    offCtx.fillText(text.toUpperCase(), pw / 2, ph / 2);
+
+    const imageData = offCtx.getImageData(0, 0, pw, ph);
+    const data      = imageData.data;
+    const pixels    = [];
+    const gap       = 4; // sample every N pixels for density control
+
+    for (let y = 0; y < ph; y += gap) {
+      for (let x = 0; x < pw; x += gap) {
+        const i = (y * pw + x) * 4;
+        if (data[i + 3] > 128) {
+          // Map to center of screen
+          pixels.push({
+            x: (x / pw) * pw + (W - pw) / 2,
+            y: (y / ph) * ph + (H - ph) / 2
+          });
+        }
+      }
+    }
+
+    return pixels;
+  }
+
+  function assignTextTargets(pixels) {
+    // Shuffle pixels for organic assignment
+    const shuffled = pixels.slice().sort(() => Math.random() - 0.5);
+
+    particles.forEach((p, i) => {
+      if (i < shuffled.length) {
+        p.tx = shuffled[i].x + (Math.random() - 0.5) * 2;
+        p.ty = shuffled[i].y + (Math.random() - 0.5) * 2;
+        p.hasTarget = true;
+      } else {
+        p.hasTarget = false;
+      }
+    });
+  }
+
+  function scheduleTextRemap() {
+    clearTimeout(remapTimeout);
+    remapTimeout = setTimeout(() => {
+      textPixels = extractTextPixels(currentText);
+      if (textPixels.length > 0) assignTextTargets(textPixels);
+    }, 60);
+  }
+
+  // ─── Explode Mode ────────────────────────────────────────────
+  function triggerExplode() {
+    const cx = W / 2, cy = H / 2;
+    particles.forEach(p => {
+      const angle = Math.atan2(p.y - cy, p.x - cx) + (Math.random() - 0.5) * 0.8;
+      const dist  = 200 + Math.random() * 600;
+      p.explodeX  = cx + Math.cos(angle) * dist;
+      p.explodeY  = cy + Math.sin(angle) * dist;
+      p.vx += Math.cos(angle) * (4 + Math.random() * 6);
+      p.vy += Math.sin(angle) * (4 + Math.random() * 6);
+    });
+    explodeTick = 0;
+
+    // Auto-return to previous mode after 2s
+    clearTimeout(autoSwitchTimer);
+    autoSwitchTimer = setTimeout(() => {
+      setMode(currentText ? 'text' : 'vortex');
+    }, 2200);
+  }
+
+  // ─── Mode Control ────────────────────────────────────────────
+  function setMode(mode) {
+    currentMode = mode;
+
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    if (mode === 'vortex') {
+      document.getElementById('btn-vortex').classList.add('active');
+      document.getElementById('hud-mode').textContent = 'MODE: VORTEX';
+      document.getElementById('status').textContent = 'HOVER TO REPEL · FORMING VORTEX';
+    } else if (mode === 'text') {
+      document.getElementById('btn-text').classList.add('active');
+      document.getElementById('hud-mode').textContent = 'MODE: TEXT';
+      document.getElementById('status').textContent = 'HOVER TO REPEL · TYPE TO TRANSFORM';
+      if (currentText) scheduleTextRemap();
+    } else if (mode === 'explode') {
+      document.getElementById('btn-explode').classList.add('active');
+      document.getElementById('hud-mode').textContent = 'MODE: EXPLODE';
+      document.getElementById('status').textContent = 'BOOM — REGROUPING...';
+      triggerExplode();
+    }
+  }
+
+  // ─── Animation Loop ──────────────────────────────────────────
+  let t = 0;
+  let animFrame;
+
+  function animate() {
+    animFrame = requestAnimationFrame(animate);
+    t += 1;
+    if (currentMode === 'explode') explodeTick++;
+
+    // Trail / fade
+    ctx.fillStyle = 'rgba(2, 4, 8, 0.18)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Draw particles
+    // Use additive-ish compositing for glow
+    ctx.globalCompositeOperation = 'screen';
+    particles.forEach(p => {
+      p.update(t);
+      p.draw();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+
+    // Central vortex glow pulse in vortex mode
+    if (currentMode === 'vortex') {
+      const pulse = 0.06 + 0.04 * Math.sin(t * 0.04);
+      const cg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, 120);
+      cg.addColorStop(0, `rgba(0,245,255,${pulse})`);
+      cg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = cg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // FPS counter
+    frameCount++;
+    const now = performance.now();
+    if (now - lastFPS >= 1000) {
+      fps = frameCount;
+      frameCount = 0;
+      lastFPS = now;
+      document.getElementById('hud-fps').textContent = `FPS: ${fps}`;
+      document.getElementById('hud-particles').textContent = `PARTICLES: ${PARTICLE_COUNT.toLocaleString()}`;
+    }
+  }
+
+  // ─── Event Listeners ─────────────────────────────────────────
+  // Mouse
+  document.addEventListener('mousemove', e => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    document.getElementById('cursor').style.left  = e.clientX + 'px';
+    document.getElementById('cursor').style.top   = e.clientY + 'px';
+    document.getElementById('cursor-dot').style.left = e.clientX + 'px';
+    document.getElementById('cursor-dot').style.top  = e.clientY + 'px';
+  });
+
+  document.addEventListener('mouseleave', () => {
+    mouse.x = -9999; mouse.y = -9999;
+  });
+
+  // Touch
+  document.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    mouse.x = t.clientX;
+    mouse.y = t.clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    mouse.x = -9999; mouse.y = -9999;
+  });
+
+  // Click explode (on canvas)
+  canvas.addEventListener('click', e => {
+    if (e.target === canvas) {
+      setMode('explode');
+    }
+  });
+
+  // Text input
+  const textInput = document.getElementById('text-input');
+  textInput.addEventListener('input', () => {
+    currentText = textInput.value.trim();
+    if (currentText) {
+      setMode('text');
+    } else {
+      setMode('vortex');
+    }
+  });
+
+  textInput.addEventListener('focus', () => {
+    if (currentText) setMode('text');
+  });
+
+  // Mode buttons
+  document.getElementById('btn-vortex').addEventListener('click', () => setMode('vortex'));
+  document.getElementById('btn-text').addEventListener('click', () => {
+    if (currentText) {
+      setMode('text');
+    } else {
+      textInput.focus();
+      document.getElementById('status').textContent = 'TYPE SOMETHING FIRST...';
+    }
+  });
+  document.getElementById('btn-explode').addEventListener('click', () => setMode('explode'));
+
+  // Keyboard shortcut: Enter to toggle
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement !== textInput) {
+      setMode(currentMode === 'vortex' ? (currentText ? 'text' : 'vortex') : 'vortex');
+    }
+    if (e.key === 'Escape') {
+      setMode('vortex');
+      textInput.blur();
+    }
+  });
+
+  // ─── Boot ─────────────────────────────────────────────────────
+  resize();
+  initParticles();
+  animate();
+
+  // Auto-demo: show "VORTEX" text after 3s if user hasn't typed
+  setTimeout(() => {
+    if (!currentText) {
+      textInput.value = 'VORTEX';
+      currentText = 'VORTEX';
+      setMode('text');
+      setTimeout(() => {
+        setMode('vortex');
+        textInput.value = '';
+        currentText = '';
+      }, 4000);
+    }
+  }, 3000);
+
+})();
+</script>
+</body>
+</html>

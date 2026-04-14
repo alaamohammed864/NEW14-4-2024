@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORGE OS v2.4.1 — Robot Factory Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080808;
+  --panel: rgba(10,10,10,0.92);
+  --orange: #FF6B00;
+  --cyan: #00D4FF;
+  --amber: #FFD700;
+  --red: #FF2D55;
+  --text: #E8E8E8;
+  --muted: #555;
+  --border: rgba(255,107,0,0.18);
+  --glow: 0 0 20px rgba(255,107,0,0.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:'DM Sans',sans-serif;color:var(--text)}
+body::after{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:9999
+}
+#cv{position:fixed;inset:0;z-index:0}
+canvas{display:block}
+
+/* HUD */
+#hud{position:fixed;inset:0;z-index:100;pointer-events:none;display:grid;
+  grid-template-rows:44px 1fr 148px;
+  grid-template-columns:290px 1fr 290px;
+}
+
+/* TOP BAR */
+#topbar{
+  grid-column:1/-1;grid-row:1;
+  background:rgba(6,6,6,0.95);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;pointer-events:all;
+  backdrop-filter:blur(10px);
+}
+.tb-brand{font-family:'Orbitron',monospace;font-size:10px;color:var(--orange);letter-spacing:.14em;display:flex;align-items:center;gap:6px}
+.tb-blink{width:6px;height:12px;background:var(--orange);animation:blink 1s step-end infinite;display:inline-block}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.tb-mode{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--cyan);text-shadow:0 0 14px rgba(0,212,255,.5)}
+.tb-right{font-family:'JetBrains Mono',monospace;font-size:10px;display:flex;align-items:center;gap:12px}
+.pdot{width:6px;height:6px;border-radius:50%;background:#00FF88;box-shadow:0 0 8px #00FF88;animation:pdot 2s ease infinite}
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+
+/* LEFT PANEL */
+#lpanel{
+  grid-column:1;grid-row:2;
+  background:var(--panel);border-right:1px solid var(--border);
+  backdrop-filter:blur(16px);pointer-events:all;
+  display:flex;flex-direction:column;
+  transform:translateX(-300px);transition:transform .65s cubic-bezier(.16,1,.3,1);
+}
+#lpanel.on{transform:translateX(0)}
+
+/* RIGHT PANEL */
+#rpanel{
+  grid-column:3;grid-row:2;
+  background:var(--panel);border-left:1px solid var(--border);
+  backdrop-filter:blur(16px);pointer-events:all;
+  display:flex;flex-direction:column;
+  transform:translateX(300px);transition:transform .75s cubic-bezier(.16,1,.3,1);
+}
+#rpanel.on{transform:translateX(0)}
+
+/* BOTTOM TERMINAL */
+#term{
+  grid-column:1/-1;grid-row:3;
+  background:rgba(4,4,4,0.97);border-top:1px solid var(--border);
+  display:flex;flex-direction:column;pointer-events:all;
+  transform:translateY(150px);transition:transform .7s cubic-bezier(.16,1,.3,1) .2s;
+}
+#term.on{transform:translateY(0)}
+
+/* PANEL HEADERS */
+.ph{padding:11px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pt{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:.2em;color:var(--orange);text-transform:uppercase}
+.pb{font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 6px;border:1px solid var(--orange);color:var(--orange);border-radius:2px}
+
+/* JOINTS */
+#jgrid{padding:8px 10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;flex:1;align-content:start;overflow:hidden}
+.jw{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 4px;border:1px solid transparent;border-radius:3px;cursor:pointer;transition:all .2s}
+.jw:hover,.jw.hl{border-color:var(--border);background:rgba(255,107,0,.05)}
+.jlbl{font-family:'Orbitron',monospace;font-size:8px;color:var(--orange);letter-spacing:.12em}
+.jvel{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted)}
+.jfoot{padding:9px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.gdot{width:6px;height:6px;border-radius:50%;background:#00FF88;box-shadow:0 0 8px #00FF88;animation:pdot 1.8s ease infinite;flex-shrink:0}
+.jftext{font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:600;letter-spacing:.15em;color:#00FF88}
+
+/* METRICS */
+.ms{padding:10px 13px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ml{font-family:'Orbitron',monospace;font-size:8px;color:var(--muted);letter-spacing:.14em;margin-bottom:7px;text-transform:uppercase}
+#wfc{width:100%;height:80px;display:block}
+.wleg{display:flex;gap:9px;margin-top:5px;flex-wrap:wrap}
+.wli{display:flex;align-items:center;gap:3px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted)}
+.wld{width:5px;height:5px;border-radius:50%}
+.eff{display:flex;align-items:baseline;gap:5px;margin-top:3px}
+.effv{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--orange);text-shadow:var(--glow);line-height:1}
+.effp{font-family:'Orbitron',monospace;font-size:13px;color:var(--orange)}
+.efftr{font-size:14px;color:#00FF88}
+.effsub{font-family:'Rajdhani',sans-serif;font-size:9px;letter-spacing:.18em;color:var(--muted);margin-top:1px;text-transform:uppercase}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:3px}
+.mc{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:3px;padding:7px 9px}
+.mcl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.mcv{font-family:'Orbitron',monospace;font-size:14px;font-weight:700}
+.mcu{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);margin-left:2px}
+.tdisp{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--cyan);text-shadow:0 0 14px rgba(0,212,255,.4);margin-bottom:9px}
+.tctrls{display:flex;gap:5px;flex-wrap:wrap}
+.gbtn{
+  font-family:'Rajdhani',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;
+  padding:5px 9px;background:transparent;border:1px solid var(--border);
+  color:var(--text);cursor:pointer;transition:all .18s;border-radius:2px;text-transform:uppercase;
+}
+.gbtn:hover{border-color:var(--orange);color:var(--orange);box-shadow:var(--glow);background:rgba(255,107,0,.08)}
+.gbtn.act{background:var(--orange);color:#000;border-color:var(--orange);box-shadow:var(--glow)}
+
+/* CONTROL PANEL floating */
+#ctrl{
+  position:fixed;bottom:160px;right:300px;width:222px;
+  background:var(--panel);border:1px solid var(--border);border-radius:4px;
+  backdrop-filter:blur(16px);pointer-events:all;
+  opacity:0;transform:translateY(16px);transition:all .65s cubic-bezier(.16,1,.3,1) .35s;
+}
+#ctrl.on{opacity:1;transform:translateY(0)}
+.ch{padding:9px 13px;border-bottom:1px solid var(--border)}
+.ct{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:.2em;color:var(--orange);text-transform:uppercase}
+.cb{padding:11px 13px;display:flex;flex-direction:column;gap:9px}
+.mtgl{display:flex;border:1px solid var(--border);border-radius:2px;overflow:hidden}
+.mb{flex:1;padding:6px 3px;font-family:'Rajdhani',sans-serif;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all .2s}
+.mb.ma{background:rgba(0,212,255,.12);color:var(--cyan);text-shadow:0 0 12px rgba(0,212,255,.5)}
+.mb.mm{background:rgba(255,215,0,.12);color:var(--amber)}
+.slg{display:flex;flex-direction:column;gap:4px}
+.slr{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted)}
+.slv{color:var(--orange)}
+input[type=range]{width:100%;appearance:none;height:3px;background:rgba(255,107,0,.2);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:11px;height:11px;border-radius:50%;background:var(--orange);box-shadow:var(--glow);cursor:pointer}
+.estop{width:100%;padding:9px;background:rgba(255,45,85,.1);border:1px solid var(--red);color:var(--red);font-family:'Orbitron',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;border-radius:3px;transition:all .15s;font-weight:700}
+.estop:hover,.estop.act{background:var(--red);color:#fff;box-shadow:0 0 28px rgba(255,45,85,.55)}
+
+/* TERMINAL */
+.th{padding:5px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ttl{font-family:'Orbitron',monospace;font-size:9px;color:var(--orange);letter-spacing:.18em;display:flex;align-items:center;gap:7px}
+.tcur{display:inline-block;width:6px;height:11px;background:var(--orange);animation:blink .85s step-end infinite;vertical-align:middle}
+#tlog{flex:1;overflow-y:auto;padding:5px 14px;scroll-behavior:smooth}
+#tlog::-webkit-scrollbar{width:3px}
+#tlog::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ll{font-family:'JetBrains Mono',monospace;font-size:9.5px;line-height:1.65;white-space:nowrap}
+.lts{color:var(--muted);margin-right:7px}
+.lsys{color:var(--cyan)}.lrob{color:var(--orange)}.lphy{color:#aaa}.lwrn{color:var(--amber)}.lerr{color:var(--red)}
+
+/* E-STOP OVERLAY */
+#eso{position:fixed;inset:0;border:4px solid var(--red);pointer-events:none;z-index:9998;opacity:0;box-shadow:inset 0 0 80px rgba(255,45,85,.25)}
+#eso.fl{animation:esf .7s ease forwards}
+@keyframes esf{0%{opacity:1}60%{opacity:.5}100%{opacity:0}}
+
+/* PHASE INDICATOR */
+#phase-ind{
+  position:fixed;top:54px;left:50%;transform:translateX(-50%);
+  font-family:'Orbitron',monospace;font-size:10px;letter-spacing:.22em;
+  color:var(--cyan);background:rgba(0,0,0,.8);border:1px solid rgba(0,212,255,.25);
+  padding:5px 16px;border-radius:2px;pointer-events:none;z-index:200;
+  text-shadow:0 0 12px rgba(0,212,255,.6);
+  opacity:0;transition:opacity .3s;
+}
+#phase-ind.show{opacity:1}
+
+*{scrollbar-width:thin;scrollbar-color:rgba(255,107,0,.3) transparent}
+</style>
+</head>
+<body>
+<div id="cv"><canvas id="c"></canvas></div>
+<div id="eso"></div>
+<div id="phase-ind" id="phase-ind">IDLE</div>
+
+<div id="hud">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="tb-brand">FORGE OS v2.4.1 — ROBOT FACTORY CONTROL<span class="tb-blink"></span></div>
+    <div class="tb-mode" id="modebadge">◈ AI AUTOPILOT</div>
+    <div class="tb-right">
+      <span id="clk">00:00:00</span>
+      <span style="color:var(--muted)">|</span>
+      <span class="pdot"></span>
+      <span style="font-size:9px;letter-spacing:.1em">SYS: ONLINE</span>
+    </div>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div id="lpanel">
+    <div class="ph"><span class="pt">⬡ JOINT TELEMETRY</span><span class="pb">6-DOF</span></div>
+    <div id="jgrid"></div>
+    <div class="jfoot"><div class="gdot"></div><span class="jftext">JOINT STATUS: NOMINAL</span></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="rpanel">
+    <div class="ph"><span class="pt">◈ LIVE METRICS</span><span class="pb" style="border-color:var(--cyan);color:var(--cyan)">10Hz</span></div>
+    <div class="ms">
+      <div class="ml">TCP Velocity Streams</div>
+      <canvas id="wfc" height="80"></canvas>
+      <div class="wleg">
+        <div class="wli"><div class="wld" style="background:#00D4FF"></div>TCP</div>
+        <div class="wli"><div class="wld" style="background:#FF6B00"></div>Torque</div>
+        <div class="wli"><div class="wld" style="background:#FFD700"></div>Power</div>
+        <div class="wli"><div class="wld" style="background:rgba(255,255,255,.4)"></div>Vib</div>
+      </div>
+    </div>
+    <div class="ms">
+      <div class="ml">Cycle Efficiency</div>
+      <div class="eff"><span class="effv" id="effv">94.7</span><span class="effp">%</span><span class="efftr">↑</span></div>
+      <div class="effsub">CYCLE EFFICIENCY</div>
+    </div>
+    <div class="ms">
+      <div class="mgrid">
+        <div class="mc"><div class="mcl">TCP Speed</div><div class="mcv" id="tcpv" style="color:var(--cyan)">1.24<span class="mcu">m/s</span></div></div>
+        <div class="mc"><div class="mcl">Torque</div><div class="mcv" id="torqv" style="color:var(--orange)">42.1<span class="mcu">Nm</span></div></div>
+        <div class="mc"><div class="mcl">Power</div><div class="mcv" id="powv" style="color:var(--amber)">3.8<span class="mcu">kW</span></div></div>
+        <div class="mc"><div class="mcl">Cycles/Hr</div><div class="mcv" id="cycv" style="color:#00FF88">247<span class="mcu">cph</span></div></div>
+      </div>
+    </div>
+    <div class="ms" style="border-bottom:none">
+      <div class="ml">Simulation Time</div>
+      <div class="tdisp" id="tdisp">T+00:00:00.000</div>
+      <div class="tctrls">
+        <button class="gbtn" id="bplay" onclick="togglePlay()">▶ PLAY</button>
+        <button class="gbtn" id="bpause" onclick="togglePlay()" style="display:none">⏸ PAUSE</button>
+        <button class="gbtn" onclick="doReset()">⟳ RESET</button>
+        <button class="gbtn" onclick="doSpawn()">+ BOX</button>
+      </div>
+      <div class="tctrls" style="margin-top:5px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted)">SPD:</span>
+        <button class="gbtn spd" data-s=".5" onclick="setSpd(.5)">0.5×</button>
+        <button class="gbtn spd act" data-s="1" onclick="setSpd(1)">1×</button>
+        <button class="gbtn spd" data-s="2" onclick="setSpd(2)">2×</button>
+        <button class="gbtn spd" data-s="4" onclick="setSpd(4)">4×</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TERMINAL -->
+  <div id="term">
+    <div class="th">
+      <div class="ttl">▸ FORGE TERMINAL <span class="tcur"></span></div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted)">BUFFER:200</span>
+    </div>
+    <div id="tlog"></div>
+  </div>
+</div>
+
+<!-- FLOATING CONTROL PANEL -->
+<div id="ctrl">
+  <div class="ch"><div class="ct">⬡ CONTROL PANEL</div></div>
+  <div class="cb">
+    <div class="mtgl">
+      <button class="mb ma" id="mAuto" onclick="setMode('auto')">AI AUTO</button>
+      <button class="mb" id="mMan" onclick="setMode('manual')">MANUAL</button>
+    </div>
+    <div class="slg">
+      <div class="slr"><span>CONVEYOR SPEED</span><span class="slv" id="csvl">1.5 m/s</span></div>
+      <input type="range" min="0" max="30" value="15" oninput="setCS(this.value)">
+    </div>
+    <div class="slg">
+      <div class="slr"><span>ARM SPEED</span><span class="slv" id="asvl">1.0×</span></div>
+      <input type="range" min="2" max="50" value="10" oninput="setAS(this.value)">
+    </div>
+    <button class="estop" id="estopBtn" onclick="doEstop()">⚠ EMERGENCY STOP</button>
+    <div style="display:flex;gap:5px">
+      <button class="gbtn" style="flex:1" onclick="doReset()">RESET SCENE</button>
+      <button class="gbtn" style="flex:1" onclick="doSpawn()">SPAWN BOX</button>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const S = {
+  mode:'auto', playing:true, estopped:false,
+  speed:1, convSpeed:1.5, armSpeed:1.0,
+  simT:0, joints:Array.from({length:6},(_,i)=>({angle:0,vel:0})),
+  metrics:{tcp:[],torq:[],pow:[],vib:[],eff:94.7,cyc:247},
+  bootDone:false
+};
+for(let i=0;i<80;i++){S.metrics.tcp.push(0);S.metrics.torq.push(0);S.metrics.pow.push(0);S.metrics.vib.push(0);}
+
+// ═══════════════════════════════════════════
+//  WAVEFORM — declared early to avoid TDZ errors
+// ═══════════════════════════════════════════
+const wfc=document.getElementById('wfc'), wctx=wfc.getContext('2d');
+function redrawWF(){
+  const W=wfc.offsetWidth||260, H=80;
+  wfc.width=W; wfc.height=H;
+  wctx.clearRect(0,0,W,H);
+  wctx.strokeStyle='rgba(255,107,0,.07)'; wctx.lineWidth=1;
+  for(let i=1;i<4;i++){wctx.beginPath();wctx.moveTo(0,H/4*i);wctx.lineTo(W,H/4*i);wctx.stroke();}
+  [[S.metrics.tcp,'#00D4FF',.9],[S.metrics.torq,'#FF6B00',.85],[S.metrics.pow,'#FFD700',.8],[S.metrics.vib,'rgba(255,255,255,.4)',1]].forEach(([d,col,alp])=>{
+    const n=d.length, mx=Math.max(...d,.001);
+    wctx.beginPath(); wctx.strokeStyle=col; wctx.lineWidth=1.5; wctx.globalAlpha=alp;
+    for(let i=0;i<n;i++){
+      const x=(i/(n-1))*W, y=H-(d[i]/mx)*(H-6)-3;
+      i===0?wctx.moveTo(x,y):wctx.lineTo(x,y);
+    }
+    wctx.stroke(); wctx.globalAlpha=1;
+  });
+}
+
+// ═══════════════════════════════════════════
+//  RENDERER
+// ═══════════════════════════════════════════
+const canvas = document.getElementById('c');
+const R = new THREE.WebGLRenderer({canvas,antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+R.shadowMap.enabled=true; R.shadowMap.type=THREE.PCFSoftShadowMap;
+R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=0.85;
+
+const scene = new THREE.Scene();
+scene.background=new THREE.Color(0x060606);
+scene.fog=new THREE.FogExp2(0x060606,.032);
+
+const cam = new THREE.PerspectiveCamera(52,1,.01,100);
+cam.position.set(5,4.5,6); cam.lookAt(0,1.2,0);
+
+function onResize(){
+  const W=innerWidth,H=innerHeight;
+  R.setSize(W,H); cam.aspect=W/H; cam.updateProjectionMatrix();
+  if(typeof redrawWF==='function' && document.getElementById('wfc')) redrawWF();
+}
+window.addEventListener('resize',onResize); onResize();
+
+// ─── ORBIT ───
+let orb={theta:Math.PI*.22,phi:1.05,r:10.5,tx:0,tp:1.05,tr:10.5};
+let drag=false,lm={x:0,y:0};
+canvas.addEventListener('mousedown',e=>{drag=true;lm={x:e.clientX,y:e.clientY}});
+addEventListener('mouseup',()=>drag=false);
+addEventListener('mousemove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-lm.x,dy=e.clientY-lm.y;
+  lm={x:e.clientX,y:e.clientY};
+  orb.tx-=dx*.007; orb.tp=Math.max(.18,Math.min(1.35,orb.tp+dy*.007));
+});
+canvas.addEventListener('wheel',e=>{orb.tr=Math.max(3,Math.min(18,orb.tr+e.deltaY*.012))},{passive:true});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+// ─── LIGHTS ───
+scene.add(new THREE.AmbientLight(0x111111,.5));
+const spot=new THREE.SpotLight(0xffffff,2.8);
+spot.position.set(4,10,4); spot.angle=.28; spot.penumbra=.55;
+spot.castShadow=true; spot.shadow.mapSize.set(1024,1024);
+spot.target.position.set(0,0,0);
+scene.add(spot,spot.target);
+const fill=new THREE.SpotLight(0xFF8833,1.1);
+fill.position.set(-5,7,-3); fill.angle=.45; fill.penumbra=.9;
+fill.target.position.set(0,0,0);
+scene.add(fill,fill.target);
+const eeLight=new THREE.PointLight(0x00D4FF,.9,4);
+scene.add(eeLight);
+
+// ─── FLOOR ───
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(26,26),
+  new THREE.MeshStandardMaterial({color:0x0A0A0A,roughness:.95,metalness:.05}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true;
+scene.add(floor);
+scene.add(new THREE.GridHelper(26,52,0x181818,0x141414));
+
+// ─── DROP ZONE platform (where boxes are placed) ───
+const dzGroup=new THREE.Group();
+dzGroup.position.set(2.5,0,1.2);
+scene.add(dzGroup);
+const dzPlat=new THREE.Mesh(new THREE.BoxGeometry(1.6,.12,1.2),
+  new THREE.MeshStandardMaterial({color:0x1A1A1A,metalness:.5,roughness:.6}));
+dzPlat.position.y=.06; dzPlat.castShadow=true; dzPlat.receiveShadow=true;
+dzGroup.add(dzPlat);
+// Drop zone orange outline strips
+const dzMat=new THREE.MeshStandardMaterial({color:0x000000,emissive:0xFF6B00,emissiveIntensity:.7});
+[[-0.78,.06,0],[0.78,.06,0],[0,.06,-0.59],[0,.06,0.59]].forEach(([x,y,z],i)=>{
+  const isX=i<2;
+  const sg=new THREE.BoxGeometry(isX?.02:1.56,.02,isX?1.2:.02);
+  const sm=new THREE.Mesh(sg,dzMat); sm.position.set(x,y+.065,z);
+  dzGroup.add(sm);
+});
+// Label text on platform
+const dzLabel=new THREE.Mesh(new THREE.BoxGeometry(.8,.005,.25),
+  new THREE.MeshStandardMaterial({color:0x000000,emissive:0xFF6B00,emissiveIntensity:.3}));
+dzLabel.position.set(0,.13,0); dzGroup.add(dzLabel);
+
+// ═══════════════════════════════════════════
+//  ROBOT ARM — 6-DOF
+// ═══════════════════════════════════════════
+const mMetal=new THREE.MeshStandardMaterial({color:0x2E2E2E,metalness:.92,roughness:.12});
+const mJoint=new THREE.MeshStandardMaterial({color:0x3D3D3D,metalness:.85,roughness:.2});
+const mAccent=new THREE.MeshStandardMaterial({color:0x111111,emissive:0xFF6B00,emissiveIntensity:.9,metalness:.8,roughness:.15});
+const mWhite=new THREE.MeshStandardMaterial({color:0xCCCCCC,metalness:.3,roughness:.5});
+
+const robotRoot=new THREE.Group();
+robotRoot.position.set(0,0,0);
+scene.add(robotRoot);
+
+// Heavy base
+const baseCol=new THREE.Mesh(new THREE.CylinderGeometry(.35,.42,.35,24),mMetal.clone());
+baseCol.position.y=.175; baseCol.castShadow=true; robotRoot.add(baseCol);
+const baseRing=new THREE.Mesh(new THREE.TorusGeometry(.38,.022,8,32),mAccent.clone());
+baseRing.rotation.x=Math.PI/2; baseRing.position.y=.34; robotRoot.add(baseRing);
+const baseTop=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.06,24),mJoint.clone());
+baseTop.position.y=.38; robotRoot.add(baseTop);
+
+// Joint chain definition
+const CHAIN=[
+  {len:.0,  jR:.22, lR:.10, lL:.0 },  // J1 yaw
+  {len:.55, jR:.18, lR:.09, lL:.55},  // J2 shoulder
+  {len:.62, jR:.15, lR:.08, lL:.62},  // J3 elbow
+  {len:.42, jR:.13, lR:.07, lL:.42},  // J4 forearm roll
+  {len:.30, jR:.11, lR:.06, lL:.30},  // J5 wrist pitch
+  {len:.22, jR:.09, lR:.05, lL:.22},  // J6 wrist roll
+];
+
+const JG=[];      // joint Groups
+const JR=[];      // joint ring meshes (for highlight)
+let parent=robotRoot, cumY=.38;
+
+for(let i=0;i<6;i++){
+  const c=CHAIN[i];
+  const g=new THREE.Group();
+  g.position.y=cumY;
+  parent.add(g);
+  JG.push(g);
+
+  // Joint sphere
+  const js=new THREE.Mesh(new THREE.SphereGeometry(c.jR,16,12),mJoint.clone());
+  js.castShadow=true; g.add(js);
+  // Ring
+  const jr=new THREE.Mesh(new THREE.TorusGeometry(c.jR+.025,.015,8,24),mAccent.clone());
+  jr.rotation.x=Math.PI/2; g.add(jr);
+  JR.push(jr);
+
+  if(c.lL>0){
+    // Link body — tapered hexagonal for industrial look
+    const lk=new THREE.Mesh(new THREE.CylinderGeometry(c.lR*.9,c.lR,c.lL,8),mMetal.clone());
+    lk.position.y=c.lL/2+c.jR; lk.castShadow=true; g.add(lk);
+    // Link detail strip
+    const ld=new THREE.Mesh(new THREE.BoxGeometry(c.lR*.4,.005,c.lL*.7),
+      new THREE.MeshStandardMaterial({color:0x111111,emissive:0xFF6B00,emissiveIntensity:.3}));
+    ld.position.y=c.lL/2+c.jR; ld.position.z=c.lR*.85; g.add(ld);
+  }
+  parent=g;
+  cumY=i===0?0:c.lL+c.jR*2;
+}
+
+// End effector / gripper
+const EEG=new THREE.Group();
+EEG.position.y=CHAIN[5].lL+CHAIN[5].jR*1.6;
+JG[5].add(EEG);
+
+const palm=new THREE.Mesh(new THREE.BoxGeometry(.14,.08,.12),mMetal.clone());
+palm.position.y=.04; palm.castShadow=true; EEG.add(palm);
+
+// Gripper rails
+const grailM=new THREE.MeshStandardMaterial({color:0x444444,metalness:.7,roughness:.3});
+[-1,1].forEach(s=>{
+  const rail=new THREE.Mesh(new THREE.BoxGeometry(.025,.06,.13),grailM.clone());
+  rail.position.set(s*.07,.04,0); EEG.add(rail);
+});
+
+// Fingers
+const fMat=new THREE.MeshStandardMaterial({color:0x555555,metalness:.6,roughness:.25});
+const f1G=new THREE.Group(); f1G.position.set(-.06,.04,0); EEG.add(f1G);
+const f2G=new THREE.Group(); f2G.position.set( .06,.04,0); EEG.add(f2G);
+const fingerGeo=new THREE.BoxGeometry(.032,.13,.045);
+const fp1=new THREE.Mesh(fingerGeo,fMat.clone()); fp1.position.y=.065; f1G.add(fp1);
+const fp2=new THREE.Mesh(fingerGeo,fMat.clone()); fp2.position.y=.065; f2G.add(fp2);
+// Finger tips (orange accent)
+const ftM=new THREE.MeshStandardMaterial({color:0x111111,emissive:0xFF6B00,emissiveIntensity:.6});
+const ft1=new THREE.Mesh(new THREE.BoxGeometry(.032,.018,.045),ftM.clone()); ft1.position.y=.135; f1G.add(ft1);
+const ft2=new THREE.Mesh(new THREE.BoxGeometry(.032,.018,.045),ftM.clone()); ft2.position.y=.135; f2G.add(ft2);
+
+// ═══════════════════════════════════════════
+//  CONVEYOR BELT
+// ═══════════════════════════════════════════
+// Conveyor positioned to left, robot reaches over it
+const BELT_Z=-2.2, BELT_Y=0.7;
+const convGroup=new THREE.Group();
+convGroup.position.set(-0.5, 0, BELT_Z);
+scene.add(convGroup);
+
+// Main belt surface
+const beltM=new THREE.MeshStandardMaterial({color:0x151515,roughness:.9,metalness:.1});
+const beltMesh=new THREE.Mesh(new THREE.BoxGeometry(5.5,.08,.95),beltM);
+beltMesh.position.y=BELT_Y; beltMesh.castShadow=true; beltMesh.receiveShadow=true;
+convGroup.add(beltMesh);
+// Belt frame
+const frameM=new THREE.MeshStandardMaterial({color:0x1E1E1E,metalness:.55,roughness:.7});
+const frameMesh=new THREE.Mesh(new THREE.BoxGeometry(5.5,.65,.98),frameM);
+frameMesh.position.y=BELT_Y-.33; convGroup.add(frameMesh);
+// Support legs
+[-2.4,-1,0.4,1.8].forEach(x=>{
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,BELT_Y-.33,8),frameM.clone());
+  leg.position.set(x,BELT_Y-.33/2-.32,0); convGroup.add(leg);
+});
+// Rollers
+const rollerM=new THREE.MeshStandardMaterial({color:0x303030,metalness:.75,roughness:.3});
+const rollerIM=new THREE.InstancedMesh(new THREE.CylinderGeometry(.042,.042,.97,12),rollerM,16);
+const dm=new THREE.Object3D();
+for(let i=0;i<16;i++){
+  dm.position.set(-2.5+i*.34,BELT_Y+.01,0);
+  dm.rotation.z=Math.PI/2; dm.updateMatrix();
+  rollerIM.setMatrixAt(i,dm.matrix);
+}
+rollerIM.instanceMatrix.needsUpdate=true;
+convGroup.add(rollerIM);
+// Side accent strips
+const sAccM=new THREE.MeshStandardMaterial({color:0x000000,emissive:0xFF6B00,emissiveIntensity:.5});
+[-2.74,2.74].forEach(x=>{
+  const sa=new THREE.Mesh(new THREE.BoxGeometry(.018,.018,.97),sAccM.clone());
+  sa.position.set(x,BELT_Y+.052,0); convGroup.add(sa);
+});
+
+// ═══════════════════════════════════════════
+//  BOXES
+// ═══════════════════════════════════════════
+const BOX_COLORS=[0xCC4400,0x004499,0x009944,0x884400,0x006688,0x882200];
+const boxes=[];
+let boxId=0, lastSpawn=0;
+
+function spawnBox(){
+  if(boxes.length>=14) return;
+  const s=.22+Math.random()*.22;
+  const col=BOX_COLORS[Math.floor(Math.random()*BOX_COLORS.length)];
+  const bMat=new THREE.MeshStandardMaterial({color:col,roughness:.8,metalness:.05});
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(s,s,s),bMat);
+  mesh.position.set(-0.5+(-2.6),BELT_Y+.08+s/2,BELT_Z);
+  mesh.castShadow=true; mesh.receiveShadow=true;
+  scene.add(mesh);
+  const id=boxId++;
+  const box={id,mesh,s,state:'onbelt',age:0,targetX:null};
+  boxes.push(box);
+  log('physics',`BOX_SPAWN [id:${id}] [size:${s.toFixed(2)}m]`);
+  return box;
+}
+
+// ═══════════════════════════════════════════
+//  PICK-AND-PLACE STATE MACHINE
+// ═══════════════════════════════════════════
+/*
+  PHASES:
+  idle      → wait for box in reach zone
+  approach  → swing arm toward belt target
+  descend   → lower EE to box height
+  grasp     → close gripper, attach box
+  lift      → raise arm up
+  swing     → rotate J1 toward drop zone
+  carry     → extend toward drop zone
+  release   → open gripper, detach box
+  retract   → pull arm back
+  home      → return to home pose
+*/
+
+let phase='idle';
+let phaseT=0;
+let grabbedBox=null;
+let placedBoxes=[]; // stacked on platform
+
+// Joint target angles
+const ANGLES=Array(6).fill(0);
+const CURRENT=Array(6).fill(0);
+
+// Home pose
+const HOME=[0, .3, -.5, .25, -.18, 0];
+
+// Reach pose (arm extended toward belt, J1 rotated toward belt)
+const REACH_J1=-1.1; // rotate toward belt
+function reachPose(bx,by){
+  return [REACH_J1, .55, -.72, .32, -.22, 0];
+}
+function descendPose(){
+  return [REACH_J1, .8, -.55, .15, -.45, 0];
+}
+function liftPose(){
+  return [REACH_J1, .3, -.8, .5, -.12, 0];
+}
+function swingPose(){
+  // rotate J1 toward drop zone
+  return [.95, .3, -.8, .5, -.12, 0];
+}
+function carryPose(){
+  return [.95, .5, -.6, .28, -.3, 0];
+}
+function releasePose(){
+  return [.95, .65, -.5, .2, -.42, 0];
+}
+function retractPose(){
+  return [.95, .2, -.9, .5, -.1, 0];
+}
+
+const PHASE_LABEL={
+  idle:'◈ IDLE — SCANNING',
+  approach:'◈ APPROACH — TARGET LOCK',
+  descend:'◈ DESCENDING TO BOX',
+  grasp:'◈ GRASPING OBJECT',
+  lift:'◈ LIFTING',
+  swing:'◈ ROTATING TO DROP ZONE',
+  carry:'◈ CARRYING',
+  release:'◈ RELEASING',
+  retract:'◈ RETRACTING',
+  home:'◈ RETURNING HOME'
+};
+
+function setPhase(p){
+  phase=p; phaseT=0;
+  const ind=document.getElementById('phase-ind');
+  ind.textContent=PHASE_LABEL[p]||p;
+  ind.classList.add('show');
+  clearTimeout(ind._hide); ind._hide=setTimeout(()=>ind.classList.remove('show'),2200);
+  if(p==='grasp') log('robot',`GRIPPER_CLOSE — BOX ${grabbedBox?.id}`);
+  if(p==='release') log('robot',`GRIPPER_RELEASE — CYCLE COMPLETE`);
+  if(p==='approach') log('robot',`ARM_LOCK_ON [target: box${grabbedBox?.id||'?'}]`);
+}
+
+let gripT=0; // 0=open, 1=closed
+
+function lerp(a,b,t){return a+(b-a)*t}
+function lerpAng(cur,tgt,dt,spd=3){
+  return lerp(cur,tgt,Math.min(1,dt*spd));
+}
+
+// Get EE world position
+function getEEPos(){
+  EEG.getWorldPosition(_v3);
+  return _v3.clone();
+}
+const _v3=new THREE.Vector3();
+
+// Apply angle array
+function applyAngles(a){
+  JG[0].rotation.y=a[0];
+  JG[1].rotation.z=a[1];
+  JG[2].rotation.z=a[2];
+  JG[3].rotation.z=a[3];
+  JG[4].rotation.z=a[4];
+  JG[5].rotation.y=a[5];
+}
+
+// Find box on belt within reach
+function findReachableBox(){
+  // Boxes that have moved into reach zone (x > -1.5 in world space) and are on belt
+  return boxes.find(b=>b.state==='onbelt' && b.mesh.position.x > -2.0 && b.mesh.position.x < 1.5);
+}
+
+// ═══════════════════════════════════════════
+//  JOINT GAUGES
+// ═══════════════════════════════════════════
+function buildGauges(){
+  const g=document.getElementById('jgrid'); g.innerHTML='';
+  for(let i=0;i<6;i++){
+    const w=document.createElement('div'); w.className='jw'; w.dataset.j=i;
+    w.innerHTML=`
+      <span class="jlbl">J${i+1}</span>
+      <svg width="68" height="68" viewBox="0 0 68 68">
+        <circle cx="34" cy="34" r="26" fill="none" stroke="rgba(255,107,0,.13)" stroke-width="5"/>
+        <circle class="gf" cx="34" cy="34" r="26" fill="none" stroke="#FF6B00" stroke-width="5"
+          stroke-dasharray="163.4" stroke-dashoffset="163.4" stroke-linecap="round"
+          transform="rotate(-90 34 34)" style="transition:stroke-dashoffset .08s,stroke .2s;filter:drop-shadow(0 0 4px rgba(255,107,0,.5))"/>
+        <text class="gv" x="34" y="37" text-anchor="middle" font-family="Orbitron,monospace" font-size="10" fill="#E8E8E8">0°</text>
+      </svg>
+      <span class="jvel" id="jv${i}">0.0°/s</span>`;
+    w.addEventListener('mouseenter',()=>{ JR[i]&&(JR[i].material.emissiveIntensity=2.5); w.classList.add('hl'); });
+    w.addEventListener('mouseleave',()=>{ JR[i]&&(JR[i].material.emissiveIntensity=.9); w.classList.remove('hl'); });
+    g.appendChild(w);
+  }
+}
+
+function updateGauges(){
+  for(let i=0;i<6;i++){
+    const w=document.querySelector(`[data-j="${i}"]`); if(!w)continue;
+    const a=CURRENT[i], deg=(a*180/Math.PI).toFixed(1);
+    const frac=(a+Math.PI)/(2*Math.PI), circ=163.4;
+    const fill=w.querySelector('.gf'), val=w.querySelector('.gv');
+    fill.style.strokeDashoffset=(circ-frac*circ).toFixed(2);
+    const atLim=Math.abs(a)>2.7, nearLim=Math.abs(a)>2.2;
+    fill.style.stroke=atLim?'#FF2D55':nearLim?'#FFD700':'#FF6B00';
+    val.textContent=`${parseFloat(deg)}°`;
+    const jv=document.getElementById(`jv${i}`);
+    if(jv) jv.textContent=`${(S.joints[i].vel*180/Math.PI).toFixed(1)}°/s`;
+  }
+}
+
+// ═══════════════════════════════════════════
+//  WAVEFORM (moved — declared at top of script)
+// ═══════════════════════════════════════════
+
+// ═══════════════════════════════════════════
+//  TERMINAL
+// ═══════════════════════════════════════════
+const tlog=document.getElementById('tlog');
+function log(type,msg){
+  const ts=fmtT(S.simT,true);
+  const div=document.createElement('div'); div.className='ll';
+  const cls={system:'lsys',robot:'lrob',physics:'lphy',warning:'lwrn',error:'lerr'}[type]||'lphy';
+  div.innerHTML=`<span class="lts">[${ts}]</span><span class="${cls}">>> ${msg}</span>`;
+  tlog.appendChild(div);
+  if(tlog.children.length>200) tlog.removeChild(tlog.firstChild);
+  tlog.scrollTop=tlog.scrollHeight;
+}
+async function boot(){
+  const msgs=[
+    ['system','FORGE OS v2.4.1 INITIALIZING...'],
+    ['system','JOINT CONTROLLER ONLINE [6-DOF]'],
+    ['system','CCD IK SOLVER ACTIVE'],
+    ['system','CONVEYOR SUBSYSTEM: READY'],
+    ['system','VISION SYSTEM: ARMED'],
+    ['system','PICK-AND-PLACE CYCLE: ENABLED'],
+    ['system','READY — AI AUTOPILOT ENGAGED'],
+  ];
+  for(const [t,m] of msgs){await new Promise(r=>setTimeout(r,200)); log(t,m);}
+  S.bootDone=true;
+}
+
+function fmtT(t,short=false){
+  const ms=Math.floor((t*1000)%1000),s=Math.floor(t)%60,m=Math.floor(t/60)%60,h=Math.floor(t/3600);
+  const p=v=>String(v).padStart(2,'0');
+  if(short) return `${p(h)}:${p(m)}:${p(s)}`;
+  return `T+${p(h)}:${p(m)}:${p(s)}.${String(ms).padStart(3,'0')}`;
+}
+
+// ═══════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════
+let last=0, metT=0, logT=0;
+
+function tick(now){
+  requestAnimationFrame(tick);
+  const raw=(now-last)/1000; last=now;
+  const dt=Math.min(raw,.05)*(S.playing?1:0)*(S.estopped?0:1)*S.speed;
+
+  // sim time
+  S.simT+=dt;
+  document.getElementById('tdisp').textContent=fmtT(S.simT);
+  const dn=new Date();
+  document.getElementById('clk').textContent=`${p2(dn.getHours())}:${p2(dn.getMinutes())}:${p2(dn.getSeconds())}`;
+
+  // Camera orbit
+  orb.theta=lerp(orb.theta,orb.tx,.07);
+  orb.phi=lerp(orb.phi,orb.tp,.07);
+  orb.r=lerp(orb.r,orb.tr,.09);
+  cam.position.set(
+    orb.r*Math.sin(orb.phi)*Math.cos(orb.theta),
+    orb.r*Math.cos(orb.phi),
+    orb.r*Math.sin(orb.phi)*Math.sin(orb.theta)
+  );
+  cam.lookAt(0,1.4,0);
+
+  if(S.playing && !S.estopped){
+    updateConveyor(dt);
+    updateRobot(dt);
+    updateMetrics(dt);
+  }
+  updateGauges();
+  // base ring pulse
+  baseRing.material.emissiveIntensity=.5+Math.sin(now*.003)*.4;
+
+  R.render(scene,cam);
+}
+
+function p2(v){return String(v).padStart(2,'0')}
+
+// ─── CONVEYOR ───
+let rollerRot=0;
+function updateConveyor(dt){
+  rollerRot+=S.convSpeed*dt*2.8;
+  // Update all roller rotations via instance matrix
+  for(let i=0;i<16;i++){
+    dm.position.set(-2.5+i*.34,BELT_Y+.01,0);
+    dm.rotation.z=Math.PI/2+rollerRot;
+    dm.updateMatrix();
+    rollerIM.setMatrixAt(i,dm.matrix);
+  }
+  rollerIM.instanceMatrix.needsUpdate=true;
+
+  // Move boxes
+  for(let i=boxes.length-1;i>=0;i--){
+    const b=boxes[i];
+    b.age+=dt;
+    if(b.state==='onbelt'){
+      b.mesh.position.x+=S.convSpeed*dt*0.6;
+      // Despawn if off right end of belt
+      if(b.mesh.position.x > convGroup.position.x+2.8){
+        scene.remove(b.mesh);
+        boxes.splice(i,1);
+        log('physics',`BOX_DESPAWN [id:${b.id}] [missed]`);
+        if(grabbedBox===b){grabbedBox=null;setPhase('home');}
+      }
+    }
+    if(b.age>22){
+      scene.remove(b.mesh); boxes.splice(i,1);
+      if(grabbedBox===b){grabbedBox=null;setPhase('home');}
+    }
+  }
+  // Auto spawn
+  lastSpawn+=dt;
+  const interval=3.5+Math.random()*2;
+  if(lastSpawn>interval && boxes.filter(b=>b.state==='onbelt').length<8){
+    lastSpawn=0; spawnBox();
+  }
+}
+
+// ─── ROBOT PICK AND PLACE ───
+function updateRobot(dt){
+  if(S.mode!=='auto'){
+    // Manual: hold home
+    for(let i=0;i<6;i++) CURRENT[i]=lerpAng(CURRENT[i],HOME[i],dt,2.5);
+    applyAngles(CURRENT);
+    S.joints.forEach((j,i)=>j.angle=CURRENT[i]);
+    EEG.getWorldPosition(_v3); eeLight.position.copy(_v3);
+    return;
+  }
+
+  phaseT+=dt;
+
+  // Animate toward target angles
+  const spd=3.5*S.armSpeed;
+  for(let i=0;i<6;i++){
+    const prev=CURRENT[i];
+    CURRENT[i]=lerpAng(CURRENT[i],ANGLES[i],dt,spd);
+    S.joints[i].vel=(CURRENT[i]-prev)/dt;
+    S.joints[i].angle=CURRENT[i];
+  }
+  applyAngles(CURRENT);
+
+  // Gripper animation
+  const gt=gripT;
+  const gOff=.055*(1-gt);
+  f1G.position.x=lerp(f1G.position.x,-gOff-.025,dt*8);
+  f2G.position.x=lerp(f2G.position.x, gOff+.025,dt*8);
+
+  // Attach grabbed box to EE
+  if(grabbedBox && (phase==='lift'||phase==='swing'||phase==='carry'||phase==='release')){
+    EEG.getWorldPosition(_v3);
+    grabbedBox.mesh.position.lerp(_v3,0.25);
+  }
+
+  // EE light
+  EEG.getWorldPosition(_v3); eeLight.position.copy(_v3);
+
+  // ── STATE MACHINE ──
+  const anglesClose=(tgt)=>tgt.every((t,i)=>Math.abs(CURRENT[i]-t)<.08);
+
+  switch(phase){
+    case 'idle':
+      // Copy home
+      HOME.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,0,dt*5); // open
+      const rb=findReachableBox();
+      if(rb){
+        grabbedBox=rb;
+        setPhase('approach');
+      }
+      break;
+
+    case 'approach':{
+      const p=reachPose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,0,dt*5);
+      if(anglesClose(p)||phaseT>3) setPhase('descend');
+      break;
+    }
+
+    case 'descend':{
+      const p=descendPose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,0,dt*5);
+      if((anglesClose(p)&&grabbedBox)||phaseT>2.5) setPhase('grasp');
+      break;
+    }
+
+    case 'grasp':
+      descendPose().forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,1,dt*6);
+      if(grabbedBox) grabbedBox.state='grabbed';
+      if(phaseT>1.2) setPhase('lift');
+      break;
+
+    case 'lift':{
+      const p=liftPose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,1,dt*5);
+      if(anglesClose(p)||phaseT>2) setPhase('swing');
+      break;
+    }
+
+    case 'swing':{
+      const p=swingPose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,1,dt*5);
+      if(anglesClose(p)||phaseT>2.5) setPhase('carry');
+      break;
+    }
+
+    case 'carry':{
+      const p=carryPose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,1,dt*5);
+      if(anglesClose(p)||phaseT>2) setPhase('release');
+      break;
+    }
+
+    case 'release':{
+      const p=releasePose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,0,dt*6);
+      if(phaseT>.8){
+        if(grabbedBox){
+          // Place box on drop zone
+          const dzWPos=new THREE.Vector3();
+          dzGroup.getWorldPosition(dzWPos);
+          const pcount=placedBoxes.length;
+          const tx=dzWPos.x+(Math.random()-.5)*.3;
+          const tz=dzWPos.z+(Math.random()-.5)*.3;
+          const ty=0.12+pcount*(grabbedBox.s+.02)+grabbedBox.s/2;
+          grabbedBox.mesh.position.set(tx,ty,tz);
+          grabbedBox.state='placed';
+          placedBoxes.push(grabbedBox);
+          if(placedBoxes.length>5) {
+            // Remove oldest placed box
+            const old=placedBoxes.shift();
+            scene.remove(old.mesh);
+            boxes.splice(boxes.indexOf(old),1);
+          }
+          log('robot',`PLACE_COMPLETE [box${grabbedBox.id}] [stack:${placedBoxes.length}]`);
+          S.metrics.cyc++;
+          S.metrics.eff=Math.min(99.5,S.metrics.eff+.4);
+          document.getElementById('cycv').innerHTML=`${S.metrics.cyc}<span class="mcu">cph</span>`;
+          grabbedBox=null;
+        }
+        if(phaseT>1.5) setPhase('retract');
+      }
+      break;
+    }
+
+    case 'retract':{
+      const p=retractPose();
+      p.forEach((v,i)=>ANGLES[i]=v);
+      if(anglesClose(p)||phaseT>2) setPhase('home');
+      break;
+    }
+
+    case 'home':{
+      HOME.forEach((v,i)=>ANGLES[i]=v);
+      gripT=lerp(gripT,0,dt*4);
+      if(anglesClose(HOME)||phaseT>2.5) setPhase('idle');
+      break;
+    }
+  }
+}
+
+// ─── METRICS ───
+function updateMetrics(dt){
+  metT+=dt; if(metT<.1)return; metT=0;
+  const push=(a,v)=>{a.push(v);if(a.length>80)a.shift()};
+  const tcp=.4+Math.abs(Math.sin(S.simT*.9))*2.4+Math.random()*.4;
+  const tq=18+Math.sin(S.simT*1.3)*22+Math.random()*9;
+  const pw=1.8+Math.abs(Math.cos(S.simT*.7))*3.8+Math.random()*.6;
+  const vb=Math.random()*.7+.1;
+  push(S.metrics.tcp,tcp); push(S.metrics.torq,tq);
+  push(S.metrics.pow,pw);  push(S.metrics.vib,vb);
+  S.metrics.eff=Math.max(88,Math.min(99.5,S.metrics.eff+(Math.random()-.49)*.2));
+  document.getElementById('tcpv').innerHTML=`${tcp.toFixed(2)}<span class="mcu">m/s</span>`;
+  document.getElementById('torqv').innerHTML=`${tq.toFixed(1)}<span class="mcu">Nm</span>`;
+  document.getElementById('powv').innerHTML=`${pw.toFixed(1)}<span class="mcu">kW</span>`;
+  document.getElementById('effv').textContent=S.metrics.eff.toFixed(1);
+  for(let i=0;i<6;i++) S.joints[i].vel=(Math.random()-.5)*.7;
+  redrawWF();
+
+  // Random log
+  logT+=.1;
+  if(logT>2.5+Math.random()*2){
+    logT=0;
+    const logs=[
+      ()=>log('system',`CYCLE_EFFICIENCY [${S.metrics.eff.toFixed(1)}%]`),
+      ()=>log('physics',`BELT_SPEED [${S.convSpeed.toFixed(1)} m/s]`),
+      ()=>log('robot',`PHASE [${phase.toUpperCase()}]`),
+      ()=>{ if(Math.random()>.65) log('warning',`JOINT_NEAR_LIMIT [J${Math.ceil(Math.random()*6)}: ${(Math.random()*35+140).toFixed(1)}°]`); }
+    ];
+    logs[Math.floor(Math.random()*logs.length)]();
+  }
+}
+
+// ═══════════════════════════════════════════
+//  GLOBAL CONTROLS
+// ═══════════════════════════════════════════
+window.togglePlay=()=>{
+  S.playing=!S.playing;
+  document.getElementById('bplay').style.display=S.playing?'none':'';
+  document.getElementById('bpause').style.display=S.playing?'':'none';
+  log('system',S.playing?'SIMULATION_RESUME':'SIMULATION_PAUSE');
+};
+window.doReset=()=>{
+  boxes.forEach(b=>scene.remove(b.mesh)); boxes.length=0;
+  placedBoxes.length=0; grabbedBox=null;
+  setPhase('home'); S.simT=0;
+  for(let i=0;i<6;i++) CURRENT[i]=HOME[i];
+  log('system','SCENE_RESET');
+};
+window.doSpawn=spawnBox;
+window.setSpd=(v)=>{
+  S.speed=v;
+  document.querySelectorAll('.spd').forEach(b=>b.classList.toggle('act',parseFloat(b.dataset.s)===v));
+  log('system',`PLAYBACK_SPEED [${v}×]`);
+};
+window.setMode=(m)=>{
+  S.mode=m;
+  const mb=document.getElementById('modebadge');
+  document.getElementById('mAuto').className='mb'+(m==='auto'?' ma':'');
+  document.getElementById('mMan').className='mb'+(m==='manual'?' mm':'');
+  if(m==='auto'){mb.style.color='var(--cyan)';mb.textContent='◈ AI AUTOPILOT';}
+  else{mb.style.color='var(--amber)';mb.textContent='◈ MANUAL OVERRIDE';}
+  log('system',`MODE_SWITCH [${m==='auto'?'AI_AUTOPILOT':'MANUAL_OVERRIDE'}]`);
+};
+window.doEstop=()=>{
+  S.estopped=!S.estopped;
+  document.getElementById('estopBtn').classList.toggle('act',S.estopped);
+  document.getElementById('eso').classList.add('fl');
+  setTimeout(()=>document.getElementById('eso').classList.remove('fl'),750);
+  log(S.estopped?'error':'system',S.estopped?'EMERGENCY_STOP_ACTIVATED':'E-STOP_CLEARED — RESUMING');
+};
+window.setCS=(v)=>{
+  S.convSpeed=v/10;
+  document.getElementById('csvl').textContent=`${S.convSpeed.toFixed(1)} m/s`;
+};
+window.setAS=(v)=>{
+  S.armSpeed=v/10;
+  document.getElementById('asvl').textContent=`${S.armSpeed.toFixed(1)}×`;
+};
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+buildGauges();
+HOME.forEach((v,i)=>{ANGLES[i]=v; CURRENT[i]=v;});
+applyAngles(CURRENT);
+setPhase('idle');
+
+// Panel slide-in
+setTimeout(()=>document.getElementById('lpanel').classList.add('on'),80);
+setTimeout(()=>document.getElementById('rpanel').classList.add('on'),180);
+setTimeout(()=>document.getElementById('term').classList.add('on'),260);
+setTimeout(()=>document.getElementById('ctrl').classList.add('on'),340);
+
+// Spawn initial box after small delay
+setTimeout(()=>{spawnBox();spawnBox();},1200);
+
+setTimeout(boot,500);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

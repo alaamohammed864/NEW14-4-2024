@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دوامة المجرة الحلزونية التفاعلية | Spiral Galaxy Vortex</title>
+    <style>
+        :root {
+            /* لوحة ألوان المجرة: عميقة وساطعة */
+            --bg-color: #000001; /* أسود كوني */
+            --primary-glow: #00d2ff; /* سيان قطبي */
+            --secondary-glow: #3a0078; /* بنفسجي عميق */
+            --accent-glow: #ff0055; /* وردي نجمي */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Roboto, 'Noto Sans Arabic', sans-serif;
+            color: white;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* واجهة مستخدم زجاجية مستقبيلة */
+        .ui-container {
+            position: absolute;
+            bottom: 8%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            pointer-events: none;
+            width: 90%;
+            max-width: 420px;
+        }
+
+        .input-wrapper {
+            pointer-events: auto;
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 50px;
+            padding: 4px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            width: 100%;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--primary-glow);
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);
+            transform: scale(1.03) translateY(-5px);
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-size: 1.15rem;
+            padding: 12px 20px;
+            width: 100%;
+            text-align: center;
+            letter-spacing: 1px;
+            font-family: inherit;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+        }
+
+        .hint {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeInHint 2s forwards 1.5s;
+        }
+
+        @keyframes fadeInHint {
+            to { opacity: 1; }
+        }
+
+        /* تأثير إظلام الحواف الكوني */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 250px rgba(0,0,0,0.98);
+            pointer-events: none;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="vignette"></div>
+    <canvas id="particleCanvas"></canvas>
+
+    <div class="ui-container">
+        <div class="input-wrapper">
+            <input type="text" id="textInput" placeholder="اكتب لدمج الجزيئات" maxlength="20" autocomplete="off">
+        </div>
+        <div class="hint">حرك الماوس لتفريق الدوامة • اكتب لتشكيل النص</div>
+    </div>
+
+<script>
+/**
+ * محرك المجرة الحلزونية النابض (Spiral Galaxy Vortex Engine)
+ * يستخدم فيزياء التدفق الحلزوني (Spiral Flow) وحقول القوة بدلاً من الدوران البسيط.
+ */
+
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+const textInput = document.getElementById('textInput');
+
+// --- إعدادات المجرة الحلزونية ---
+const config = {
+    particleCount: 10000, // عدد كبير لجعل الأذرع كثيفة
+    
+    // فيزياء الدوامة الحلزونية
+    galaxy: {
+        arms: 3,                // عدد الأذرع الحلزونية
+        armTightness: 7.0,       // مدى ضيق الالتفاف الحلزوني (أكبر = أكثر التواءً)
+        speedBase: 0.006,        // السرعة العامة
+        speedCentripetal: 0.15, // قوة السحب نحو المركز (Hole pull)
+        turbulence: 0.6,         // العشوائية في الحركة (تجعلها حية)
+    },
+
+    // فيزياء التفاعل والمورفينج
+    interaction: {
+        mouseRadius: 130,       // تفاعل الماوس
+        mouseStrength: 0.8,     
+        ease: 0.04,             // سلاسة الانتقال
+        friction: 0.94          // خماد الحركة
+    },
+
+    // لوحة الألوان الكونية
+    colors: [
+        { r: 0,   g: 210, b: 255, a: 0.8 }, // سيان (الأذرع الخارجية)
+        { r: 112, g: 0,   b: 255, a: 0.7 }, // بنفسجي (جسم المجرة)
+        { r: 255, g: 0,   b: 85,  a: 0.8 }, // وردي (النجوم الشابة)
+        { r: 255, g: 255, b: 255, a: 1.0 }  // أبيض (المركز الساطع)
+    ]
+};
+
+let width, height, centerX, centerY, maxRadius;
+let particles = [];
+let textPoints = [];
+let currentState = 'VORTEX';
+let mouse = { x: -1000, y: -1000, active: false };
+let time = 0;
+
+// --- كلاس الجسيم (Particle Class) - نسخة الفيزياء الحلزونية ---
+class Particle {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        // إنشاء عشوائي موزع عبر "أذرع" حلزونية
+        this.resetBaseParameters();
+        
+        // المظهر
+        this.size = Math.random() * 1.6 + 0.3; 
+        const color = config.colors[Math.floor(Math.random() * config.colors.length)];
+        this.colorStr = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
+        this.glowStr = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a * 0.4})`;
+
+        // الحالة
+        this.onText Duty = false;
+        this.x = centerX + (Math.random() - 0.5) * 100; // البدء بالقرب من المركز
+        this.y = centerY + (Math.random() - 0.5) * 100;
+        this.vx = (Math.random() - 0.5) * 5;
+        this.vy = (Math.random() - 0.5) * 5;
+    }
+
+    resetBaseParameters() {
+        // توزيع الجسيمات في أذرع حلزونية محددة
+        const armIndex = Math.floor(Math.random() * config.galaxy.arms);
+        const armAngle = (armIndex / config.galaxy.arms) * Math.PI * 2;
+        
+        // مسافة عشوائية من المركز مع تفضيل المركز
+        const rawDist = Math.random();
+        this.orbitRadius = Math.pow(rawDist, 1.5) * maxRadius;
+        
+        // الزاوية الأساسية + الالتفاف الحلزوني بناءً على المسافة
+        this.angle = armAngle + (this.orbitRadius / maxRadius) * config.galaxy.armTightness;
+        
+        // تباين السرعة (أسرع في المركز)
+        this.speedFactor = 1.0 - (this.orbitRadius / maxRadius) * 0.8; 
+    }
+
+    updateVortexTarget() {
+        // 1. الدوران المستمر
+        this.angle += config.galaxy.speedBase * this.speedFactor;
+        
+        // 2. السحب المركزي الطفيف (Spiral Inward flow)
+        // هذا هو السر في الحركة الحلزونية غير المنتظمة
+        if (this.orbitRadius > 10) {
+            this.orbitRadius -= config.galaxy.speedCentripetal * this.speedFactor;
+        } else {
+            // إعادة تدوير الجسيمات التي تصل للمركز
+            this.resetBaseParameters();
+        }
+
+        // 3. إضافة اضطراب (Turbulence) لجعل الحركة حية وغير مثالية
+        const noiseX = (Math.random() - 0.5) * config.galaxy.turbulence * this.speedFactor;
+        const noiseY = (Math.random() - 0.5) * config.galaxy.turbulence * this.speedFactor;
+
+        // 4. حساب الهدف الجديد بالمعادلات الحلزونية
+        this.targetX = centerX + Math.cos(this.angle) * this.orbitRadius + noiseX;
+        this.targetY = centerY + Math.sin(this.angle) * this.orbitRadius + noiseY;
+    }
+
+    update() {
+        // إذا لم يكن على رأس عمله في النص، فهو جزء من الدوامة
+        if (!this.onTextDuty) {
+            this.updateVortexTarget();
+        }
+
+        // فيزياء الحركة نحو الهدف (Easing)
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        
+        const ax = dx * config.interaction.ease;
+        const ay = dy * config.interaction.ease;
+        
+        this.vx += ax;
+        this.vy += ay;
+
+        // تفاعل الماوس (دفع للخارج)
+        if (mouse.active) {
+            const mdx = this.x - mouse.x;
+            const mdy = this.y - mouse.y;
+            const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+            
+            if (mdist < config.interaction.mouseRadius) {
+                const force = (config.interaction.mouseRadius - mdist) / config.interaction.mouseRadius;
+                // تفريق الجزيئات بعيداً عن الدوامة
+                this.vx += (mdx / mdist) * force * 15 * config.interaction.mouseStrength;
+                this.vy += (mdy / mdist) * force * 15 * config.interaction.mouseStrength;
+                
+                // إذا لم يكن في النص، نجبره على إعادة حساب مساره بعد التفريق
+                if (!this.onTextDuty) {
+                    this.orbitRadius = mdist + 20; // دفع مداري للخارج
+                    this.angle = Math.atan2(mdy, mdx);
+                }
+            }
+        }
+
+        // تطبيق الاحتكاك والتحديث
+        this.vx *= config.interaction.friction;
+        this.vy *= config.interaction.friction;
+        
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+
+    draw() {
+        ctx.fillStyle = this.colorStr;
+        ctx.fillRect(this.x, this.y, this.size, this.size);
+        
+        // توهج إضافي للجسيمات الكبيرة
+        if (this.size > 1.2) {
+            ctx.fillStyle = this.glowStr;
+            ctx.fillRect(this.x - this.size, this.y - this.size, this.size * 3, this.size * 3);
+        }
+    }
+}
+
+// --- استخراج النقاط من النص (محسّن) ---
+function getTextPoints(text) {
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    
+    // إعداد الخط - جعلها متجاوبة وضخمة
+    const fontSize = Math.min(width / (text.length * 0.6), height / 2.3);
+    tempCtx.font = `900 ${fontSize}px 'Noto Sans Arabic', 'Segoe UI', Arial, sans-serif`;
+    tempCtx.textAlign = 'center';
+    tempCtx.textBaseline = 'middle';
+    tempCtx.fillStyle = 'white';
+    
+    tempCtx.fillText(text, width / 2, height / 2);
+
+    const imageData = tempCtx.getImageData(0, 0, width, height).data;
+    const points = [];
+    
+    // مسح عالي الكثافة
+    const step = 3; 
+    for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+            const alpha = imageData[(y * width + x) * 4 + 3];
+            if (alpha > 150) {
+                points.push({ x, y });
+            }
+        }
+    }
+    return points;
+}
+
+function updateSystemState(text) {
+    if (text.trim().length > 0) {
+        textPoints = getTextPoints(text);
+        if (textPoints.length === 0) { return; }
+
+        currentState = 'TEXT';
+        
+        particles.forEach((p, i) => {
+            if (i < textPoints.length) {
+                const point = textPoints[i];
+                p.targetX = point.x + (Math.random() - 0.5) * 4;
+                p.targetY = point.y + (Math.random() - 0.5) * 4;
+                p.onTextDuty = true;
+            } else {
+                p.onTextDuty = false;
+                // الجسيمات الزائدة لا تزال بحاجة لأهداف دوران
+                p.updateVortexTarget(); 
+            }
+        });
+    } else {
+        currentState = 'VORTEX';
+        particles.forEach(p => p.onTextDuty = false);
+    }
+}
+
+// --- أحداث وتجاوب ---
+window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; });
+window.addEventListener('mouseleave', () => { mouse.active = false; });
+window.addEventListener('touchstart', e => { mouse.active = true; mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; });
+window.addEventListener('touchend', () => { mouse.active = false; });
+
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    centerX = width / 2;
+    centerY = height / 2;
+    maxRadius = Math.min(width, height) * 0.8;
+    
+    particles = [];
+    for (let i = 0; i < config.particleCount; i++) {
+        particles.push(new Particle());
+    }
+    
+    if (textInput.value) { updateSystemState(textInput.value); }
+}
+
+// --- حلقة التحريك ---
+function animate() {
+    // ذيول كاشفة للحركة (Motion Trails)
+    ctx.fillStyle = 'rgba(0, 0, 1, 0.18)'; 
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillRect(0, 0, width, height);
+
+    // تراكب مضيء للتوهج
+    ctx.globalCompositeOperation = 'lighter';
+
+    particles.forEach(p => {
+        p.update();
+        p.draw();
+    });
+
+    requestAnimationFrame(animate);
+}
+
+// --- البدء ---
+textInput.addEventListener('input', (e) => updateSystemState(e.target.value));
+window.addEventListener('resize', resize);
+
+resize();
+animate();
+
+</script>
+</body>
+</html>

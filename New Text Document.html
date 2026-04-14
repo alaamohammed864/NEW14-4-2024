@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zubair Oil Field — HAM Degassing Station 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{overflow:hidden;background:#0b0f1a;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#c8d0dc;}
+canvas{display:block;}
+#loading{position:fixed;inset:0;background:#0b0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s;}
+#loading h2{color:#3a80d0;font-size:22px;margin-bottom:20px;letter-spacing:2px;}
+#loadBar{width:320px;height:4px;background:#141a28;border-radius:2px;overflow:hidden;}
+#loadFill{height:100%;width:0;background:linear-gradient(90deg,#3a80d0,#5ab0ff);border-radius:2px;transition:width .15s;}
+#loadPct{color:#607080;font-size:13px;margin-top:10px;}
+#toolbar{position:fixed;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:4px;padding:6px 10px;background:rgba(8,12,24,.96);border:1px solid #1a3050;border-radius:8px;z-index:100;flex-wrap:wrap;justify-content:center;}
+#toolbar button{background:#111828;color:#8aa0b8;border:1px solid #1a3050;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s;}
+#toolbar button:hover{background:#1a2a40;color:#c8d8e8;border-color:#3a80d0;}
+#toolbar button.active{background:#3a80d0;color:#fff;border-color:#3a80d0;}
+#toolbar .sep{width:1px;background:#1a3050;margin:0 4px;}
+#legend{position:fixed;top:60px;left:10px;width:190px;padding:12px;background:rgba(8,12,24,.93);border:1px solid #1a3050;border-radius:8px;z-index:100;font-size:11px;line-height:1.7;}
+#legend h3{color:#3a80d0;font-size:13px;margin-bottom:8px;letter-spacing:1px;}
+#legend .row{display:flex;align-items:center;gap:8px;}
+#legend .dot{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+#infoPanel{position:fixed;top:60px;right:10px;width:240px;padding:14px;background:rgba(8,12,24,.93);border:1px solid #1a3050;border-radius:8px;z-index:100;display:none;font-size:12px;}
+#infoPanel h3{color:#3a80d0;font-size:14px;margin-bottom:10px;}
+#infoPanel .field{margin-bottom:6px;}
+#infoPanel .label{color:#607080;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+#infoPanel .value{color:#c8d8e8;margin-top:1px;}
+#stats{position:fixed;bottom:40px;left:10px;padding:10px 14px;background:rgba(8,12,24,.93);border:1px solid #1a3050;border-radius:8px;z-index:100;font-size:11px;line-height:1.7;}
+#stats .title{color:#3a80d0;font-size:12px;margin-bottom:4px;font-weight:600;}
+#hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);padding:5px 16px;background:rgba(8,12,24,.85);border:1px solid #141a28;border-radius:4px;z-index:100;font-size:11px;color:#4a6070;white-space:nowrap;}
+</style>
+</head>
+<body>
+<div id="loading"><h2>ZUBAIR OIL FIELD — HAM DEGASSING STATION</h2><div id="loadBar"><div id="loadFill"></div></div><div id="loadPct">0%</div></div>
+<div id="toolbar">
+<button onclick="setView('persp')">Perspective</button>
+<button onclick="setView('top')">Top-Down</button>
+<button onclick="setView('iso')">Isometric</button>
+<button onclick="setView('north')">North</button>
+<button onclick="setView('east')">East</button>
+<div class="sep"></div>
+<button id="btnWire" onclick="toggleWire()">Wireframe</button>
+<button id="btnShadow" class="active" onclick="toggleShadow()">Shadows</button>
+<button id="btnLabel" class="active" onclick="toggleLabels()">Labels</button>
+<button id="btnRotate" onclick="toggleRotate()">Auto-Rotate</button>
+<button onclick="setView('persp')">Fit All</button>
+</div>
+<div id="legend">
+<h3>EQUIPMENT LEGEND</h3>
+<div class="row"><div class="dot" style="background:#e0d8c8;border:1px solid #aaa;"></div>Pressure Vessels</div>
+<div class="row"><div class="dot" style="background:#ddd5b0;border:1px solid #aaa;"></div>Storage Tanks</div>
+<div class="row"><div class="dot" style="background:#3a7050;"></div>Centrifugal Pumps</div>
+<div class="row"><div class="dot" style="background:#3c5468;"></div>Power / Compressor</div>
+<div class="row"><div class="dot" style="background:#d0c8b8;"></div>Admin / Control Bldg</div>
+<div class="row"><div class="dot" style="background:#909aa8;"></div>Carbon Steel Piping</div>
+<div class="row"><div class="dot" style="background:#cc3322;"></div>Fire Water System</div>
+<div class="row"><div class="dot" style="background:#a8adb8;"></div>Structural Steel</div>
+<div class="row"><div class="dot" style="background:#1a4080;"></div>Fire Water Tank</div>
+<div class="row"><div class="dot" style="background:rgba(204,34,0,.25);border:1px solid #cc2200;"></div>Class 1 Div.1 Zone</div>
+<div class="row"><div class="dot" style="background:rgba(255,102,68,.15);border:1px solid #ff6644;"></div>Class 1 Div.2 Zone</div>
+</div>
+<div id="infoPanel"><h3 id="infoTag">—</h3><div class="field"><div class="label">Description</div><div class="value" id="infoDesc">—</div></div><div class="field"><div class="label">Type</div><div class="value" id="infoType">—</div></div><div class="field"><div class="label">Status</div><div class="value" id="infoStatus">—</div></div><div class="field"><div class="label">HAC Classification</div><div class="value" id="infoHAC">—</div></div></div>
+<div id="stats"><div class="title">ZFT-JV-4-RS203 | Scale 1:500</div>Zubair Oil Field Development Project<br>HAM Degassing Station — Onshore Iraq<br>Site: 240m x 230m | Equipment: 55+ units</div>
+<div id="hint">Left-drag: Rotate &nbsp;|&nbsp; Right-drag: Pan &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; Click equipment for details</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ====== COORDINATE MAPPING ======
+   Drawing pos(x,y) → Three.js (x, height, -y)
+   North = +Z, East = +X, Up = +Y */
+function sp(x, sy, h) { return new THREE.Vector3(x, h || 0, -sy); }
+
+/* ====== GLOBALS ====== */
+var scene, camera, renderer, raycaster, mouse;
+var theta = 0.75, phi = 0.85, radius = 380;
+var target = new THREE.Vector3(0, 12, 0);
+var isDragging = false, isPanning = false, prevMX = 0, prevMY = 0;
+var equipmentList = [], labelSprites = [], allMaterials = [];
+var wireframeMode = false, shadowsOn = true, labelsVisible = true, autoRotate = false;
+var flareCones = [], flareLight, avLightMat;
+var clock = new THREE.Clock();
+var selectedEquip = null;
+
+/* ====== MATERIALS ====== */
+var matGround, matGravel, matRoad, matConcrete, matInsulation, matSS, matCS, matFWPipe;
+var matInsPipe, matTankBody, matTankRoof, matStruct, matPump, matGenBldg, matAdminBldg;
+var matRoof, matLadder, matFWTank, matFlare, matYellow, matGlass, matDoor;
+var matBerm, matHazardDiv1, matHazardDiv2;
+
+function initMaterials() {
+    matGround = new THREE.MeshLambertMaterial({color:0x8f7a52});
+    matGravel = new THREE.MeshLambertMaterial({color:0xb8a870});
+    matRoad = new THREE.MeshLambertMaterial({color:0x585850});
+    matConcrete = new THREE.MeshLambertMaterial({color:0xa09880});
+    matInsulation = new THREE.MeshStandardMaterial({color:0xe0d8c8,metalness:0.05,roughness:0.88});
+    matSS = new THREE.MeshStandardMaterial({color:0xc8ccd4,metalness:0.9,roughness:0.15});
+    matCS = new THREE.MeshStandardMaterial({color:0x909aa8,metalness:0.75,roughness:0.3});
+    matFWPipe = new THREE.MeshStandardMaterial({color:0xcc3322,metalness:0.6,roughness:0.35});
+    matInsPipe = new THREE.MeshStandardMaterial({color:0xe8e0c0,metalness:0.1,roughness:0.8});
+    matTankBody = new THREE.MeshStandardMaterial({color:0xddd5b0,metalness:0.2,roughness:0.65});
+    matTankRoof = new THREE.MeshStandardMaterial({color:0xc8b870,metalness:0.15,roughness:0.7});
+    matStruct = new THREE.MeshStandardMaterial({color:0xa8adb8,metalness:0.85,roughness:0.22});
+    matPump = new THREE.MeshStandardMaterial({color:0x3a7050,metalness:0.5,roughness:0.4});
+    matGenBldg = new THREE.MeshLambertMaterial({color:0x3c5468});
+    matAdminBldg = new THREE.MeshLambertMaterial({color:0xd0c8b8});
+    matRoof = new THREE.MeshLambertMaterial({color:0x607080});
+    matLadder = new THREE.MeshLambertMaterial({color:0x606878});
+    matFWTank = new THREE.MeshStandardMaterial({color:0x1a4080,metalness:0.3,roughness:0.5});
+    matFlare = new THREE.MeshStandardMaterial({color:0x7a8090,metalness:0.8,roughness:0.25});
+    matYellow = new THREE.MeshStandardMaterial({color:0xe8c020,metalness:0.4,roughness:0.4});
+    matGlass = new THREE.MeshPhongMaterial({color:0x88aacc,transparent:true,opacity:0.35,shininess:100});
+    matDoor = new THREE.MeshLambertMaterial({color:0x404850});
+    matBerm = new THREE.MeshLambertMaterial({color:0x8a7a5a});
+    matHazardDiv1 = new THREE.MeshBasicMaterial({color:0xcc2200,transparent:true,opacity:0.12,side:THREE.DoubleSide,depthWrite:false});
+    matHazardDiv2 = new THREE.MeshBasicMaterial({color:0xff6644,transparent:true,opacity:0.07,side:THREE.DoubleSide,depthWrite:false});
+    allMaterials = [matGround,matGravel,matRoad,matConcrete,matInsulation,matSS,matCS,matFWPipe,
+        matInsPipe,matTankBody,matTankRoof,matStruct,matPump,matGenBldg,matAdminBldg,
+        matRoof,matLadder,matFWTank,matFlare,matYellow,matGlass,matDoor,matBerm,matHazardDiv1,matHazardDiv2];
+}
+
+/* ====== GEOMETRY HELPERS ====== */
+function mkCyl(rT, rB, h, mat, seg) {
+    seg = seg || 24;
+    rT = Math.max(0.001, rT); rB = Math.max(0.001, rB); h = Math.max(0.001, h);
+    return new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, seg), mat);
+}
+function mkBox(w, h, d, mat) {
+    w = Math.max(0.001, w); h = Math.max(0.001, h); d = Math.max(0.001, d);
+    return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+}
+function mkCone(r, h, mat, seg) {
+    seg = seg || 24; r = Math.max(0.001, r); h = Math.max(0.001, h);
+    return new THREE.Mesh(new THREE.ConeGeometry(r, h, seg), mat);
+}
+function mkSphere(r, mat, ws, hs) {
+    r = Math.max(0.001, r);
+    return new THREE.Mesh(new THREE.SphereGeometry(r, ws||24, hs||16), mat);
+}
+function posM(m, x, y, z) { m.position.set(x, y, z); return m; }
+function rotM(m, rx, ry, rz) { if(rx) m.rotation.x=rx; if(ry) m.rotation.y=ry; if(rz) m.rotation.z=rz; return m; }
+
+/* ====== EQUIPMENT GROUP HELPER ====== */
+function mkEquip(tag, desc, type, status, hac) {
+    var g = new THREE.Group();
+    g.userData = {tag:tag, desc:desc, type:type, status:status||'EXISTING', hac:hac||'General Purpose', isEquipment:true};
+    return g;
+}
+
+/* ====== HORIZONTAL VESSEL ====== */
+function createHorizontalVessel(tag, desc, x, sy, len, rad, bandColor, hac) {
+    var g = mkEquip(tag, desc, 'Horizontal Pressure Vessel', 'EXISTING', hac||'Class I Div.1');
+    var cy = rad + 1.5;
+    // Insulation jacket body
+    var body = mkCyl(rad+0.06, rad+0.06, len, matInsulation, 32);
+    body.rotation.z = Math.PI/2; body.position.set(0, cy, 0); body.castShadow=true; body.receiveShadow=true;
+    g.add(body);
+    // SS end caps (hemispheres)
+    var capGeom = new THREE.SphereGeometry(rad, 32, 16, 0, Math.PI*2, 0, Math.PI/2);
+    var capR = new THREE.Mesh(capGeom, matSS); capR.rotation.z = -Math.PI/2; capR.position.set(len/2, cy, 0); capR.castShadow=true; g.add(capR);
+    var capL = new THREE.Mesh(capGeom, matSS); capL.rotation.z = Math.PI/2; capL.position.set(-len/2, cy, 0); capL.castShadow=true; g.add(capL);
+    // Steel bands at thirds
+    for(var i=-1;i<=1;i+=2) {
+        var band = mkCyl(rad+0.1, rad+0.1, 0.12, matSS, 32);
+        band.rotation.z = Math.PI/2; band.position.set(i*len/3, cy, 0); g.add(band);
+    }
+    // Color identification band
+    var bandMat = new THREE.MeshStandardMaterial({color:bandColor, metalness:0.3, roughness:0.5});
+    allMaterials.push(bandMat);
+    var cband = mkCyl(rad+0.08, rad+0.08, 0.8, bandMat, 32);
+    cband.rotation.z = Math.PI/2; cband.position.set(len*0.15, cy, 0); g.add(cband);
+    // Saddle supports on concrete plinths
+    for(var s=-1;s<=1;s+=2) {
+        var px = s * len * 0.32;
+        var plinth = mkBox(2.5, 0.4, rad+0.8, matConcrete);
+        plinth.position.set(px, 0.2, 0); plinth.castShadow=true; plinth.receiveShadow=true; g.add(plinth);
+        var saddle = mkBox(0.3, rad*0.7, rad*1.6, matStruct);
+        saddle.position.set(px, 0.4+rad*0.35, 0); saddle.castShadow=true; g.add(saddle);
+        var saddleTop = mkCyl(rad+0.12, rad+0.12, 0.3, matStruct, 16);
+        saddleTop.rotation.z = Math.PI/2; saddleTop.position.set(px, cy, 0); g.add(saddleTop);
+    }
+    // Top nozzle
+    var noz = mkCyl(0.2, 0.2, 1.2, matCS, 12);
+    noz.position.set(0, cy+rad+0.6, 0); g.add(noz);
+    // Side nozzles
+    for(var sn=-1;sn<=1;sn+=2) {
+        var snoz = mkCyl(0.18, 0.18, 0.8, matCS, 12);
+        snoz.rotation.z = Math.PI/2; snoz.position.set(sn*len*0.4, cy-rad*0.3, 0); g.add(snoz);
+    }
+    // Level gauge
+    var lg = mkBox(0.08, rad*1.4, 0.15, new THREE.MeshStandardMaterial({color:0x88ccff,metalness:0.3,roughness:0.2,transparent:true,opacity:0.6}));
+    lg.position.set(0, cy, rad+0.2); g.add(lg);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== VERTICAL VESSEL ====== */
+function createVerticalVessel(tag, desc, x, sy, h, rad, bandColor, hac, hasDetail) {
+    var g = mkEquip(tag, desc, 'Vertical Pressure Vessel', 'EXISTING', hac||'Class I Div.1');
+    var skirtH = 1.2;
+    var baseY = skirtH;
+    // Skirt
+    var skirt = mkCyl(rad+0.1, rad+0.2, skirtH, matStruct, 24);
+    skirt.position.set(0, skirtH/2, 0); skirt.castShadow=true; g.add(skirt);
+    // Insulation body
+    var body = mkCyl(rad+0.06, rad+0.06, h, matInsulation, 32);
+    body.position.set(0, baseY+h/2, 0); body.castShadow=true; body.receiveShadow=true; g.add(body);
+    // Hemispherical top
+    var topCap = new THREE.Mesh(new THREE.SphereGeometry(rad, 32, 16, 0, Math.PI*2, 0, Math.PI/2), matSS);
+    topCap.position.set(0, baseY+h, 0); topCap.castShadow=true; g.add(topCap);
+    // Hemispherical bottom
+    var botCap = new THREE.Mesh(new THREE.SphereGeometry(rad, 32, 16, 0, Math.PI*2, Math.PI/2, Math.PI/2), matSS);
+    botCap.position.set(0, baseY, 0); g.add(botCap);
+    // Color band at 60% height
+    if(bandColor) {
+        var bMat = new THREE.MeshStandardMaterial({color:bandColor, metalness:0.3, roughness:0.5});
+        allMaterials.push(bMat);
+        var cb = mkCyl(rad+0.1, rad+0.1, 0.6, bMat, 32);
+        cb.position.set(0, baseY+h*0.6, 0); g.add(cb);
+    }
+    // Top vent nozzle
+    var vent = mkCyl(0.15, 0.15, 1.0, matCS, 12);
+    vent.position.set(0, baseY+h+rad+0.5, 0); g.add(vent);
+    if(hasDetail !== false && h > 6) {
+        // Platforms every 3m
+        var platH = baseY + 3;
+        while(platH < baseY + h - 1) {
+            addPlatform(g, rad, platH);
+            platH += 3;
+        }
+        // Caged ladder
+        addLadder(g, rad, baseY, h);
+        // Process nozzles
+        var n1 = mkCyl(0.2, 0.2, 1.0, matCS, 12);
+        n1.rotation.z = Math.PI/2; n1.position.set(rad+0.5, baseY+h*0.7, 0); g.add(n1);
+        var n2 = mkCyl(0.18, 0.18, 0.8, matCS, 12);
+        n2.rotation.z = Math.PI/2; n2.position.set(rad+0.5, baseY+h*0.35, 0); g.add(n2);
+    }
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+function addPlatform(g, rad, y) {
+    var pr = rad + 1.2;
+    // Floor grating
+    var floor = mkCyl(pr, pr, 0.08, matLadder, 32);
+    floor.position.set(0, y, 0); g.add(floor);
+    // Handrail posts
+    for(var i=0;i<8;i++) {
+        var a = i/8*Math.PI*2;
+        var post = mkBox(0.05, 1.1, 0.05, matLadder);
+        post.position.set(Math.cos(a)*pr, y+0.55, Math.sin(a)*pr); g.add(post);
+    }
+    // Top rail (torus)
+    var rail = new THREE.Mesh(new THREE.TorusGeometry(pr, 0.03, 6, 32), matLadder);
+    rail.rotation.x = Math.PI/2; rail.position.set(0, y+1.1, 0); g.add(rail);
+}
+function addLadder(g, rad, baseY, h) {
+    var lx = rad + 0.6;
+    // Two rails
+    for(var s=-1;s<=1;s+=2) {
+        var rail = mkBox(0.04, h, 0.04, matLadder);
+        rail.position.set(lx+s*0.3, baseY+h/2, 0); g.add(rail);
+    }
+    // Rungs
+    var rungCount = Math.floor(h / 0.35);
+    for(var i=0;i<rungCount;i++) {
+        var ry = baseY + i*(h/rungCount);
+        var rung = mkBox(0.04, 0.04, 0.6, matLadder);
+        rung.position.set(lx, ry, 0); g.add(rung);
+    }
+    // Cage (simplified - curved bars)
+    for(var c=0;c<2;c++) {
+        var cage = mkBox(0.03, h, 0.03, matLadder);
+        cage.position.set(lx+(c===0?-0.5:0.5), baseY+h/2, 0.35); g.add(cage);
+    }
+}
+
+/* ====== STORAGE TANK (API 650) ====== */
+function createStorageTank(tag, desc, x, sy, rad, height, bermRad) {
+    var g = mkEquip(tag, desc, 'API 650 Storage Tank', 'EXISTING', 'Class I Div.2');
+    bermRad = bermRad || rad + 8;
+    // Containment berm
+    var bermShape = new THREE.Shape();
+    bermShape.absarc(0, 0, bermRad, 0, Math.PI*2, false);
+    var holePath = new THREE.Path();
+    holePath.absarc(0, 0, bermRad - 3, 0, Math.PI*2, false);
+    bermShape.holes.push(holePath);
+    var bermGeom = new THREE.ExtrudeGeometry(bermShape, {depth:1.8, bevelEnabled:false});
+    bermGeom.rotateX(-Math.PI/2);
+    var berm = new THREE.Mesh(bermGeom, matBerm);
+    berm.position.y = 0; berm.receiveShadow = true; g.add(berm);
+    // Gravel inside berm
+    var gravel = mkCyl(bermRad-1, bermRad-1, 0.05, matGravel, 48);
+    gravel.position.y = 0.03; g.add(gravel);
+    // Concrete ringwall
+    var ringwall = new THREE.Mesh(new THREE.TorusGeometry(rad+0.3, 0.4, 8, 48), matConcrete);
+    ringwall.rotation.x = Math.PI/2; ringwall.position.y = 0.2; g.add(ringwall);
+    // Tank shell
+    var shell = mkCyl(rad, rad, height, matTankBody, 48);
+    shell.position.y = height/2; shell.castShadow=true; shell.receiveShadow=true; g.add(shell);
+    // Weld seam rings
+    for(var ws=0;ws<3;ws++) {
+        var wy = height*(ws+1)/4;
+        var seam = new THREE.Mesh(new THREE.TorusGeometry(rad+0.02, 0.04, 6, 48), matCS);
+        seam.rotation.x = Math.PI/2; seam.position.y = wy; g.add(seam);
+    }
+    // Wind girder at 70%
+    var wg = new THREE.Mesh(new THREE.TorusGeometry(rad+0.15, 0.12, 6, 48), matStruct);
+    wg.rotation.x = Math.PI/2; wg.position.y = height*0.7; g.add(wg);
+    // Stiffener at 45%
+    var st = new THREE.Mesh(new THREE.TorusGeometry(rad+0.1, 0.08, 6, 48), matStruct);
+    st.rotation.x = Math.PI/2; st.position.y = height*0.45; g.add(st);
+    // Cone roof (slope 1:6)
+    var roofH = rad / 6;
+    var roof = mkCone(rad+0.1, roofH, matTankRoof, 48);
+    roof.position.y = height + roofH/2; roof.castShadow=true; g.add(roof);
+    // Vent on roof
+    var vent = mkCyl(0.15, 0.15, 1.5, matCS, 12);
+    vent.position.set(rad*0.3, height+roofH+0.75, 0); g.add(vent);
+    // Inlet/outlet nozzles at base
+    var inl = mkCyl(0.25, 0.25, 1.0, matCS, 12);
+    inl.rotation.z = Math.PI/2; inl.position.set(rad+0.5, 0.5, 0); g.add(inl);
+    var out = mkCyl(0.25, 0.25, 1.0, matCS, 12);
+    out.rotation.z = Math.PI/2; out.position.set(-rad-0.5, 0.5, 0); g.add(out);
+    // Spiral staircase
+    addSpiralStair(g, rad, height);
+    // Number placard (facing north = +Z)
+    var placard = mkBox(2, 1, 0.05, new THREE.MeshLambertMaterial({color:0xffffcc}));
+    placard.position.set(0, height*0.5, rad+0.1); g.add(placard);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+function addSpiralStair(g, rad, h) {
+    var steps = 70;
+    var rotPerStep = (3*2*Math.PI)/steps;
+    var hPerStep = h / steps;
+    var sr = rad + 0.8;
+    for(var i=0;i<steps;i++) {
+        var a = i * rotPerStep;
+        var sy = i * hPerStep + 0.3;
+        var step = mkBox(0.8, 0.06, 0.3, matLadder);
+        step.position.set(Math.cos(a)*sr, sy, Math.sin(a)*sr);
+        step.rotation.y = -a;
+        g.add(step);
+    }
+    // Handrail posts every 5 steps
+    for(var i=0;i<steps;i+=5) {
+        var a = i * rotPerStep;
+        var sy = i * hPerStep + 0.3;
+        var post = mkBox(0.04, 1.0, 0.04, matLadder);
+        post.position.set(Math.cos(a)*(sr+0.35), sy+0.5, Math.sin(a)*(sr+0.35)); g.add(post);
+    }
+}
+
+/* ====== PUMP ====== */
+function createPump(tag, desc, x, sy, hac) {
+    var g = mkEquip(tag, desc, 'Centrifugal Pump', 'EXISTING', hac||'Class I Div.1');
+    // Baseplate
+    var bp = mkBox(2.5, 0.15, 1.2, matConcrete);
+    bp.position.y = 0.08; bp.receiveShadow=true; g.add(bp);
+    // Motor block
+    var motor = mkBox(0.8, 0.7, 0.7, matPump);
+    motor.position.set(-0.4, 0.5, 0); motor.castShadow=true; g.add(motor);
+    // Pump casing
+    var casing = mkCyl(0.45, 0.45, 0.7, matPump, 20);
+    casing.rotation.z = Math.PI/2; casing.position.set(0.5, 0.5, 0); casing.castShadow=true; g.add(casing);
+    // Coupling guard
+    var guard = mkBox(0.25, 0.5, 0.5, matYellow);
+    guard.position.set(0.05, 0.5, 0); g.add(guard);
+    // Suction nozzle
+    var suc = mkCyl(0.15, 0.15, 0.6, matCS, 12);
+    suc.rotation.z = Math.PI/2; suc.position.set(0.5, 0.2, 0); g.add(suc);
+    // Discharge nozzle
+    var dis = mkCyl(0.12, 0.12, 0.5, matCS, 12);
+    dis.position.set(0.5, 1.0, 0); g.add(dis);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== BUILDING ====== */
+function createBuilding(tag, desc, x, sy, w, d, h, bType) {
+    var g = mkEquip(tag, desc, bType||'Building', 'EXISTING', 'General Purpose');
+    var mat = bType==='Admin' ? matAdminBldg : (bType==='Power' ? matGenBldg : matAdminBldg);
+    // Main walls
+    var walls = mkBox(w, h, d, mat);
+    walls.position.y = h/2; walls.castShadow=true; walls.receiveShadow=true; g.add(walls);
+    // Roof
+    var roof = mkBox(w+0.6, 0.3, d+0.6, matRoof);
+    roof.position.y = h+0.15; roof.castShadow=true; g.add(roof);
+    // Windows on front face (+X direction)
+    var numWin = Math.floor(w / 4);
+    for(var i=0;i<numWin;i++) {
+        var wx = -w/2 + 2 + i*(w-2)/Math.max(1,numWin-1);
+        if(numWin===1) wx = 0;
+        var win = mkBox(1.2, 1.0, 0.06, matGlass);
+        win.position.set(wx, h*0.55, d/2+0.04); g.add(win);
+        // Window on back
+        var win2 = mkBox(1.2, 1.0, 0.06, matGlass);
+        win2.position.set(wx, h*0.55, -d/2-0.04); g.add(win2);
+    }
+    // Side windows
+    var numSWin = Math.floor(d / 4);
+    for(var i=0;i<numSWin;i++) {
+        var wz = -d/2 + 2 + i*(d-2)/Math.max(1,numSWin-1);
+        if(numSWin===1) wz = 0;
+        var sw = mkBox(0.06, 1.0, 1.2, matGlass);
+        sw.position.set(w/2+0.04, h*0.55, wz); g.add(sw);
+        var sw2 = mkBox(0.06, 1.0, 1.2, matGlass);
+        sw2.position.set(-w/2-0.04, h*0.55, wz); g.add(sw2);
+    }
+    // Door on front
+    var door = mkBox(1.4, 2.4, 0.08, matDoor);
+    door.position.set(0, 1.2, d/2+0.05); g.add(door);
+    // AC units on roof (for admin)
+    if(bType==='Admin') {
+        for(var a=0;a<2;a++) {
+            var ac = mkBox(1.5, 0.6, 0.8, matLadder);
+            ac.position.set(-w/4+a*w/2, h+0.6, 0); g.add(ac);
+        }
+    }
+    // Louvered panels for power buildings
+    if(bType==='Power') {
+        for(var l=0;l<3;l++) {
+            var lv = mkBox(w*0.6, h*0.4, 0.08, matLadder);
+            lv.position.set(0, h*0.3+l*h*0.22, d/2+0.04); g.add(lv);
+        }
+    }
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== CHEMICAL INJECTION SKID ====== */
+function createChemSkid(tag, desc, x, sy) {
+    var g = mkEquip(tag, desc, 'Chemical Injection Skid', 'EXISTING', 'Class I Div.2');
+    // Steel frame
+    var frame = mkBox(3, 0.1, 2, matStruct);
+    frame.position.y = 0.6; g.add(frame);
+    // Legs
+    for(var lx=-1;lx<=1;lx+=2) for(var lz=-1;lz<=1;lz+=2) {
+        var leg = mkBox(0.08, 0.6, 0.08, matStruct);
+        leg.position.set(lx*1.3, 0.3, lz*0.8); g.add(leg);
+    }
+    // IBC totes
+    for(var t=-1;t<=0;t++) {
+        var tote = mkBox(1.0, 1.4, 0.8, new THREE.MeshStandardMaterial({color:0xeeeeee,metalness:0.1,roughness:0.7}));
+        tote.position.set(t*1.2, 1.35, 0); tote.castShadow=true; g.add(tote);
+    }
+    // Metering pump
+    var mp = mkBox(0.5, 0.3, 0.3, matPump);
+    mp.position.set(1.0, 0.85, 0); g.add(mp);
+    var pp = sp(x, sy, 0);
+    g.position.set(pp.x, 0, pp.z);
+    return g;
+}
+
+/* ====== SMALL VERTICAL VESSEL (simple) ====== */
+function createSmallVertical(tag, desc, x, sy, h, rad, hac) {
+    var g = mkEquip(tag, desc, 'Service Vessel', 'EXISTING', hac||'Class I Div.2');
+    var body = mkCyl(rad+0.04, rad+0.04, h, matInsulation, 20);
+    body.position.y = h/2+0.5; body.castShadow=true; g.add(body);
+    var top = new THREE.Mesh(new THREE.SphereGeometry(rad, 20, 12, 0, Math.PI*2, 0, Math.PI/2), matSS);
+    top.position.y = h+0.5; g.add(top);
+    var skirt = mkCyl(rad, rad+0.1, 0.5, matStruct, 16);
+    skirt.position.y = 0.25; g.add(skirt);
+    var noz = mkCyl(0.1, 0.1, 0.6, matCS, 10);
+    noz.position.y = h+rad+0.8; g.add(noz);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== FINGER SEPARATOR ====== */
+function createFingerSep(tag, x, sy) {
+    var g = mkEquip(tag, 'Finger Separator', 'Vertical Separator', 'EXISTING', 'Class I Div.1');
+    var h = 7, rad = 1.0;
+    var skirt = mkCyl(rad, rad+0.1, 0.8, matStruct, 16);
+    skirt.position.y = 0.4; g.add(skirt);
+    var body = mkCyl(rad+0.04, rad+0.04, h, matInsulation, 20);
+    body.position.y = 0.8+h/2; body.castShadow=true; g.add(body);
+    // Cone top
+    var cone = mkCone(rad+0.1, 1.2, matInsulation, 20);
+    cone.position.y = 0.8+h+0.6; cone.castShadow=true; g.add(cone);
+    // Vent nozzle
+    var vn = mkCyl(0.12, 0.12, 0.8, matCS, 10);
+    vn.position.y = 0.8+h+1.5; g.add(vn);
+    // Platform at 5m
+    var pf = mkCyl(rad+1.0, rad+1.0, 0.06, matLadder, 20);
+    pf.position.y = 5.8; g.add(pf);
+    for(var i=0;i<6;i++) {
+        var a = i/6*Math.PI*2;
+        var pp = mkBox(0.04, 1.0, 0.04, matLadder);
+        pp.position.set(Math.cos(a)*(rad+1), 6.3, Math.sin(a)*(rad+1)); g.add(pp);
+    }
+    // Ladder
+    for(var s=-1;s<=1;s+=2) {
+        var rl = mkBox(0.03, h, 0.03, matLadder);
+        rl.position.set(rad+0.5+s*0.25, 0.8+h/2, 0); g.add(rl);
+    }
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== FENCE ====== */
+function createFence() {
+    var g = new THREE.Group();
+    var hw = 120, hd = 115, postH = 2.5, spacing = 4;
+    // Posts along perimeter
+    // North side (z = +hd)
+    for(var x=-hw;x<=hw;x+=spacing) {
+        var post = mkBox(0.08, postH, 0.08, matStruct);
+        post.position.set(x, postH/2, hd); g.add(post);
+    }
+    // South side (z = -hd)
+    for(var x=-hw;x<=hw;x+=spacing) {
+        var post = mkBox(0.08, postH, 0.08, matStruct);
+        post.position.set(x, postH/2, -hd); g.add(post);
+    }
+    // East side (x = +hw)
+    for(var z=-hd;z<=hd;z+=spacing) {
+        var post = mkBox(0.08, postH, 0.08, matStruct);
+        post.position.set(hw, postH/2, z); g.add(post);
+    }
+    // West side (x = -hw) - skip gate area
+    for(var z=-hd;z<=hd;z+=spacing) {
+        if(Math.abs(z) < 5) continue; // Gate opening
+        var post = mkBox(0.08, postH, 0.08, matStruct);
+        post.position.set(-hw, postH/2, z); g.add(post);
+    }
+    // Rails - horizontal
+    var railMat = new THREE.MeshLambertMaterial({color:0x888888});
+    // North rail
+    for(var ry of [0.8, 1.8]) {
+        var nr = mkBox(hw*2, 0.04, 0.04, railMat);
+        nr.position.set(0, ry, hd); g.add(nr);
+        var sr = mkBox(hw*2, 0.04, 0.04, railMat);
+        sr.position.set(0, ry, -hd); g.add(sr);
+        var er = mkBox(0.04, 0.04, hd*2, railMat);
+        er.position.set(hw, ry, 0); g.add(er);
+        // West rail (with gate gap)
+        var wr1 = mkBox(0.04, 0.04, (hd-5), railMat);
+        wr1.position.set(-hw, ry, (hd-5)/2+5); g.add(wr1);
+        var wr2 = mkBox(0.04, 0.04, (hd-5), railMat);
+        wr2.position.set(-hw, ry, -(hd-5)/2-5); g.add(wr2);
+    }
+    // Gate
+    var gatePost1 = mkBox(0.12, 3.5, 0.12, matStruct);
+    gatePost1.position.set(-hw, 1.75, 5); g.add(gatePost1);
+    var gatePost2 = mkBox(0.12, 3.5, 0.12, matStruct);
+    gatePost2.position.set(-hw, 1.75, -5); g.add(gatePost2);
+    var gateBar = mkBox(0.08, 3.0, 10, railMat);
+    gateBar.position.set(-hw, 1.8, 0); g.add(gateBar);
+    return g;
+}
+
+/* ====== ROADS ====== */
+function createRoads() {
+    var g = new THREE.Group();
+    var rw = 8, rh = 0.08;
+    // Main N-S road
+    var ns = mkBox(rw, rh, 230, matRoad);
+    ns.position.y = 0.04; ns.receiveShadow=true; g.add(ns);
+    // E-W cross road 1
+    var ew1 = mkBox(200, rh, rw, matRoad);
+    ew1.position.y = 0.04; ew1.receiveShadow=true; g.add(ew1);
+    // E-W cross road 2
+    var ew2 = mkBox(200, rh, rw, matRoad);
+    ew2.position.set(0, 0.04, 50); ew2.receiveShadow=true; g.add(ew2);
+    // Center line markings (yellow)
+    var ym = new THREE.MeshLambertMaterial({color:0xe8c020});
+    // N-S center line
+    for(var z=-110;z<110;z+=6) {
+        var mk = mkBox(0.15, 0.01, 3, ym);
+        mk.position.set(0, 0.09, z); g.add(mk);
+    }
+    // E-W center lines
+    for(var x=-95;x<95;x+=6) {
+        var mk1 = mkBox(3, 0.01, 0.15, ym);
+        mk1.position.set(x, 0.09, 0); g.add(mk1);
+        var mk2 = mkBox(3, 0.01, 0.15, ym);
+        mk2.position.set(x, 0.09, 50); g.add(mk2);
+    }
+    return g;
+}
+
+/* ====== PIPE RACK ====== */
+function createPipeRack(startX, startZ, length, dir) {
+    var g = new THREE.Group();
+    var colH = 6, colSpacing = 6, numCols = Math.floor(length / colSpacing) + 1;
+    var beamW = 8, levelH = [colH - 1.5, colH - 0.5];
+    for(var i=0;i<numCols;i++) {
+        var t = i * colSpacing;
+        var cx = dir === 'ns' ? startX : startX + t;
+        var cz = dir === 'ns' ? startZ + t : startZ;
+        // H-frame columns
+        for(var s=-1;s<=1;s+=2) {
+            var offset = dir==='ns' ? s*beamW/2 : 0;
+            var offsetZ = dir==='ew' ? s*beamW/2 : 0;
+            var col = mkBox(0.2, colH, 0.2, matStruct);
+            col.position.set(cx+offset, colH/2, cz+offsetZ); col.castShadow=true; g.add(col);
+        }
+        // Cross beams at two levels
+        for(var lv of levelH) {
+            if(dir==='ns') {
+                var bm = mkBox(0.15, 0.15, beamW, matStruct);
+                bm.position.set(cx, lv, cz); g.add(bm);
+            } else {
+                var bm = mkBox(beamW, 0.15, 0.15, matStruct);
+                bm.position.set(cx, lv, cz); g.add(bm);
+            }
+        }
+        // Cross-bracing between columns (alternate pairs)
+        if(i < numCols-1 && i % 2 === 0) {
+            var nt = (i+1)*colSpacing;
+            var nx = dir==='ns' ? startX : startX+nt;
+            var nz = dir==='ns' ? startZ+nt : startZ;
+            if(dir==='ns') {
+                for(var s=-1;s<=1;s+=2) {
+                    var oz = s*beamW/2;
+                    var dx=nx-cx, dz=0, dy=colH;
+                    var len=Math.sqrt(dx*dx+dy*dy);
+                    var brace = mkCyl(0.04, 0.04, len, matLadder, 6);
+                    brace.position.set((cx+nx)/2, colH/2, cz+oz);
+                    brace.rotation.z = Math.atan2(dy,dx)-Math.PI/2;
+                    g.add(brace);
+                }
+            } else {
+                for(var s=-1;s<=1;s+=2) {
+                    var ox = s*beamW/2;
+                    var dx=nx-cx, dy=colH;
+                    var len=Math.sqrt(dx*dx+dy*dy);
+                    var brace = mkCyl(0.04, 0.04, len, matLadder, 6);
+                    brace.position.set((cx+nx)/2+ox, colH/2, cz);
+                    brace.rotation.z = Math.atan2(dy,dx)-Math.PI/2;
+                    g.add(brace);
+                }
+            }
+        }
+    }
+    // Pipes on top level
+    var pipeLevel = levelH[1] + 0.3;
+    var pipeData = [
+        {r:0.15, mat:matCS, off:-2.5}, {r:0.15, mat:matCS, off:-1.2},
+        {r:0.15, mat:matCS, off:0}, {r:0.10, mat:matInsPipe, off:1.2},
+        {r:0.10, mat:matInsPipe, off:2.0}, {r:0.075, mat:matFWPipe, off:2.8}
+    ];
+    for(var pd of pipeData) {
+        if(dir==='ns') {
+            var pipe = mkCyl(pd.r, pd.r, length, pd.mat, 12);
+            pipe.rotation.x = Math.PI/2;
+            pipe.position.set(startX, pipeLevel, startZ+length/2); g.add(pipe);
+        } else {
+            var pipe = mkCyl(pd.r, pd.r, length, pd.mat, 12);
+            pipe.rotation.z = Math.PI/2;
+            pipe.position.set(startX+length/2, pipeLevel, startZ+pd.off); g.add(pipe);
+        }
+    }
+    return g;
+}
+
+/* ====== FIRE WATER SYSTEM ====== */
+function createFireWaterSystem() {
+    var g = new THREE.Group();
+    var r = 0.09, h = 0.18;
+    // Ring main along fence perimeter
+    var positions = [
+        [-50,112],[0,112],[50,112],  // north
+        [118,-50],[118,50],           // east
+        [-118,-50],[-118,50],         // west
+        [-50,-112],[50,-112]          // south
+    ];
+    // North pipe segment
+    var np = mkCyl(r,r,100,matFWPipe,12); np.rotation.x=Math.PI/2; np.position.set(0,0.3,112); g.add(np);
+    // South pipe segment
+    var sp2 = mkCyl(r,r,100,matFWPipe,12); sp2.rotation.x=Math.PI/2; sp2.position.set(0,0.3,-112); g.add(sp2);
+    // East pipe segment
+    var ep = mkCyl(r,r,100,matFWPipe,12); ep.rotation.z=Math.PI/2; ep.position.set(118,0.3,0); g.add(ep);
+    // West pipe segment (with gap for gate)
+    var wp1 = mkCyl(r,r,105,matFWPipe,12); wp1.rotation.z=Math.PI/2; wp1.position.set(-118,0.3,57.5); g.add(wp1);
+    var wp2 = mkCyl(r,r,105,matFWPipe,12); wp2.rotation.z=Math.PI/2; wp2.position.set(-118,0.3,-57.5); g.add(wp2);
+    // Fire hydrants
+    for(var pos of positions) {
+        var hydrant = createFireHydrant();
+        var pp = sp(pos[0], pos[1], 0);
+        hydrant.position.set(pp.x, 0, pp.z);
+        g.add(hydrant);
+    }
+    return g;
+}
+function createFireHydrant() {
+    var g = new THREE.Group();
+    var post = mkCyl(0.08, 0.08, 1.0, matFWPipe, 10);
+    post.position.y = 0.5; g.add(post);
+    var head = mkBox(0.3, 0.25, 0.2, matFWPipe);
+    head.position.y = 1.1; g.add(head);
+    var noz1 = mkCyl(0.06, 0.06, 0.3, matFWPipe, 8);
+    noz1.rotation.z = Math.PI/2; noz1.position.set(0.2, 1.0, 0); g.add(noz1);
+    var noz2 = mkCyl(0.06, 0.06, 0.3, matFWPipe, 8);
+    noz2.rotation.z = Math.PI/2; noz2.position.set(-0.2, 1.0, 0); g.add(noz2);
+    return g;
+}
+
+/* ====== FLARE STACK ====== */
+function createFlareStack() {
+    var g = mkEquip('FLARE-001', 'Flare Stack', 'Flare System', 'EXISTING', 'Class I Div.1');
+    var fx = 0, fz = -108;
+    // Foundation pad
+    var pad = mkCyl(4, 4, 0.5, matConcrete, 8);
+    pad.position.y = 0.25; pad.receiveShadow=true; g.add(pad);
+    // Stack sections
+    var sections = [
+        {rB:0.6, rT:0.5, h:5},
+        {rB:0.5, rT:0.375, h:12},
+        {rB:0.375, rT:0.28, h:12},
+        {rB:0.28, rT:0.2, h:10}
+    ];
+    var yOff = 0.5;
+    for(var sec of sections) {
+        var stk = mkCyl(sec.rT, sec.rB, sec.h, matFlare, 16);
+        stk.position.y = yOff + sec.h/2; stk.castShadow=true; g.add(stk);
+        yOff += sec.h;
+    }
+    var totalH = 39.5; // 0.5 base + sections
+    // Platforms at 10m, 22m, 34m
+    var platHeights = [10, 22, 34];
+    for(var ph of platHeights) {
+        var pr = 1.8;
+        var pf = mkCyl(pr, pr, 0.06, matLadder, 16);
+        pf.position.y = ph; g.add(pf);
+        for(var i=0;i<6;i++) {
+            var a = i/6*Math.PI*2;
+            var pp = mkBox(0.04, 1.1, 0.04, matLadder);
+            pp.position.set(Math.cos(a)*pr, ph+0.55, Math.sin(a)*pr); g.add(pp);
+        }
+        var rl = new THREE.Mesh(new THREE.TorusGeometry(pr, 0.025, 4, 16), matLadder);
+        rl.rotation.x = Math.PI/2; rl.position.y = ph+1.1; g.add(rl);
+    }
+    // Caged ladder full height
+    for(var s=-1;s<=1;s+=2) {
+        var lr = mkBox(0.03, totalH, 0.03, matLadder);
+        lr.position.set(s*0.3, totalH/2, 0); g.add(lr);
+    }
+    for(var i=0;i<Math.floor(totalH/0.35);i++) {
+        var ry = i*0.35;
+        var rg = mkBox(0.03, 0.03, 0.6, matLadder);
+        rg.position.set(0, ry, 0); g.add(rg);
+    }
+    // Guy wires (3 directions)
+    var anchorDist = 28;
+    var wireAngles = [0, Math.PI*2/3, Math.PI*4/3];
+    for(var wa of wireAngles) {
+        var ax = Math.cos(wa)*anchorDist;
+        var az = Math.sin(wa)*anchorDist;
+        var start = new THREE.Vector3(0, totalH*0.7, 0);
+        var end = new THREE.Vector3(ax, 0, az);
+        var dir = new THREE.Vector3().subVectors(end, start);
+        var len = dir.length();
+        var wire = mkCyl(0.02, 0.02, len, matLadder, 4);
+        wire.position.copy(start).add(end).multiplyScalar(0.5);
+        wire.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.normalize());
+        g.add(wire);
+        // Anchor block
+        var ablk = mkBox(0.8, 0.4, 0.8, matConcrete);
+        ablk.position.set(ax, 0.2, az); g.add(ablk);
+    }
+    // Flare tip
+    var tip = mkCyl(0.25, 0.2, 0.8, matFlare, 12);
+    tip.position.y = totalH + 0.4; g.add(tip);
+    // Flame cones (animated)
+    var flameMat = new THREE.MeshBasicMaterial({color:0xff6600, transparent:true, opacity:0.7});
+    allMaterials.push(flameMat);
+    var flameMat2 = new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:0.5});
+    allMaterials.push(flameMat2);
+    var flameMat3 = new THREE.MeshBasicMaterial({color:0xff2200, transparent:true, opacity:0.4});
+    allMaterials.push(flameMat3);
+    for(var fi=0;fi<3;fi++) {
+        var fc = mkCone(0.6+fi*0.3, 3+fi*1.5, [flameMat, flameMat2, flameMat3][fi], 12);
+        fc.position.y = totalH + 1.5 + fi*0.5;
+        flareCones.push(fc);
+        g.add(fc);
+    }
+    // Point light for flame
+    flareLight = new THREE.PointLight(0xff6600, 4, 60);
+    flareLight.position.y = totalH + 3;
+    g.add(flareLight);
+    // Aviation warning light
+    avLightMat = new THREE.MeshBasicMaterial({color:0xff0000});
+    allMaterials.push(avLightMat);
+    var avLight = mkCyl(0.12, 0.12, 0.2, avLightMat, 8);
+    avLight.position.y = totalH + 1.0;
+    g.add(avLight);
+    g.position.set(fx, 0, fz);
+    return g;
+}
+
+/* ====== LABEL SYSTEM ====== */
+function createLabel(text, position) {
+    var canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 80;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(8,12,24,0.88)';
+    ctx.fillRect(0, 0, 512, 80);
+    ctx.strokeStyle = '#3a80d0';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(2, 2, 508, 76);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px Segoe UI, Tahoma, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 256, 42);
+    var texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    var spriteMat = new THREE.SpriteMaterial({map:texture, transparent:true, depthTest:false});
+    var sprite = new THREE.Sprite(spriteMat);
+    sprite.position.copy(position);
+    sprite.scale.set(20, 3.2, 1);
+    labelSprites.push(sprite);
+    return sprite;
+}
+
+/* ====== HAZARDOUS ZONES ====== */
+function createHazardZones() {
+    var g = new THREE.Group();
+    // Div 1 zone - process area (around vessels at z=+56 to +88, x=-75 to +80)
+    var div1 = mkBox(160, 0.01, 40, matHazardDiv1);
+    div1.position.set(-5, 0.08, 72); g.add(div1);
+    // Div 1 zone - pump area
+    var div1b = mkBox(60, 0.01, 30, matHazardDiv1);
+    div1b.position.set(-45, 0.08, 55); g.add(div1b);
+    // Div 1 zone - tank bunds
+    var div1c = mkBox(50, 0.01, 36, matHazardDiv1);
+    div1c.position.set(-62, 0.08, -42); g.add(div1c);
+    // Div 2 zones (extended)
+    var div2a = mkBox(170, 0.01, 48, matHazardDiv2);
+    div2a.position.set(-5, 0.07, 72); g.add(div2a);
+    var div2b = mkBox(70, 0.01, 38, matHazardDiv2);
+    div2b.position.set(-45, 0.07, 55); g.add(div2b);
+    var div2c = mkBox(60, 0.01, 44, matHazardDiv2);
+    div2c.position.set(-62, 0.07, -42); g.add(div2c);
+    return g;
+}
+
+/* ====== KROEHNE METER SKID ====== */
+function createMeterSkid(x, sy) {
+    var g = mkEquip('KROEHNE-MS', 'Kroehne Meter System', 'Meter Skid', 'EXISTING', 'Class I Div.1');
+    var frame = mkBox(1.5, 0.08, 1.5, matYellow);
+    frame.position.y = 0.5; g.add(frame);
+    for(var lx=-1;lx<=1;lx+=2) for(var lz=-1;lz<=1;lz+=2) {
+        var leg = mkBox(0.06, 0.5, 0.06, matStruct);
+        leg.position.set(lx*0.6, 0.25, lz*0.6); g.add(leg);
+    }
+    var meter = mkCyl(0.25, 0.25, 0.6, matSS, 16);
+    meter.rotation.z = Math.PI/2; meter.position.set(0, 0.9, 0); g.add(meter);
+    var pipe1 = mkCyl(0.1, 0.1, 1.5, matCS, 10);
+    pipe1.rotation.z = Math.PI/2; pipe1.position.set(0, 0.9, 0); g.add(pipe1);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== COMPRESSOR UNIT ====== */
+function createCompressorUnit(x, sy) {
+    var g = mkEquip('40-S-600', 'Gas Compressor Unit', 'Compressor', 'EXISTING', 'Class I Div.2');
+    // Enclosure
+    var enc = mkBox(16, 6, 12, matGenBldg);
+    enc.position.y = 3; enc.castShadow=true; enc.receiveShadow=true; g.add(enc);
+    // Roof
+    var roof = mkBox(16.6, 0.3, 12.6, matRoof);
+    roof.position.y = 6.15; g.add(roof);
+    // Suction drum
+    var drum = mkCyl(1.2, 1.2, 5, matInsulation, 20);
+    drum.position.set(9, 2.5, 0); drum.castShadow=true; g.add(drum);
+    var drumTop = new THREE.Mesh(new THREE.SphereGeometry(1.2, 20, 12, 0, Math.PI*2, 0, Math.PI/2), matSS);
+    drumTop.position.set(9, 5, 0); g.add(drumTop);
+    // Air fin cooler on roof
+    var cooler = mkBox(6, 1.5, 4, matStruct);
+    cooler.position.set(-2, 7, 0); g.add(cooler);
+    // Discharge stack
+    var stack = mkCyl(0.3, 0.3, 8, matCS, 12);
+    stack.position.set(5, 10, -5); stack.castShadow=true; g.add(stack);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== AIR COMPRESSOR ====== */
+function createAirCompressor(tag, x, sy) {
+    var g = mkEquip(tag, 'Air Compressor Unit', 'Air Compressor', 'EXISTING', 'General Purpose');
+    var enc = mkBox(8, 4, 5, matGenBldg);
+    enc.position.y = 2; enc.castShadow=true; g.add(enc);
+    var roof = mkBox(8.4, 0.25, 5.4, matRoof);
+    roof.position.y = 4.12; g.add(roof);
+    // Air receiver
+    var receiver = mkCyl(0.8, 0.8, 3.5, matCS, 16);
+    receiver.position.set(5, 1.75, 0); receiver.castShadow=true; g.add(receiver);
+    var rTop = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 10, 0, Math.PI*2, 0, Math.PI/2), matSS);
+    rTop.position.set(5, 3.5, 0); g.add(rTop);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== FIREFIGHTER PUMP ====== */
+function createFFPump(tag, desc, x, sy) {
+    var g = mkEquip(tag, desc, 'Fire Water Pump', 'EXISTING', 'General Purpose');
+    var bp = mkBox(2.5, 0.15, 1.2, matConcrete);
+    bp.position.y = 0.08; g.add(bp);
+    var motor = mkBox(0.9, 0.8, 0.8, matPump);
+    motor.position.set(-0.4, 0.55, 0); motor.castShadow=true; g.add(motor);
+    var casing = mkCyl(0.5, 0.5, 0.8, matPump, 20);
+    casing.rotation.z = Math.PI/2; casing.position.set(0.6, 0.55, 0); casing.castShadow=true; g.add(casing);
+    var guard = mkBox(0.25, 0.6, 0.6, matYellow);
+    guard.position.set(0.1, 0.55, 0); g.add(guard);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== FINGER SEPARATOR MANIFOLDS ====== */
+function createFingerManifolds() {
+    var g = new THREE.Group();
+    // Inlet manifold (red, Ø300mm) along base
+    var inlet = mkCyl(0.15, 0.15, 30, matFWPipe, 12);
+    inlet.rotation.x = Math.PI/2;
+    inlet.position.set(sp(58, 77, 0.5).x, 0.5, sp(58, 77, 0).z);
+    g.add(inlet);
+    // Gas outlet header (grey, Ø200mm) at top
+    var outlet = mkCyl(0.1, 0.1, 30, matCS, 12);
+    outlet.rotation.x = Math.PI/2;
+    outlet.position.set(sp(58, 77, 8).x, 8, sp(58, 77, 0).z);
+    g.add(outlet);
+    return g;
+}
+
+/* ====== WORKERS CAMP ====== */
+function createWorkersCamp() {
+    var g = mkEquip('LSC-CAMP', 'Workers Camp / LSC', 'Accommodation', 'EXISTING', 'General Purpose');
+    var cx = 90, cz = -85;
+    // Inner fence
+    var fenceW = 60, fenceD = 40;
+    for(var fx=-fenceW/2;fx<=fenceW/2;fx+=4) {
+        var fp1 = mkBox(0.05, 2, 0.05, matStruct);
+        fp1.position.set(cx+fx, 1, cz-fenceD/2); g.add(fp1);
+        var fp2 = mkBox(0.05, 2, 0.05, matStruct);
+        fp2.position.set(cx+fx, 1, cz+fenceD/2); g.add(fp2);
+    }
+    for(var fz=-fenceD/2;fz<=fenceD/2;fz+=4) {
+        var fp3 = mkBox(0.05, 2, 0.05, matStruct);
+        fp3.position.set(cx-fenceW/2, 1, cz+fz); g.add(fp3);
+        var fp4 = mkBox(0.05, 2, 0.05, matStruct);
+        fp4.position.set(cx+fenceW/2, 1, cz+fz); g.add(fp4);
+    }
+    // 4x3 grid of prefab units (10x4x3m)
+    for(var row=0;row<3;row++) {
+        for(var col=0;col<4;col++) {
+            var ux = cx - 22.5 + col*15;
+            var uz = cz - 14 + row*14;
+            var unit = mkBox(10, 3, 4, matAdminBldg);
+            unit.position.set(ux, 1.5, uz); unit.castShadow=true; unit.receiveShadow=true; g.add(unit);
+            var uRoof = mkBox(10.4, 0.2, 4.4, matRoof);
+            uRoof.position.set(ux, 3.1, uz); g.add(uRoof);
+            // Door
+            var dr = mkBox(1.0, 2.2, 0.06, matDoor);
+            dr.position.set(ux, 1.1, uz+2.04); g.add(dr);
+            // Window
+            var wn = mkBox(0.8, 0.8, 0.06, matGlass);
+            wn.position.set(ux+3, 1.8, uz+2.04); g.add(wn);
+        }
+    }
+    return g;
+}
+
+/* ====== GROUND VESSEL (box) ====== */
+function createGroundVessel(tag, desc, x, sy, l, w, h) {
+    var g = mkEquip(tag, desc, 'Ground Vessel', 'EXISTING', 'Class I Div.1');
+    var body = mkBox(l, h, w, matInsulation);
+    body.position.y = h/2; body.castShadow=true; body.receiveShadow=true; g.add(body);
+    // Top nozzles
+    for(var ni=0;ni<3;ni++) {
+        var nz = mkCyl(0.15, 0.15, 0.8, matCS, 10);
+        nz.position.set(-l/3+ni*l/3, h+0.4, 0); g.add(nz);
+    }
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== SMALL SKID PACKAGE ====== */
+function createSkidPackage(tag, x, sy, w, d, h) {
+    var g = mkEquip(tag, 'Skid Package', 'Process Skid', 'EXISTING', 'Class I Div.1');
+    var frame = mkBox(w, h, d, matStruct);
+    frame.position.y = h/2; frame.castShadow=true; g.add(frame);
+    var eq = mkBox(w*0.6, h*0.7, d*0.6, matPump);
+    eq.position.y = h/2; g.add(eq);
+    var p = sp(x, sy, 0);
+    g.position.set(p.x, 0, p.z);
+    return g;
+}
+
+/* ====== SCENE INITIALIZATION ====== */
+function init() {
+    // Scene
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0b0f1a, 0.0012);
+    // Camera
+    camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, 0.5, 3000);
+    updateCamera();
+    // Renderer
+    renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    document.body.appendChild(renderer.domElement);
+    // Raycaster
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+    // Materials
+    initMaterials();
+    // Lighting
+    var sun = new THREE.DirectionalLight(0xfffaea, 2.6);
+    sun.position.set(150, 250, 120);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 8192;
+    sun.shadow.mapSize.height = 8192;
+    sun.shadow.camera.left = -250;
+    sun.shadow.camera.right = 250;
+    sun.shadow.camera.top = 250;
+    sun.shadow.camera.bottom = -250;
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 600;
+    sun.shadow.bias = -0.0008;
+    sun.shadow.normalBias = 0.04;
+    scene.add(sun);
+    var hemi = new THREE.HemisphereLight(0x90b8e0, 0x5a4a30, 0.85);
+    scene.add(hemi);
+    var fill = new THREE.DirectionalLight(0x4a80c0, 0.35);
+    fill.position.set(-100, 60, -80);
+    scene.add(fill);
+    // Ground
+    var ground = mkBox(600, 0.1, 600, matGround);
+    ground.position.y = -0.05; ground.receiveShadow = true;
+    scene.add(ground);
+    // Gravel pad
+    var gravel = mkBox(250, 0.06, 240, matGravel);
+    gravel.position.y = 0.03; gravel.receiveShadow = true;
+    scene.add(gravel);
+    // Grid
+    var grid = new THREE.GridHelper(300, 30, 0x1a3050, 0x111a28);
+    grid.position.y = 0.01;
+    scene.add(grid);
+    // Build plant
+    buildPlant();
+    // Controls
+    setupControls();
+    // Interaction
+    setupInteraction();
+    // Resize
+    window.addEventListener('resize', function() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+}
+
+/* ====== BUILD PLANT ====== */
+function buildPlant() {
+    // --- HORIZONTAL PRESSURE VESSELS ---
+    var hVessels = [
+        {tag:'60-V-100',desc:'1st Stage Separator',x:-35,sy:-70,l:14,r:2.2,band:0x2244cc},
+        {tag:'60-V-200',desc:'2nd Stage Separator',x:-15,sy:-70,l:14,r:2.2,band:0x2244cc},
+        {tag:'60-V-250',desc:'3rd Stage Separator',x:8,sy:-70,l:13,r:2.0,band:0x22aa44},
+        {tag:'60-V-320',desc:'4th Stage Separator',x:28,sy:-70,l:11,r:1.8,band:0x22aa44},
+        {tag:'60-V-120',desc:'Test Separator',x:-65,sy:-42,l:10,r:1.5,band:0xddcc22},
+        {tag:'40-V-350',desc:'Dehydrator',x:-50,sy:-38,l:10,r:1.8,band:null},
+        {tag:'40-V-230',desc:'Desalter',x:-50,sy:-46,l:12,r:2.0,band:null}
+    ];
+    hVessels.forEach(function(v) {
+        var eq = createHorizontalVessel(v.tag, v.desc, v.x, v.sy, v.l, v.r, v.band);
+        scene.add(eq); equipmentList.push(eq);
+        labelSprites.push(createLabel(v.tag, sp(v.x, v.sy, v.r+4)));
+        scene.add(labelSprites[labelSprites.length-1]);
+    });
+    // MT Bank Separators
+    var mtVessels = [
+        {tag:'40-V-600',desc:'MCT Bank 1st Stage',x:37,sy:-58},
+        {tag:'40-V-210',desc:'MCT Bank 2nd Stage',x:45,sy:-58},
+        {tag:'40-V-223',desc:'MCT Bank 3rd Stage',x:53,sy:-58},
+        {tag:'40-V-229',desc:'MCT Bank 4th Stage',x:61,sy:-58}
+    ];
+    mtVessels.forEach(function(v) {
+        var eq = createHorizontalVessel(v.tag, v.desc, v.x, v.sy, 8, 1.4, null, 'Class I Div.2');
+        scene.add(eq); equipmentList.push(eq);
+    });
+    labelSprites.push(createLabel('MCT Bank', sp(49, -58, 4)));
+    scene.add(labelSprites[labelSprites.length-1]);
+    // --- VERTICAL VESSELS ---
+    var vVessels = [
+        {tag:'60-X-550',desc:'HP Gas Scrubber',x:-52,sy:-68,h:12,r:1.8,band:0xee8800},
+        {tag:'60-X-560',desc:'LP Gas Scrubber',x:-52,sy:-60,h:10,r:1.5,band:0xee8800},
+        {tag:'40-V-550',desc:'HP Relief KO Drum',x:-68,sy:-70,h:6,r:1.2,band:null},
+        {tag:'40-V-560',desc:'LP Relief KO Drum',x:-68,sy:-62,h:5,r:1.0,band:null}
+    ];
+    vVessels.forEach(function(v) {
+        var eq = createVerticalVessel(v.tag, v.desc, v.x, v.sy, v.h, v.r, v.band);
+        scene.add(eq); equipmentList.push(eq);
+        labelSprites.push(createLabel(v.tag, sp(v.x, v.sy, v.h+2.5)));
+        scene.add(labelSprites[labelSprites.length-1]);
+    });
+    // --- GROUND VESSELS ---
+    var gv1 = createGroundVessel('60-V-280','Ground Vessel',10,-56,20,10,3);
+    scene.add(gv1); equipmentList.push(gv1);
+    var gv2 = createGroundVessel('60-V-290','Ground Vessel',10,-46,20,10,3);
+    scene.add(gv2); equipmentList.push(gv2);
+    labelSprites.push(createLabel('Ground Vessels', sp(10, -51, 5)));
+    scene.add(labelSprites[labelSprites.length-1]);
+    // --- SERVICE GAS VESSELS (small) ---
+    var svcVessels = [
+        {tag:'60-V-500A',x:38,sy:-68,h:5,r:1.0},
+        {tag:'60-V-500B',x:44,sy:-68,h:5,r:1.0},
+        {tag:'60-V-500C',x:50,sy:-68,h:5,r:1.0},
+        {tag:'60-V-510',x:10,sy:-82,h:6,r:1.2},
+        {tag:'60-V-660',x:-10,sy:-82,h:5,r:1.0},
+        {tag:'60-V-663',x:-16,sy:-82,h:5,r:1.0},
+        {tag:'60-V-670',x:-22,sy:-82,h:5,r:1.0}
+    ];
+    svcVessels.forEach(function(v) {
+        var eq = createSmallVertical(v.tag, 'Service Gas Vessel', v.x, v.sy, v.h, v.r);
+        scene.add(eq); equipmentList.push(eq);
+    });
+    labelSprites.push(createLabel('Service Vessels', sp(44, -68, 8)));
+    scene.add(labelSprites[labelSprites.length-1]);
+    // --- FINGER SEPARATORS ---
+    for(var fi=0;fi<6;fi++) {
+        var ftag = '60-SK-100'+(fi+1);
+        var fx = 43 + fi*5.5;
+        var fsep = createFingerSep(ftag, fx, -77);
+        scene.add(fsep); equipmentList.push(fsep);
+    }
+    labelSprites.push(createLabel('FingerSeparators', sp(58, -77, 10)));
+    scene.add(labelSprites[labelSprites.length-1]);
+    // Finger manifolds
+    var manifolds = createFingerManifolds();
+    scene.add(manifolds);
+
+    // --- STORAGE TANKS ---
+    var tanks = [
+        {tag:'TK-101A',desc:'Crude Oil Storage Tank A',x:-62,sy:-30,rad:18,h:12,berm:26},
+        {tag:'TK-101B',desc:'Crude Oil Storage Tank B',x:-62,sy:-50,rad:18,h:12,berm:26},
+        {tag:'TK-102A',desc:'Crude Oil Storage Tank C',x:-88,sy:-30,rad:15,h:10,berm:22},
+        {tag:'TK-102B',desc:'Crude Oil Storage Tank D',x:-88,sy:-50,rad:15,h:10,berm:22},
+        {tag:'TK-103',desc:'Slop / Wash Tank',x:-110,sy:-42,rad:10,h:8,berm:16}
+    ];
+    tanks.forEach(function(t) {
+        var eq = createStorageTank(t.tag, t.desc, t.x, t.sy, t.rad, t.h, t.berm);
+        scene.add(eq); equipmentList.push(eq);
+        labelSprites.push(createLabel(t.tag, sp(t.x, t.sy, t.h + t.rad/6 + 3)));
+        scene.add(labelSprites[labelSprites.length-1]);
+    });
+
+    // --- FIRE WATER TANK ---
+    var fwTankG = mkEquip('FW-TK-001','Fire Water Storage Tank','Fire Water Tank','EXISTING','General Purpose');
+    var fwBody = mkCyl(8, 8, 6, matFWTank, 32);
+    fwBody.position.y = 3; fwBody.castShadow = true; fwBody.receiveShadow = true; fwTankG.add(fwBody);
+    var fwRoof = mkCone(8.1, 1.3, matFWTank, 32);
+    fwRoof.position.y = 6.65; fwTankG.add(fwRoof);
+    var fwVent = mkCyl(0.12, 0.12, 1.2, matCS, 10);
+    fwVent.position.set(3, 7.8, 0); fwTankG.add(fwVent);
+    var fwBase = mkCyl(8.5, 8.5, 0.3, matConcrete, 32);
+    fwBase.position.y = 0.15; fwTankG.add(fwBase);
+    var fwp = sp(-105, -78, 0);
+    fwTankG.position.set(fwp.x, 0, fwp.z);
+    scene.add(fwTankG); equipmentList.push(fwTankG);
+    labelSprites.push(createLabel('FW-TK-001', sp(-105, -78, 9)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- PUMPS ---
+    var pumps = [
+        {tag:'60-P-100A',desc:'Export Pump A',x:-35,sy:-58,hac:'Class I Div.1'},
+        {tag:'60-P-100B',desc:'Export Pump B',x:-35,sy:-54,hac:'Class I Div.1'},
+        {tag:'60-P-100C',desc:'Export Pump C',x:-35,sy:-50,hac:'Class I Div.1'},
+        {tag:'60-P-200A',desc:'Transfer Pump A',x:-42,sy:-58,hac:'Class I Div.1'},
+        {tag:'60-P-200B',desc:'Transfer Pump B',x:-42,sy:-54,hac:'Class I Div.1'},
+        {tag:'60-P-300A',desc:'HP Pump A',x:-28,sy:-58,hac:'Class I Div.1'},
+        {tag:'60-P-300B',desc:'HP Pump B',x:-28,sy:-54,hac:'Class I Div.1'},
+        {tag:'40-P-400A',desc:'Slop Pump A',x:-100,sy:-50,hac:'Class I Div.2'},
+        {tag:'40-P-400B',desc:'Slop Pump B',x:-100,sy:-46,hac:'Class I Div.2'},
+        {tag:'40-P-500',desc:'Chemical Injection Pump',x:-55,sy:-82,hac:'Class I Div.2'}
+    ];
+    pumps.forEach(function(p) {
+        var eq = createPump(p.tag, p.desc, p.x, p.sy, p.hac);
+        scene.add(eq); equipmentList.push(eq);
+    });
+    labelSprites.push(createLabel('Export Pumps', sp(-35, -54, 3)));
+    scene.add(labelSprites[labelSprites.length-1]);
+    labelSprites.push(createLabel('Transfer Pumps', sp(-42, -56, 3)));
+    scene.add(labelSprites[labelSprites.length-1]);
+    labelSprites.push(createLabel('HP Pumps', sp(-28, -56, 3)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- BUILDINGS ---
+    var buildings = [
+        {tag:'BLD-CTRL',desc:'Control Room',x:15,sy:-82,w:18,d:10,h:5,type:'Admin'},
+        {tag:'BLD-ADM',desc:'Admin Building',x:38,sy:-82,w:20,d:10,h:4,type:'Admin'},
+        {tag:'BLD-PWR-A',desc:'Power Generation A',x:-80,sy:-82,w:16,d:10,h:5,type:'Power'},
+        {tag:'BLD-PWR-B',desc:'Power Generation B',x:-80,sy:-92,w:16,d:10,h:5,type:'Power'},
+        {tag:'BLD-MCC',desc:'MCC Room',x:60,sy:-82,w:12,d:8,h:4,type:'Power'},
+        {tag:'BLD-WRK',desc:'Workshop',x:75,sy:-82,w:14,d:8,h:4,type:'Admin'},
+        {tag:'BLD-LAB',desc:'Laboratory',x:15,sy:-92,w:10,d:6,h:3.5,type:'Admin'}
+    ];
+    buildings.forEach(function(b) {
+        var eq = createBuilding(b.tag, b.desc, b.x, b.sy, b.w, b.d, b.h, b.type);
+        scene.add(eq); equipmentList.push(eq);
+        labelSprites.push(createLabel(b.tag, sp(b.x, b.sy, b.h + 2)));
+        scene.add(labelSprites[labelSprites.length-1]);
+    });
+
+    // --- COMPRESSOR UNIT ---
+    var compUnit = createCompressorUnit(-55, -92);
+    scene.add(compUnit); equipmentList.push(compUnit);
+    labelSprites.push(createLabel('40-S-600 Gas Compressor', sp(-55, -92, 9)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- AIR COMPRESSORS ---
+    var ac1 = createAirCompressor('AC-001', -80, -70);
+    scene.add(ac1); equipmentList.push(ac1);
+    var ac2 = createAirCompressor('AC-002', -80, -64);
+    scene.add(ac2); equipmentList.push(ac2);
+    labelSprites.push(createLabel('Air Compressors', sp(-80, -67, 7)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- CHEMICAL INJECTION SKIDS ---
+    var chem1 = createChemSkid('CIS-001', 'Demulsifier Injection', -58, -80);
+    scene.add(chem1); equipmentList.push(chem1);
+    var chem2 = createChemSkid('CIS-002', 'Corrosion Inhibitor', -58, -76);
+    scene.add(chem2); equipmentList.push(chem2);
+    var chem3 = createChemSkid('CIS-003', 'Scale Inhibitor', -55, -72);
+    scene.add(chem3); equipmentList.push(chem3);
+    labelSprites.push(createLabel('Chem. Injection Skids', sp(-57, -76, 4)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- KROEHNE METER SKID ---
+    var kroehne = createMeterSkid(-20, -60);
+    scene.add(kroehne); equipmentList.push(kroehne);
+    labelSprites.push(createLabel('KROEHNE MS', sp(-20, -60, 3)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- FIREFIGHTER PUMPS ---
+    var ffp1 = createFFPump('FFP-001', 'Fire Water Pump 1', -95, -72);
+    scene.add(ffp1); equipmentList.push(ffp1);
+    var ffp2 = createFFPump('FFP-002', 'Fire Water Pump 2', -95, -68);
+    scene.add(ffp2); equipmentList.push(ffp2);
+    var ffp3 = createFFPump('FFP-003', 'Jockey Pump', -95, -64);
+    scene.add(ffp3); equipmentList.push(ffp3);
+    labelSprites.push(createLabel('Fire Pumps', sp(-95, -68, 3)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- SKID PACKAGES ---
+    var skid1 = createSkidPackage('SKID-HE-001', 20, -62, 4, 3, 2.5);
+    scene.add(skid1); equipmentList.push(skid1);
+    var skid2 = createSkidPackage('SKID-HE-002', 20, -56, 4, 3, 2.5);
+    scene.add(skid2); equipmentList.push(skid2);
+    labelSprites.push(createLabel('Heat Exch. Skids', sp(20, -59, 5)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- PIPE RACKS ---
+    var pr1 = createPipeRack(-20, 72, 80, 'ns'); // N-S main rack
+    scene.add(pr1);
+    var pr2 = createPipeRack(-100, 40, 100, 'ew'); // W-E rack north
+    scene.add(pr2);
+    var pr3 = createPipeRack(-100, -20, 80, 'ew'); // W-E rack mid
+    scene.add(pr3);
+
+    // --- ROADS ---
+    var roads = createRoads();
+    scene.add(roads);
+
+    // --- FIRE WATER SYSTEM ---
+    var fwSystem = createFireWaterSystem();
+    scene.add(fwSystem);
+
+    // --- FLARE STACK ---
+    var flareStack = createFlareStack();
+    scene.add(flareStack); equipmentList.push(flareStack);
+    labelSprites.push(createLabel('FLARE-001', sp(0, -108, 46)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- HAZARDOUS ZONES ---
+    var hazards = createHazardZones();
+    scene.add(hazards);
+
+    // --- FENCE ---
+    var fence = createFence();
+    scene.add(fence);
+
+    // --- WORKERS CAMP ---
+    var camp = createWorkersCamp();
+    scene.add(camp); equipmentList.push(camp);
+    labelSprites.push(createLabel('Workers Camp', sp(90, -85, 6)));
+    scene.add(labelSprites[labelSprites.length-1]);
+
+    // --- NORTH ARROW ---
+    var arrowG = new THREE.Group();
+    var arrowShaft = mkBox(0.15, 8, 0.15, new THREE.MeshBasicMaterial({color:0xffffff}));
+    arrowShaft.position.y = 4; arrowG.add(arrowShaft);
+    var arrowHead = mkCone(0.5, 1.5, new THREE.MeshBasicMaterial({color:0xff3333}), 12);
+    arrowHead.position.y = 9; arrowG.add(arrowHead);
+    var nLabel = createLabel('N', new THREE.Vector3(0, 12, 0));
+    nLabel.scale.set(8, 1.5, 1);
+    arrowG.add(nLabel);
+    arrowG.position.set(130, 0, 100);
+    scene.add(arrowG);
+
+    // --- COMPASS LABELS AT EDGES ---
+    var labelN = createLabel('NORTH', sp(0, 130, 2));
+    labelN.scale.set(16, 2.5, 1);
+    scene.add(labelN);
+    var labelS = createLabel('SOUTH', sp(0, -130, 2));
+    labelS.scale.set(16, 2.5, 1);
+    scene.add(labelS);
+    var labelE = createLabel('EAST', sp(135, 0, 2));
+    labelE.scale.set(16, 2.5, 1);
+    scene.add(labelE);
+    var labelW = createLabel('WEST', sp(-135, 0, 2));
+    labelW.scale.set(16, 2.5, 1);
+    scene.add(labelW);
+}
+
+/* ====== CAMERA UPDATE ====== */
+function updateCamera() {
+    camera.position.set(
+        target.x + radius * Math.sin(phi) * Math.cos(theta),
+        target.y + radius * Math.cos(phi),
+        target.z + radius * Math.sin(phi) * Math.sin(theta)
+    );
+    camera.lookAt(target);
+}
+
+/* ====== VIEW PRESETS ====== */
+function setView(name) {
+    autoRotate = false;
+    document.getElementById('btnRotate').classList.remove('active');
+    switch(name) {
+        case 'persp':
+            theta = 0.75; phi = 0.85; radius = 380; target.set(0, 12, 0); break;
+        case 'top':
+            theta = 0; phi = 0.05; radius = 350; target.set(0, 0, 0); break;
+        case 'iso':
+            theta = Math.PI/4; phi = Math.PI/4; radius = 400; target.set(0, 10, 0); break;
+        case 'north':
+            theta = Math.PI; phi = 1.45; radius = 300; target.set(0, 15, 0); break;
+        case 'east':
+            theta = -Math.PI/2; phi = 1.45; radius = 300; target.set(0, 15, 0); break;
+    }
+    updateCamera();
+}
+
+/* ====== TOGGLES ====== */
+function toggleWire() {
+    wireframeMode = !wireframeMode;
+    document.getElementById('btnWire').classList.toggle('active', wireframeMode);
+    allMaterials.forEach(function(m) { m.wireframe = wireframeMode; });
+}
+function toggleShadow() {
+    shadowsOn = !shadowsOn;
+    document.getElementById('btnShadow').classList.toggle('active', shadowsOn);
+    renderer.shadowMap.enabled = shadowsOn;
+    scene.traverse(function(obj) {
+        if(obj.material) { obj.material.needsUpdate = true; }
+    });
+}
+function toggleLabels() {
+    labelsVisible = !labelsVisible;
+    document.getElementById('btnLabel').classList.toggle('active', labelsVisible);
+    labelSprites.forEach(function(s) { s.visible = labelsVisible; });
+}
+function toggleRotate() {
+    autoRotate = !autoRotate;
+    document.getElementById('btnRotate').classList.toggle('active', autoRotate);
+}
+
+/* ====== MOUSE CONTROLS ====== */
+function setupControls() {
+    var el = renderer.domElement;
+    el.addEventListener('mousedown', function(e) {
+        if(e.button === 0) isDragging = true;
+        if(e.button === 2) isPanning = true;
+        prevMX = e.clientX; prevMY = e.clientY;
+    });
+    el.addEventListener('mousemove', function(e) {
+        if(isDragging) {
+            var dx = e.clientX - prevMX;
+            var dy = e.clientY - prevMY;
+            theta -= dx * 0.005;
+            phi -= dy * 0.005;
+            phi = Math.max(0.05, Math.min(Math.PI - 0.05, phi));
+            prevMX = e.clientX; prevMY = e.clientY;
+            updateCamera();
+        }
+        if(isPanning) {
+            var dx = e.clientX - prevMX;
+            var dy = e.clientY - prevMY;
+            var panSpeed = radius * 0.002;
+            var right = new THREE.Vector3();
+            var up = new THREE.Vector3(0, 1, 0);
+            right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), up).normalize();
+            target.add(right.multiplyScalar(-dx * panSpeed));
+            target.y += dy * panSpeed;
+            prevMX = e.clientX; prevMY = e.clientY;
+            updateCamera();
+        }
+    });
+    el.addEventListener('mouseup', function() { isDragging = false; isPanning = false; });
+    el.addEventListener('mouseleave', function() { isDragging = false; isPanning = false; });
+    el.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    el.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        radius *= (1 + e.deltaY * 0.001);
+        radius = Math.max(30, Math.min(1200, radius));
+        updateCamera();
+    }, {passive: false});
+    // Touch controls
+    var touchStartDist = 0;
+    el.addEventListener('touchstart', function(e) {
+        if(e.touches.length === 1) {
+            isDragging = true;
+            prevMX = e.touches[0].clientX;
+            prevMY = e.touches[0].clientY;
+        }
+        if(e.touches.length === 2) {
+            isDragging = false;
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            touchStartDist = Math.sqrt(dx*dx + dy*dy);
+        }
+    });
+    el.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if(e.touches.length === 1 && isDragging) {
+            var dx = e.touches[0].clientX - prevMX;
+            var dy = e.touches[0].clientY - prevMY;
+            theta -= dx * 0.005;
+            phi -= dy * 0.005;
+            phi = Math.max(0.05, Math.min(Math.PI - 0.05, phi));
+            prevMX = e.touches[0].clientX;
+            prevMY = e.touches[0].clientY;
+            updateCamera();
+        }
+        if(e.touches.length === 2) {
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            var dist = Math.sqrt(dx*dx + dy*dy);
+            if(touchStartDist > 0) {
+                radius *= touchStartDist / dist;
+                radius = Math.max(30, Math.min(1200, radius));
+                updateCamera();
+            }
+            touchStartDist = dist;
+        }
+    }, {passive: false});
+    el.addEventListener('touchend', function() { isDragging = false; touchStartDist = 0; });
+}
+
+/* ====== RAYCASTING / INTERACTION ====== */
+function setupInteraction() {
+    renderer.domElement.addEventListener('click', function(e) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        // Collect all mesh children from equipment
+        var meshes = [];
+        equipmentList.forEach(function(eq) {
+            eq.traverse(function(child) {
+                if(child.isMesh) { child.userData._parentEquip = eq; meshes.push(child); }
+            });
+        });
+        var intersects = raycaster.intersectObjects(meshes, false);
+        var panel = document.getElementById('infoPanel');
+        if(intersects.length > 0) {
+            var hit = intersects[0].object;
+            var eq = hit.userData._parentEquip;
+            if(eq && eq.userData.isEquipment) {
+                selectedEquip = eq;
+                document.getElementById('infoTag').textContent = eq.userData.tag;
+                document.getElementById('infoDesc').textContent = eq.userData.desc;
+                document.getElementById('infoType').textContent = eq.userData.type;
+                document.getElementById('infoStatus').textContent = eq.userData.status;
+                document.getElementById('infoHAC').textContent = eq.userData.hac;
+                panel.style.display = 'block';
+                // Highlight: subtle outline effect via emissive
+                equipmentList.forEach(function(eqp) {
+                    eqp.traverse(function(c) {
+                        if(c.isMesh && c.material && c.material.emissive) {
+                            c.material.emissive.setHex(0x000000);
+                        }
+                    });
+                });
+                eq.traverse(function(c) {
+                    if(c.isMesh && c.material && c.material.emissive) {
+                        c.material.emissive.setHex(0x112244);
+                    }
+                });
+            }
+        } else {
+            panel.style.display = 'none';
+            selectedEquip = null;
+            equipmentList.forEach(function(eqp) {
+                eqp.traverse(function(c) {
+                    if(c.isMesh && c.material && c.material.emissive) {
+                        c.material.emissive.setHex(0x000000);
+                    }
+                });
+            });
+        }
+    });
+    // Hover cursor
+    renderer.domElement.addEventListener('mousemove', function(e) {
+        if(isDragging || isPanning) return;
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        var meshes = [];
+        equipmentList.forEach(function(eq) {
+            eq.traverse(function(child) {
+                if(child.isMesh) meshes.push(child);
+            });
+        });
+        var intersects = raycaster.intersectObjects(meshes, false);
+        renderer.domElement.style.cursor = intersects.length > 0 ? 'pointer' : 'grab';
+    });
+}
+
+/* ====== ANIMATION LOOP ====== */
+function animate() {
+    requestAnimationFrame(animate);
+    var t = clock.getElapsedTime();
+
+    // Auto-rotate
+    if(autoRotate) {
+        theta += 0.003;
+        updateCamera();
+    }
+
+    // Flare animation
+    flareCones.forEach(function(fc, i) {
+        var flicker = 0.8 + Math.sin(t * 12 + i * 2.1) * 0.15 + Math.sin(t * 7.3 + i) * 0.1;
+        fc.scale.set(flicker, 0.9 + Math.sin(t * 15 + i * 3) * 0.15, flicker);
+        fc.rotation.y = t * (0.5 + i * 0.3);
+        fc.material.opacity = 0.4 + Math.sin(t * 10 + i * 1.7) * 0.2;
+    });
+
+    // Flare light flicker
+    if(flareLight) {
+        flareLight.intensity = 3 + Math.sin(t * 8) * 1.5 + Math.sin(t * 13) * 0.8;
+    }
+
+    // Aviation warning light blink
+    if(avLightMat) {
+        avLightMat.color.setHex(Math.sin(t * 2) > 0.3 ? 0xff0000 : 0x330000);
+    }
+
+    // Labels always face camera (sprites do this automatically)
+    // Subtle label bob
+    labelSprites.forEach(function(s, i) {
+        var baseY = s.userData._baseY;
+        if(!baseY) { s.userData._baseY = s.position.y; baseY = s.position.y; }
+        s.position.y = baseY + Math.sin(t * 0.8 + i * 0.5) * 0.15;
+    });
+
+    renderer.render(scene, camera);
+}
+
+/* ====== LOADING SIMULATION ====== */
+function simulateLoading() {
+    var fill = document.getElementById('loadFill');
+    var pct = document.getElementById('loadPct');
+    var progress = 0;
+    var interval = setInterval(function() {
+        progress += Math.random() * 12 + 3;
+        if(progress > 100) progress = 100;
+        fill.style.width = progress + '%';
+        pct.textContent = Math.floor(progress) + '%';
+        if(progress >= 100) {
+            clearInterval(interval);
+            setTimeout(function() {
+                var loadEl = document.getElementById('loading');
+                loadEl.style.opacity = '0';
+                setTimeout(function() { loadEl.style.display = 'none'; }, 600);
+            }, 300);
+        }
+    }, 120);
+}
+
+/* ====== START ====== */
+simulateLoading();
+init();
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&ID — منظومة معالجة غازات الاحتراق</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e14;
+  --bg2: #0f1520;
+  --bg3: #141b28;
+  --panel: #0d1420;
+  --border: rgba(80,160,255,0.18);
+  --border2: rgba(80,160,255,0.08);
+  --accent: #2a7fff;
+  --accent2: #00d4aa;
+  --accent3: #ff6b35;
+  --accent4: #ffc040;
+  --text: #c8d8f0;
+  --text2: #7a99bb;
+  --text3: #4a6a8a;
+  --red: #e24b4a;
+  --blue: #378add;
+  --green: #1d9e75;
+  --amber: #ba7517;
+  --purple: #7f77dd;
+  --steel: #8ab0d0;
+  --pipe-hot: #c0392b;
+  --pipe-clean: #1a6fa8;
+  --pipe-nh3: #27ae60;
+  --pipe-air: #5a7fa0;
+  --glow-red: rgba(192,57,43,0.3);
+  --glow-blue: rgba(26,111,168,0.3);
+  --glow-green: rgba(39,174,96,0.25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Header ── */
+.header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-logo {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 2px;
+  opacity: 0.8;
+}
+.header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.header-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.header-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  background: rgba(42,127,255,0.12);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 10px;
+  color: var(--accent);
+  letter-spacing: 1px;
+}
+
+/* ── Legend ── */
+.legend-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border2);
+  padding: 8px 24px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.leg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+.leg-pipe { width: 28px; height: 4px; border-radius: 2px; position: relative; }
+.leg-pipe.dashed { background: none; border-top: 2px dashed; height: 0; margin-top: 2px; }
+
+/* ── Main canvas ── */
+.canvas-wrap {
+  width: 100%;
+  overflow-x: auto;
+  padding: 30px 20px;
+  background: var(--bg);
+}
+.pid-svg-wrap {
+  min-width: 1200px;
+  position: relative;
+}
+
+/* ── Info panel ── */
+.info-panel {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 90px;
+  transition: all 0.3s;
+}
+.info-icon-wrap {
+  width: 44px; height: 44px;
+  background: rgba(42,127,255,0.12);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.info-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.info-name-en { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--accent); margin-top: 2px; }
+.info-desc { font-size: 12px; color: var(--text2); margin-top: 6px; line-height: 1.7; }
+.info-specs {
+  display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;
+}
+.spec-item {
+  background: rgba(42,127,255,0.07);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--accent2);
+}
+
+/* ── Flow animation ── */
+@keyframes flow-r {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes flow-l {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 24; }
+}
+@keyframes flow-d {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes pulse-glow {
+  0%,100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes steam {
+  0% { transform: translateY(0) scale(1); opacity: 0.7; }
+  100% { transform: translateY(-18px) scale(1.4); opacity: 0; }
+}
+
+.pipe-hot-anim {
+  stroke-dasharray: 8 4;
+  animation: flow-r 0.6s linear infinite;
+}
+.pipe-clean-anim {
+  stroke-dasharray: 8 4;
+  animation: flow-r 0.8s linear infinite;
+}
+.pipe-nh3-anim {
+  stroke-dasharray: 6 4;
+  animation: flow-r 1.0s linear infinite;
+}
+.pipe-air-anim {
+  stroke-dasharray: 6 4;
+  animation: flow-r 1.2s linear infinite;
+}
+.pipe-down-anim {
+  stroke-dasharray: 8 4;
+  animation: flow-d 0.7s linear infinite;
+}
+
+/* Component hover */
+.comp-g { cursor: pointer; transition: filter 0.2s; }
+.comp-g:hover { filter: brightness(1.15); }
+.comp-g.active { filter: brightness(1.25) drop-shadow(0 0 8px var(--accent)); }
+
+/* 3D Face helpers defined inline in SVG */
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">P&ID REV-03</div>
+  <div style="text-align:center">
+    <div class="header-title">منظومة معالجة غازات الاحتراق</div>
+    <div class="header-sub">Flue Gas Treatment System — SCR / ESP / FGD</div>
+  </div>
+  <div class="header-badge">ISO 10628 · IEC 62424</div>
+</div>
+
+<div class="legend-bar">
+  <div class="leg">
+    <svg width="32" height="8"><line x1="0" y1="4" x2="32" y2="4" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/></svg>
+    غاز المداخن الساخن
+  </div>
+  <div class="leg">
+    <svg width="32" height="8"><line x1="0" y1="4" x2="32" y2="4" stroke="#1a6fa8" stroke-width="4" stroke-linecap="round"/></svg>
+    الغاز المعالج
+  </div>
+  <div class="leg">
+    <svg width="32" height="8"><line x1="0" y1="4" x2="32" y2="4" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="6 3" stroke-linecap="round"/></svg>
+    محلول الأمونيا (NH₃)
+  </div>
+  <div class="leg">
+    <svg width="32" height="8"><line x1="0" y1="4" x2="32" y2="4" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 3" stroke-linecap="round"/></svg>
+    هواء التخفيف
+  </div>
+  <div class="leg">
+    <svg width="14" height="14" viewBox="0 0 14 14">
+      <circle cx="7" cy="7" r="5.5" fill="none" stroke="#ba7517" stroke-width="1.5"/>
+      <line x1="7" y1="2" x2="7" y2="12" stroke="#ba7517" stroke-width="1.2"/>
+      <line x1="2" y1="7" x2="12" y2="7" stroke="#ba7517" stroke-width="1.2"/>
+    </svg>
+    صمام تحكم
+  </div>
+  <div class="leg">
+    <svg width="14" height="14" viewBox="0 0 14 14">
+      <circle cx="7" cy="7" r="5.5" fill="none" stroke="#534ab7" stroke-width="1.5"/>
+      <line x1="1" y1="7" x2="13" y2="7" stroke="#534ab7" stroke-width="1.2"/>
+    </svg>
+    مضخة / ناخب
+  </div>
+  <div class="leg" style="margin-right:auto; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--accent); background:rgba(42,127,255,0.07); border:1px solid var(--border2); border-radius:4px; padding:3px 10px;">
+    انقر على أي مكوّن للتفاصيل
+  </div>
+</div>
+
+<div class="canvas-wrap">
+<div class="pid-svg-wrap">
+<svg id="mainsvg" width="1200" height="580" viewBox="0 0 1200 580" style="display:block">
+<defs>
+  <!-- Arrow markers -->
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#1a6fa8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#27ae60" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#5a7fa0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="ahd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="abd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#1a6fa8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+
+  <!-- 3D gradient defs -->
+  <!-- BOILER gradients -->
+  <linearGradient id="boiler-front" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#2a1a1a"/>
+    <stop offset="40%" stop-color="#4a2020"/>
+    <stop offset="100%" stop-color="#1a1010"/>
+  </linearGradient>
+  <linearGradient id="boiler-top" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#6a3030"/>
+    <stop offset="100%" stop-color="#3a1a1a"/>
+  </linearGradient>
+  <linearGradient id="boiler-side" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#1a1010"/>
+    <stop offset="100%" stop-color="#0a0808"/>
+  </linearGradient>
+
+  <!-- TANK gradients -->
+  <linearGradient id="tank-body" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#0a1830"/>
+    <stop offset="35%" stop-color="#1a3a6a"/>
+    <stop offset="100%" stop-color="#0a1020"/>
+  </linearGradient>
+  <linearGradient id="tank-cap" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#2a5080"/>
+    <stop offset="100%" stop-color="#1a3050"/>
+  </linearGradient>
+
+  <!-- ESP gradient -->
+  <linearGradient id="esp-front" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#1a1a3a"/>
+    <stop offset="40%" stop-color="#2a2a5a"/>
+    <stop offset="100%" stop-color="#0a0a20"/>
+  </linearGradient>
+
+  <!-- SCR gradient -->
+  <linearGradient id="scr-front" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#0a1a30"/>
+    <stop offset="40%" stop-color="#0f2040"/>
+    <stop offset="100%" stop-color="#060f1a"/>
+  </linearGradient>
+  <linearGradient id="scr-top" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#1a3050"/>
+    <stop offset="100%" stop-color="#0d2035"/>
+  </linearGradient>
+
+  <!-- FGD gradient -->
+  <linearGradient id="fgd-body" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#0a1a20"/>
+    <stop offset="40%" stop-color="#102a35"/>
+    <stop offset="100%" stop-color="#060f14"/>
+  </linearGradient>
+
+  <!-- Steel pipe gradient -->
+  <linearGradient id="pipe-steel-h" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#3a5070"/>
+    <stop offset="45%" stop-color="#8ab4d4"/>
+    <stop offset="55%" stop-color="#6090b4"/>
+    <stop offset="100%" stop-color="#1a2a3a"/>
+  </linearGradient>
+  <linearGradient id="pipe-steel-v" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#1a2a3a"/>
+    <stop offset="45%" stop-color="#8ab4d4"/>
+    <stop offset="55%" stop-color="#6090b4"/>
+    <stop offset="100%" stop-color="#1a2a3a"/>
+  </linearGradient>
+  <linearGradient id="pipe-hot-grad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#8a2a20"/>
+    <stop offset="45%" stop-color="#e05a40"/>
+    <stop offset="55%" stop-color="#c04030"/>
+    <stop offset="100%" stop-color="#4a1010"/>
+  </linearGradient>
+  <linearGradient id="pipe-clean-grad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#0a2a4a"/>
+    <stop offset="45%" stop-color="#3a7ab4"/>
+    <stop offset="55%" stop-color="#2a5a90"/>
+    <stop offset="100%" stop-color="#0a1a2a"/>
+  </linearGradient>
+
+  <!-- Chimney gradient -->
+  <linearGradient id="chimney-grad" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#1a2030"/>
+    <stop offset="40%" stop-color="#3a4060"/>
+    <stop offset="100%" stop-color="#0a1018"/>
+  </linearGradient>
+
+  <!-- Glow filter -->
+  <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="3" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="2" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<!-- ══════════════════════════════════════
+     FLOW LINES / PIPES (drawn first, behind components)
+════════════════════════════════════════ -->
+
+<!-- HOT FLUE GAS: Boiler → APH (y=310 centerline, pipe height 14px) -->
+<!-- Pipe body (3D round pipe effect) -->
+<rect x="115" y="303" width="70" height="14" rx="3" fill="url(#pipe-hot-grad)"/>
+<line x1="115" y1="305" x2="185" y2="305" stroke="rgba(255,100,60,0.3)" stroke-width="1"/>
+<line x1="115" y1="303" x2="185" y2="303" stroke="rgba(255,140,100,0.15)" stroke-width="1"/>
+<!-- animated flow line -->
+<line x1="115" y1="310" x2="185" y2="310" stroke="#c0392b" stroke-width="4" stroke-linecap="round"
+      class="pipe-hot-anim" marker-end="url(#ah)" opacity="0.7"/>
+<!-- Flange rings -->
+<rect x="180" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+<rect x="115" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+
+<!-- HOT FLUE GAS: APH → ESP -->
+<rect x="265" y="303" width="85" height="14" rx="3" fill="url(#pipe-hot-grad)"/>
+<line x1="265" y1="305" x2="350" y2="305" stroke="rgba(255,100,60,0.3)" stroke-width="1"/>
+<line x1="265" y1="310" x2="350" y2="310" stroke="#c0392b" stroke-width="4" stroke-linecap="round"
+      class="pipe-hot-anim" marker-end="url(#ah)" opacity="0.7"/>
+<rect x="260" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+<rect x="349" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+
+<!-- HOT FLUE GAS: ESP → HEX1 -->
+<rect x="435" y="303" width="80" height="14" rx="3" fill="url(#pipe-hot-grad)"/>
+<line x1="435" y1="310" x2="515" y2="310" stroke="#c0392b" stroke-width="4" stroke-linecap="round"
+      class="pipe-hot-anim" marker-end="url(#ah)" opacity="0.7"/>
+<rect x="430" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+<rect x="514" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+
+<!-- HOT FLUE GAS: HEX1 → SCR -->
+<rect x="568" y="303" width="62" height="14" rx="3" fill="url(#pipe-hot-grad)"/>
+<line x1="568" y1="310" x2="630" y2="310" stroke="#c0392b" stroke-width="4" stroke-linecap="round"
+      class="pipe-hot-anim" marker-end="url(#ah)" opacity="0.7"/>
+<rect x="563" y="301" width="5" height="18" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+
+<!-- CLEAN GAS: SCR → down → right to HEX2 -->
+<!-- Vertical drop from SCR bottom -->
+<rect x="695" y="430" width="14" height="55" rx="3" fill="url(#pipe-clean-grad)" transform="rotate(90,695,430)"/>
+<!-- actually draw as horizontal pipe below SCR going right -->
+<rect x="695" y="435" width="14" height="60" rx="3" fill="url(#pipe-clean-grad)" transform="rotate(0)"/>
+<line x1="702" y1="435" x2="702" y2="495" stroke="#1a6fa8" stroke-width="4" stroke-linecap="round"
+      class="pipe-down-anim" marker-end="url(#ab)" opacity="0.7"/>
+
+<!-- CLEAN GAS: horizontal to HEX2 then FGD -->
+<rect x="702" y="487" width="14" height="80" rx="3" fill="url(#pipe-clean-grad)" transform="rotate(-90,702,487) translate(-80,0)"/>
+<rect x="760" y="487" width="80" height="14" rx="3" fill="url(#pipe-clean-grad)"/>
+<line x1="760" y1="494" x2="840" y2="494" stroke="#1a6fa8" stroke-width="4" stroke-linecap="round"
+      class="pipe-clean-anim" marker-end="url(#ab)" opacity="0.7"/>
+
+<!-- CLEAN GAS: FGD → chimney up -->
+<rect x="942" y="297" width="14" height="200" rx="3" fill="url(#pipe-clean-grad)"/>
+<line x1="949" y1="497" x2="949" y2="300" stroke="#1a6fa8" stroke-width="4" stroke-linecap="round"
+      class="pipe-down-anim" opacity="0.7"/>
+<!-- horizontal to chimney -->
+<rect x="946" y="297" width="60" height="14" rx="3" fill="url(#pipe-clean-grad)"/>
+<line x1="946" y1="304" x2="1006" y2="304" stroke="#1a6fa8" stroke-width="4" stroke-linecap="round"
+      class="pipe-clean-anim" marker-end="url(#ab)" opacity="0.7"/>
+
+<!-- NH3 LINE: Tank → Evaporator → Mixer (dashed green) -->
+<line x1="295" y1="138" x2="345" y2="138" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="8 4"
+      stroke-linecap="round" class="pipe-nh3-anim" marker-end="url(#ag)"/>
+<line x1="395" y1="138" x2="445" y2="138" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="8 4"
+      stroke-linecap="round" class="pipe-nh3-anim" marker-end="url(#ag)"/>
+<!-- Mixer down to injection point on hot gas pipe -->
+<line x1="490" y1="175" x2="490" y2="303" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="8 4"
+      stroke-linecap="round" class="pipe-nh3-anim" marker-end="url(#ag)"/>
+
+<!-- Diluent air blower → Mixer -->
+<line x1="210" y1="138" x2="245" y2="138" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 4"
+      stroke-linecap="round" class="pipe-air-anim" marker-end="url(#aa)"/>
+<!-- Air in to blower -->
+<line x1="160" y1="138" x2="190" y2="138" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 4"
+      stroke-linecap="round" class="pipe-air-anim" marker-end="url(#aa)"/>
+
+<!-- NH3 truck supply to tank area -->
+<line x1="490" y1="215" x2="490" y2="165" stroke="#27ae60" stroke-width="1.5" stroke-dasharray="5 3"
+      stroke-linecap="round" opacity="0.5"/>
+
+<!-- Air inlet to APH (from below) -->
+<line x1="225" y1="255" x2="225" y2="303" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 3"
+      stroke-linecap="round" class="pipe-air-anim" marker-end="url(#aa)"/>
+
+<!-- ══════════════════════════════════════
+     INSTRUMENTS / VALVES on pipes
+════════════════════════════════════════ -->
+<!-- Control valve on NH3 line -->
+<g transform="translate(430,129)">
+  <circle r="9" fill="#0a1020" stroke="#ba7517" stroke-width="1.5"/>
+  <line x1="-9" y1="0" x2="9" y2="0" stroke="#ba7517" stroke-width="1.2"/>
+  <line x1="0" y1="-9" x2="0" y2="9" stroke="#ba7517" stroke-width="1.2"/>
+  <line x1="0" y1="-14" x2="0" y2="-9" stroke="#ba7517" stroke-width="1"/>
+  <rect x="-5" y="-20" width="10" height="7" rx="1" fill="#ba7517" opacity="0.7"/>
+  <text x="0" y="25" text-anchor="middle" font-size="8" fill="#ba7517" font-family="Share Tech Mono,monospace">FCV-01</text>
+</g>
+
+<!-- Flow indicator on main gas line (btw APH and ESP) -->
+<g transform="translate(310,310)">
+  <rect x="-14" y="-14" width="28" height="28" rx="14" fill="#0a1520" stroke="#534ab7" stroke-width="1.5"/>
+  <text x="0" y="4" text-anchor="middle" font-size="7" fill="#7f77dd" font-family="Share Tech Mono,monospace">FT</text>
+  <text x="0" y="28" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">FT-201</text>
+</g>
+
+<!-- Temperature indicator on SCR outlet -->
+<g transform="translate(702,420)">
+  <rect x="-12" y="-12" width="24" height="24" rx="12" fill="#0a1520" stroke="#1d9e75" stroke-width="1.5"/>
+  <text x="0" y="4" text-anchor="middle" font-size="7" fill="#1d9e75" font-family="Share Tech Mono,monospace">TE</text>
+  <text x="0" y="24" text-anchor="middle" font-size="7" fill="#1d9e75" font-family="Share Tech Mono,monospace">TE-301</text>
+</g>
+
+<!-- Pressure indicator on boiler outlet -->
+<g transform="translate(145,295)">
+  <rect x="-12" y="-12" width="24" height="24" rx="12" fill="#0a1520" stroke="#e24b4a" stroke-width="1.5"/>
+  <text x="0" y="4" text-anchor="middle" font-size="7" fill="#e24b4a" font-family="Share Tech Mono,monospace">PT</text>
+  <text x="0" y="24" text-anchor="middle" font-size="7" fill="#e24b4a" font-family="Share Tech Mono,monospace">PT-101</text>
+</g>
+
+<!-- ══════════════════════════════════════
+     COMPONENTS — 3D ISOMETRIC STYLE
+════════════════════════════════════════ -->
+
+<!-- ─── 1. BOILER ─── -->
+<g class="comp-g" id="c-boiler" onclick="showInfo('boiler')" transform="translate(15,210)">
+  <!-- Body front face -->
+  <rect x="0" y="20" width="100" height="120" rx="6" fill="url(#boiler-front)" stroke="#5a3030" stroke-width="1"/>
+  <!-- Top face (3D) -->
+  <polygon points="0,20 100,20 112,8 12,8" fill="url(#boiler-top)" stroke="#7a4040" stroke-width="0.8"/>
+  <!-- Right side face (3D) -->
+  <polygon points="100,20 112,8 112,128 100,140" fill="url(#boiler-side)" stroke="#3a2020" stroke-width="0.8"/>
+  <!-- Rounded top arch -->
+  <path d="M10,50 Q50,20 90,50" fill="none" stroke="#8a5050" stroke-width="1.5" stroke-dasharray="4 2"/>
+  <!-- Windows / display panels -->
+  <rect x="15" y="55" width="30" height="18" rx="2" fill="#1a0808" stroke="#6a3030" stroke-width="0.8"/>
+  <rect x="55" y="55" width="30" height="18" rx="2" fill="#1a0808" stroke="#6a3030" stroke-width="0.8"/>
+  <!-- panel glow -->
+  <rect x="16" y="56" width="28" height="16" rx="1" fill="rgba(200,80,60,0.15)"/>
+  <rect x="56" y="56" width="28" height="16" rx="1" fill="rgba(200,80,60,0.15)"/>
+  <!-- Firebox indicator -->
+  <rect x="20" y="82" width="60" height="35" rx="3" fill="#0a0404" stroke="#5a2020" stroke-width="0.8"/>
+  <path d="M35,112 Q45,98 50,105 Q55,95 65,112" fill="rgba(200,60,20,0.4)" stroke="#e05020" stroke-width="1"/>
+  <path d="M40,112 Q48,100 52,107 Q57,96 63,112" fill="rgba(255,100,40,0.3)" stroke="none"/>
+  <!-- Bottom motor/burner -->
+  <rect x="30" y="125" width="40" height="12" rx="2" fill="#2a1010" stroke="#4a2020" stroke-width="0.8"/>
+  <!-- Label -->
+  <text x="50" y="152" text-anchor="middle" font-size="11" font-weight="600" fill="#e08070" font-family="IBM Plex Sans Arabic,sans-serif">مرجل البخار</text>
+  <text x="50" y="164" text-anchor="middle" font-size="9" fill="#7a5050" font-family="Share Tech Mono,monospace">BOILER-B01</text>
+  <!-- Steam outlet pipe -->
+  <rect x="85" y="28" width="30" height="9" rx="2" fill="url(#pipe-hot-grad)" stroke="#5a3030" stroke-width="0.5"/>
+</g>
+
+<!-- ─── 2. AIR PRE-HEATER (APH) ─── -->
+<g class="comp-g" id="c-aph" onclick="showInfo('aph')" transform="translate(185,250)">
+  <!-- Rotary drum shape -->
+  <!-- Front ellipse body -->
+  <ellipse cx="40" cy="55" rx="40" ry="55" fill="url(#boiler-front)" stroke="#3a4a6a" stroke-width="1"/>
+  <!-- 3D side rim -->
+  <ellipse cx="52" cy="49" rx="40" ry="55" fill="url(#boiler-side)" stroke="#2a3a5a" stroke-width="0.8"/>
+  <!-- Front face ellipse (brighter) -->
+  <ellipse cx="40" cy="55" rx="38" ry="53" fill="#0f1a30" stroke="#3a5a8a" stroke-width="0.5"/>
+  <!-- Internal sectors (rotary) -->
+  <path d="M40,20 L40,90 A35,35 0 0,1 10,55 Z" fill="rgba(40,80,140,0.3)" stroke="#3a6aa0" stroke-width="0.5"/>
+  <path d="M40,20 L75,55 A35,35 0 0,1 40,90 Z" fill="rgba(20,50,100,0.2)" stroke="#2a5080" stroke-width="0.5"/>
+  <path d="M40,20 L75,55" fill="none" stroke="#3a5a8a" stroke-width="0.8"/>
+  <path d="M40,55 L40,90" fill="none" stroke="#3a5a8a" stroke-width="0.8"/>
+  <!-- Center hub -->
+  <circle cx="40" cy="55" r="8" fill="#1a2a4a" stroke="#4a6a9a" stroke-width="1"/>
+  <circle cx="40" cy="55" r="4" fill="#3a5a8a"/>
+  <!-- Air inlet arrow (bottom) -->
+  <line x1="40" y1="118" x2="40" y2="108" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#aa)"/>
+  <text x="40" y="130" text-anchor="middle" font-size="8" fill="#5a7fa0" font-family="IBM Plex Sans Arabic,sans-serif">هواء</text>
+  <!-- Labels -->
+  <text x="40" y="148" text-anchor="middle" font-size="10" font-weight="600" fill="#7090c0" font-family="IBM Plex Sans Arabic,sans-serif">سخان الهواء</text>
+  <text x="40" y="159" text-anchor="middle" font-size="8" fill="#3a5070" font-family="Share Tech Mono,monospace">APH-A01</text>
+</g>
+
+<!-- ─── 3. ESP (Electrostatic Precipitator) ─── -->
+<g class="comp-g" id="c-esp" onclick="showInfo('esp')" transform="translate(350,235)">
+  <!-- Main body front -->
+  <rect x="0" y="0" width="85" height="90" rx="5" fill="url(#esp-front)" stroke="#3a3a6a" stroke-width="1"/>
+  <!-- Top face -->
+  <polygon points="0,0 85,0 98,-10 13,-10" fill="#1a1a3a" stroke="#4a4a7a" stroke-width="0.8"/>
+  <!-- Right side -->
+  <polygon points="85,0 98,-10 98,80 85,90" fill="#0a0a1a" stroke="#2a2a4a" stroke-width="0.8"/>
+  <!-- Collection plates (vertical lines inside) -->
+  <line x1="15" y1="8" x2="15" y2="72" stroke="#4a4a8a" stroke-width="1" opacity="0.8"/>
+  <line x1="25" y1="5" x2="25" y2="75" stroke="#5a5a9a" stroke-width="1.2"/>
+  <line x1="35" y1="5" x2="35" y2="75" stroke="#5a5a9a" stroke-width="1.2"/>
+  <line x1="45" y1="5" x2="45" y2="75" stroke="#5a5a9a" stroke-width="1.2"/>
+  <line x1="55" y1="5" x2="55" y2="75" stroke="#5a5a9a" stroke-width="1.2"/>
+  <line x1="65" y1="5" x2="65" y2="75" stroke="#5a5a9a" stroke-width="1.2"/>
+  <line x1="75" y1="8" x2="75" y2="72" stroke="#4a4a8a" stroke-width="1" opacity="0.8"/>
+  <!-- Discharge electrodes (center dots) -->
+  <circle cx="30" cy="38" r="2" fill="#7f77dd" opacity="0.8"/>
+  <circle cx="50" cy="38" r="2" fill="#7f77dd" opacity="0.8"/>
+  <circle cx="70" cy="38" r="2" fill="#7f77dd" opacity="0.8"/>
+  <!-- Spark indicators -->
+  <path d="M30,34 L28,36 L31,37 L29,40" fill="none" stroke="#afa9ec" stroke-width="0.8" opacity="0.6"/>
+  <path d="M50,34 L48,36 L51,37 L49,40" fill="none" stroke="#afa9ec" stroke-width="0.8" opacity="0.6"/>
+  <!-- Hoppers (3 triangles) -->
+  <polygon points="5,90 28,90 16,115" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+  <polygon points="30,90 57,90 43,115" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+  <polygon points="59,90 85,90 72,115" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+  <!-- Hopper 3D top -->
+  <polygon points="5,90 28,90 36,82 13,82" fill="#2a2a4a" stroke="#4a4a7a" stroke-width="0.5"/>
+  <polygon points="30,90 57,90 64,82 24,82" fill="#2a2a4a" stroke="#4a4a7a" stroke-width="0.5"/>
+  <polygon points="59,90 85,90 98,82 72,82" fill="#2a2a4a" stroke="#4a4a7a" stroke-width="0.5"/>
+  <!-- Ash outlet -->
+  <text x="16" y="128" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">رماد</text>
+  <text x="43" y="128" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">رماد</text>
+  <text x="72" y="128" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">رماد</text>
+  <!-- Label -->
+  <text x="42" y="148" text-anchor="middle" font-size="11" font-weight="600" fill="#9090d0" font-family="IBM Plex Sans Arabic,sans-serif">مرسّب كهربائي</text>
+  <text x="42" y="160" text-anchor="middle" font-size="9" fill="#4a4a7a" font-family="Share Tech Mono,monospace">ESP-E01</text>
+</g>
+
+<!-- ─── 4. HEAT EXCHANGER 1 ─── -->
+<g class="comp-g" id="c-hex1" onclick="showInfo('hex1')" transform="translate(515,272)">
+  <!-- Cylindrical shell (horizontal) -->
+  <rect x="0" y="10" width="53" height="45" rx="4" fill="#0f2035" stroke="#1d9e75" stroke-width="1"/>
+  <!-- Tube sheet end caps -->
+  <ellipse cx="0" cy="32" rx="8" ry="22" fill="#0a2a3a" stroke="#1d9e75" stroke-width="1"/>
+  <ellipse cx="53" cy="32" rx="8" ry="22" fill="#0a2a3a" stroke="#1d9e75" stroke-width="1"/>
+  <!-- Internal tubes (cross section lines) -->
+  <line x1="5" y1="20" x2="48" y2="20" stroke="#27ae60" stroke-width="0.8" opacity="0.6"/>
+  <line x1="5" y1="28" x2="48" y2="28" stroke="#27ae60" stroke-width="0.8" opacity="0.6"/>
+  <line x1="5" y1="36" x2="48" y2="36" stroke="#27ae60" stroke-width="0.8" opacity="0.6"/>
+  <line x1="5" y1="44" x2="48" y2="44" stroke="#27ae60" stroke-width="0.8" opacity="0.6"/>
+  <!-- Nozzles top/bottom -->
+  <rect x="18" y="0" width="10" height="12" rx="2" fill="#0a2030" stroke="#1d9e75" stroke-width="0.8"/>
+  <rect x="25" y="55" width="10" height="12" rx="2" fill="#0a2030" stroke="#1d9e75" stroke-width="0.8"/>
+  <!-- Label -->
+  <text x="26" y="85" text-anchor="middle" font-size="9" font-weight="600" fill="#3a9a70" font-family="IBM Plex Sans Arabic,sans-serif">مبادل حراري ١</text>
+  <text x="26" y="96" text-anchor="middle" font-size="8" fill="#1a6050" font-family="Share Tech Mono,monospace">HEX-H01</text>
+</g>
+
+<!-- ─── 5. LIQUID NH3 TANK ─── -->
+<g class="comp-g" id="c-tank" onclick="showInfo('tank')" transform="translate(340,95)">
+  <!-- Horizontal pressure vessel -->
+  <!-- Main cylinder -->
+  <rect x="5" y="10" width="110" height="40" rx="0" fill="url(#tank-body)" stroke="#1a4a7a" stroke-width="1"/>
+  <!-- End caps (ellipses) -->
+  <ellipse cx="5" cy="30" rx="10" ry="20" fill="#0a2040" stroke="#1a4a7a" stroke-width="1"/>
+  <ellipse cx="115" cy="30" rx="10" ry="20" fill="#0a2040" stroke="#1a4a7a" stroke-width="1"/>
+  <!-- Top 3D face -->
+  <rect x="5" y="6" width="110" height="6" rx="2" fill="#1a3a60" stroke="#2a5a8a" stroke-width="0.5"/>
+  <!-- Support saddles -->
+  <rect x="20" y="50" width="14" height="14" rx="1" fill="#0a1a2a" stroke="#1a3050" stroke-width="0.8"/>
+  <rect x="86" y="50" width="14" height="14" rx="1" fill="#0a1a2a" stroke="#1a3050" stroke-width="0.8"/>
+  <!-- Pressure indicator on tank -->
+  <circle cx="60" cy="0" r="8" fill="#0a1520" stroke="#ba7517" stroke-width="1.2"/>
+  <text x="60" y="3" text-anchor="middle" font-size="6" fill="#ba7517" font-family="Share Tech Mono,monospace">PT</text>
+  <!-- Level gauge on side -->
+  <rect x="118" y="15" width="5" height="30" rx="1" fill="#0a1520" stroke="#27ae60" stroke-width="0.8"/>
+  <rect x="119" y="30" width="3" height="14" rx="1" fill="rgba(39,174,96,0.4)"/>
+  <!-- Label -->
+  <text x="60" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="#4a90c0" font-family="IBM Plex Sans Arabic,sans-serif">خزان أمونيا سائلة</text>
+  <text x="60" y="93" text-anchor="middle" font-size="8" fill="#1a5080" font-family="Share Tech Mono,monospace">T-NH3-01 | 10m³</text>
+</g>
+
+<!-- ─── 6. EVAPORATOR ─── -->
+<g class="comp-g" id="c-evap" onclick="showInfo('evap')" transform="translate(245,95)">
+  <!-- Vertical vessel -->
+  <rect x="5" y="5" width="45" height="70" rx="5" fill="#0a1525" stroke="#1d9e75" stroke-width="1"/>
+  <!-- Top cap -->
+  <ellipse cx="27" cy="5" rx="22" ry="8" fill="#0f2535" stroke="#1d9e75" stroke-width="0.8"/>
+  <!-- Bottom cap -->
+  <ellipse cx="27" cy="75" rx="22" ry="8" fill="#0f2535" stroke="#1d9e75" stroke-width="0.8"/>
+  <!-- Heating coils inside -->
+  <path d="M12,25 Q27,20 42,25 Q27,30 12,35 Q27,40 42,45 Q27,50 12,55 Q27,60 42,65" fill="none" stroke="#27ae60" stroke-width="1" opacity="0.6"/>
+  <!-- Outlet top nozzle -->
+  <rect x="22" y="-8" width="10" height="14" rx="2" fill="#0a2030" stroke="#1d9e75" stroke-width="0.8"/>
+  <!-- Label -->
+  <text x="27" y="98" text-anchor="middle" font-size="10" font-weight="600" fill="#3a9a70" font-family="IBM Plex Sans Arabic,sans-serif">مبخّر</text>
+  <text x="27" y="109" text-anchor="middle" font-size="8" fill="#1a5040" font-family="Share Tech Mono,monospace">EV-01</text>
+</g>
+
+<!-- ─── 7. DILUENT AIR BLOWER ─── -->
+<g class="comp-g" id="c-blower" onclick="showInfo('blower')" transform="translate(125,108)">
+  <!-- Blower casing -->
+  <circle cx="32" cy="30" r="30" fill="#0a1520" stroke="#3a5a8a" stroke-width="1.2"/>
+  <!-- Impeller blades -->
+  <g transform="translate(32,30)">
+    <path d="M0,0 L-8,-22 Q0,-28 8,-22 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5"/>
+    <path d="M0,0 L16,-16 Q22,-10 16,0 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(45)"/>
+    <path d="M0,0 L22,0 Q26,8 18,14 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(90)"/>
+    <path d="M0,0 L16,16 Q10,22 0,18 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(135)"/>
+    <path d="M0,0 L0,22 Q-8,26 -14,18 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(180)"/>
+    <path d="M0,0 L-16,16 Q-22,10 -18,0 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(225)"/>
+    <path d="M0,0 L-22,0 Q-26,-8 -16,-16 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(270)"/>
+    <path d="M0,0 L-16,-16 Q-10,-22 0,-18 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(315)"/>
+    <circle r="5" fill="#2a4a7a" stroke="#4a7aaa" stroke-width="0.8"/>
+  </g>
+  <!-- Motor housing -->
+  <rect x="56" y="20" width="22" height="20" rx="3" fill="#0a1020" stroke="#2a3a5a" stroke-width="0.8"/>
+  <!-- Outlet duct (right) -->
+  <rect x="58" y="22" width="30" height="10" rx="2" fill="#1a2a3a" stroke="#3a5a8a" stroke-width="0.5"/>
+  <!-- Label -->
+  <text x="32" y="78" text-anchor="middle" font-size="10" font-weight="600" fill="#6a90c0" font-family="IBM Plex Sans Arabic,sans-serif">ناخب هواء</text>
+  <text x="32" y="89" text-anchor="middle" font-size="8" fill="#3a5070" font-family="Share Tech Mono,monospace">BLW-01</text>
+</g>
+
+<!-- ─── 8. MIXER ─── -->
+<g class="comp-g" id="c-mixer" onclick="showInfo('mixer')" transform="translate(455,120)">
+  <!-- Cylindrical mixer -->
+  <rect x="5" y="5" width="50" height="40" rx="6" fill="#0f1a2a" stroke="#2a7fff" stroke-width="1"/>
+  <ellipse cx="5" cy="25" rx="8" ry="20" fill="#0a1525" stroke="#2a7fff" stroke-width="0.8"/>
+  <ellipse cx="55" cy="25" rx="8" ry="20" fill="#0a1525" stroke="#2a7fff" stroke-width="0.8"/>
+  <!-- Mixing baffles -->
+  <line x1="15" y1="10" x2="20" y2="40" stroke="#3a7fff" stroke-width="1" opacity="0.6"/>
+  <line x1="30" y1="8" x2="25" y2="42" stroke="#3a7fff" stroke-width="1" opacity="0.6"/>
+  <line x1="40" y1="10" x2="45" y2="40" stroke="#3a7fff" stroke-width="1" opacity="0.6"/>
+  <!-- Label -->
+  <text x="30" y="65" text-anchor="middle" font-size="10" font-weight="600" fill="#5a9fff" font-family="IBM Plex Sans Arabic,sans-serif">خلاط</text>
+  <text x="30" y="76" text-anchor="middle" font-size="8" fill="#2a5fa0" font-family="Share Tech Mono,monospace">MX-01</text>
+</g>
+
+<!-- ─── 9. NH3 TRUCK ─── -->
+<g id="c-truck" transform="translate(425,215)" opacity="0.9">
+  <!-- Tank trailer -->
+  <rect x="0" y="5" width="80" height="28" rx="8" fill="#0a1a2a" stroke="#1a4a7a" stroke-width="1"/>
+  <ellipse cx="0" cy="19" rx="8" ry="14" fill="#0a2535" stroke="#1a4a7a" stroke-width="0.8"/>
+  <ellipse cx="80" cy="19" rx="8" ry="14" fill="#0a2535" stroke="#1a4a7a" stroke-width="0.8"/>
+  <!-- Cab -->
+  <rect x="72" y="10" width="28" height="23" rx="3" fill="#1a2535" stroke="#2a4a6a" stroke-width="0.8"/>
+  <rect x="78" y="14" width="12" height="10" rx="1" fill="rgba(180,220,255,0.12)"/>
+  <!-- Wheels -->
+  <circle cx="15" cy="35" r="7" fill="#0a0f14" stroke="#2a3a4a" stroke-width="1"/>
+  <circle cx="15" cy="35" r="3" fill="#1a2a3a"/>
+  <circle cx="60" cy="35" r="7" fill="#0a0f14" stroke="#2a3a4a" stroke-width="1"/>
+  <circle cx="60" cy="35" r="3" fill="#1a2a3a"/>
+  <circle cx="85" cy="35" r="6" fill="#0a0f14" stroke="#2a3a4a" stroke-width="1"/>
+  <circle cx="85" cy="35" r="3" fill="#1a2a3a"/>
+  <!-- NH3 label on tank -->
+  <text x="35" y="23" text-anchor="middle" font-size="8" fill="#27ae60" font-family="Share Tech Mono,monospace">NH₃</text>
+  <text x="35" y="55" text-anchor="middle" font-size="9" fill="#1a5a8a" font-family="IBM Plex Sans Arabic,sans-serif">صهريج توريد</text>
+</g>
+
+<!-- ─── 10. SCR REACTOR ─── -->
+<g class="comp-g" id="c-scr" onclick="showInfo('scr')" transform="translate(630,180)">
+  <!-- Inlet duct (left side) -->
+  <rect x="-40" y="118" width="45" height="20" rx="3" fill="url(#pipe-hot-grad)" stroke="#5a3030" stroke-width="0.8"/>
+  <!-- Main reactor body -->
+  <rect x="0" y="0" width="110" height="250" rx="6" fill="url(#scr-front)" stroke="#1a4a8a" stroke-width="1.2"/>
+  <!-- Top face 3D -->
+  <polygon points="0,0 110,0 125,-12 15,-12" fill="url(#scr-top)" stroke="#2a5a9a" stroke-width="0.8"/>
+  <!-- Right side 3D -->
+  <polygon points="110,0 125,-12 125,238 110,250" fill="#040d1a" stroke="#0a2a4a" stroke-width="0.8"/>
+  <!-- Catalyst Layer 1 -->
+  <rect x="10" y="30" width="90" height="32" rx="4" fill="#0f2540" stroke="#2a6aa0" stroke-width="1"/>
+  <!-- Honeycomb pattern L1 -->
+  <text x="15" y="44" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦</text>
+  <text x="15" y="55" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦</text>
+  <rect x="8" y="26" width="94" height="8" rx="2" fill="#1a3a5a" stroke="#2a5a8a" stroke-width="0.5"/>
+  <text x="55" y="22" text-anchor="middle" font-size="8" fill="#5a9aD0" font-family="IBM Plex Sans Arabic,sans-serif">طبقة المحفز الأولى</text>
+  <!-- Catalyst Layer 2 -->
+  <rect x="10" y="80" width="90" height="32" rx="4" fill="#0f2540" stroke="#2a6aa0" stroke-width="1"/>
+  <text x="15" y="94" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦</text>
+  <text x="15" y="105" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦</text>
+  <rect x="8" y="76" width="94" height="8" rx="2" fill="#1a3a5a" stroke="#2a5a8a" stroke-width="0.5"/>
+  <text x="55" y="72" text-anchor="middle" font-size="8" fill="#5a9aD0" font-family="IBM Plex Sans Arabic,sans-serif">طبقة المحفز الثانية</text>
+  <!-- Empty layer (future) -->
+  <rect x="10" y="130" width="90" height="32" rx="4" fill="#0a1a2a" stroke="#1a3a5a" stroke-width="0.8" stroke-dasharray="4 2"/>
+  <text x="55" y="150" text-anchor="middle" font-size="8" fill="#2a4a6a" font-family="IBM Plex Sans Arabic,sans-serif">طبقة احتياطية</text>
+  <!-- Flow distribution grid -->
+  <rect x="5" y="10" width="100" height="10" rx="2" fill="#0d1e35" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="5" y1="15" x2="105" y2="15" stroke="#1a3a6a" stroke-width="0.5"/>
+  <!-- Outlet duct bottom -->
+  <rect x="10" y="250" width="90" height="20" rx="3" fill="url(#pipe-clean-grad)" stroke="#1a4a7a" stroke-width="0.8"/>
+  <!-- Manway -->
+  <rect x="88" y="160" width="18" height="24" rx="4" fill="#0a1020" stroke="#1a3a5a" stroke-width="0.8"/>
+  <text x="97" y="176" text-anchor="middle" font-size="7" fill="#2a4a6a" font-family="Share Tech Mono,monospace">MW</text>
+  <!-- Labels -->
+  <text x="55" y="292" text-anchor="middle" font-size="12" font-weight="600" fill="#5a9ad0" font-family="IBM Plex Sans Arabic,sans-serif">محوّل SCR</text>
+  <text x="55" y="305" text-anchor="middle" font-size="9" fill="#2a5a8a" font-family="Share Tech Mono,monospace">SCR-R01 | V2O5/TiO2</text>
+</g>
+
+<!-- ─── 11. HEAT EXCHANGER 2 (GGH) ─── -->
+<g class="comp-g" id="c-hex2" onclick="showInfo('hex2')" transform="translate(756,455)">
+  <!-- Rotary GGH drum -->
+  <ellipse cx="40" cy="38" rx="42" ry="38" fill="#0a1a25" stroke="#1d9e75" stroke-width="1.2"/>
+  <ellipse cx="52" cy="32" rx="42" ry="38" fill="#060e14" stroke="#0f6e56" stroke-width="0.8"/>
+  <ellipse cx="40" cy="38" rx="39" ry="35" fill="#0d1e2e" stroke="#1d9e75" stroke-width="0.5"/>
+  <!-- Sectors -->
+  <path d="M40,5 L40,71 A34,34 0 0,1 7,38 Z" fill="rgba(29,158,117,0.15)" stroke="#1d9e75" stroke-width="0.5"/>
+  <path d="M40,5 L74,38 A34,34 0 0,1 40,71 Z" fill="rgba(15,110,86,0.1)" stroke="#0f6e56" stroke-width="0.5"/>
+  <circle cx="40" cy="38" r="6" fill="#0a1a20" stroke="#1d9e75" stroke-width="1"/>
+  <!-- Nozzles -->
+  <rect x="22" y="-6" width="10" height="12" rx="2" fill="#0a1520" stroke="#1d9e75" stroke-width="0.8"/>
+  <rect x="30" y="76" width="10" height="12" rx="2" fill="#0a1520" stroke="#1d9e75" stroke-width="0.8"/>
+  <!-- Label -->
+  <text x="40" y="105" text-anchor="middle" font-size="10" font-weight="600" fill="#3a9a70" font-family="IBM Plex Sans Arabic,sans-serif">مبادل حراري ٢</text>
+  <text x="40" y="116" text-anchor="middle" font-size="8" fill="#1a5040" font-family="Share Tech Mono,monospace">GGH-G01</text>
+</g>
+
+<!-- ─── 12. FGD ABSORPTION TOWER ─── -->
+<g class="comp-g" id="c-fgd" onclick="showInfo('fgd')" transform="translate(840,330)">
+  <!-- Main tower body -->
+  <rect x="0" y="0" width="105" height="200" rx="8" fill="url(#fgd-body)" stroke="#1a6a9a" stroke-width="1.2"/>
+  <!-- Top cap dome -->
+  <ellipse cx="52" cy="0" rx="52" ry="18" fill="#102030" stroke="#1a6a9a" stroke-width="1"/>
+  <!-- Right 3D side -->
+  <polygon points="105,0 120,-8 120,192 105,200" fill="#060f14" stroke="#0a3a5a" stroke-width="0.8"/>
+  <!-- Top mist eliminator section -->
+  <rect x="8" y="20" width="89" height="20" rx="3" fill="#0a2535" stroke="#1a5a7a" stroke-width="0.8"/>
+  <line x1="8" y1="25" x2="97" y2="25" stroke="#1a5a7a" stroke-width="0.5" stroke-dasharray="3 2"/>
+  <line x1="8" y1="30" x2="97" y2="30" stroke="#1a5a7a" stroke-width="0.5" stroke-dasharray="3 2"/>
+  <line x1="8" y1="35" x2="97" y2="35" stroke="#1a5a7a" stroke-width="0.5" stroke-dasharray="3 2"/>
+  <text x="52" y="18" text-anchor="middle" font-size="7" fill="#3a8aB0" font-family="IBM Plex Sans Arabic,sans-serif">فاصل الرذاذ</text>
+  <!-- Spray nozzle levels -->
+  <g>
+    <line x1="8" y1="60" x2="97" y2="60" stroke="#1a6aaa" stroke-width="0.5"/>
+    <circle cx="25" cy="60" r="3" fill="#1a5a8a"/>
+    <circle cx="45" cy="60" r="3" fill="#1a5a8a"/>
+    <circle cx="65" cy="60" r="3" fill="#1a5a8a"/>
+    <circle cx="85" cy="60" r="3" fill="#1a5a8a"/>
+    <!-- spray drops -->
+    <line x1="25" y1="63" x2="22" y2="74" stroke="#2a7aaa" stroke-width="0.8" opacity="0.7"/>
+    <line x1="45" y1="63" x2="42" y2="74" stroke="#2a7aaa" stroke-width="0.8" opacity="0.7"/>
+    <line x1="65" y1="63" x2="62" y2="74" stroke="#2a7aaa" stroke-width="0.8" opacity="0.7"/>
+    <line x1="85" y1="63" x2="82" y2="74" stroke="#2a7aaa" stroke-width="0.8" opacity="0.7"/>
+  </g>
+  <g>
+    <line x1="8" y1="95" x2="97" y2="95" stroke="#1a6aaa" stroke-width="0.5"/>
+    <circle cx="30" cy="95" r="3" fill="#1a5a8a"/>
+    <circle cx="52" cy="95" r="3" fill="#1a5a8a"/>
+    <circle cx="74" cy="95" r="3" fill="#1a5a8a"/>
+    <line x1="30" y1="98" x2="27" y2="109" stroke="#2a7aaa" stroke-width="0.8" opacity="0.6"/>
+    <line x1="52" y1="98" x2="49" y2="109" stroke="#2a7aaa" stroke-width="0.8" opacity="0.6"/>
+    <line x1="74" y1="98" x2="71" y2="109" stroke="#2a7aaa" stroke-width="0.8" opacity="0.6"/>
+  </g>
+  <text x="52" y="130" text-anchor="middle" font-size="7" fill="#2a5a7a" font-family="IBM Plex Sans Arabic,sans-serif">منطقة الامتصاص</text>
+  <!-- Sump at bottom -->
+  <rect x="8" y="155" width="89" height="35" rx="4" fill="#0a1a28" stroke="#1a5a7a" stroke-width="0.8"/>
+  <rect x="9" y="162" width="87" height="26" rx="3" fill="rgba(26,90,150,0.2)"/>
+  <text x="52" y="177" text-anchor="middle" font-size="7" fill="#2a6a9a" font-family="IBM Plex Sans Arabic,sans-serif">حوض الامتصاص</text>
+  <!-- Slurry pump (circle) on outlet -->
+  <circle cx="115" cy="175" r="12" fill="#0a1020" stroke="#534ab7" stroke-width="1.2"/>
+  <line x1="103" y1="175" x2="127" y2="175" stroke="#534ab7" stroke-width="1"/>
+  <text x="115" y="196" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">P-01</text>
+  <!-- Labels -->
+  <text x="52" y="222" text-anchor="middle" font-size="12" font-weight="600" fill="#4a9ac0" font-family="IBM Plex Sans Arabic,sans-serif">برج امتصاص FGD</text>
+  <text x="52" y="235" text-anchor="middle" font-size="9" fill="#1a5a7a" font-family="Share Tech Mono,monospace">FGD-A01 | WT Limestone</text>
+</g>
+
+<!-- ─── 13. CHIMNEY ─── -->
+<g class="comp-g" id="c-chimney" onclick="showInfo('chimney')" transform="translate(1005,60)">
+  <!-- Stack body (tapered) -->
+  <polygon points="15,0 40,0 35,230 20,230" fill="url(#chimney-grad)" stroke="#2a3a5a" stroke-width="1"/>
+  <!-- Right 3D face (tapered) -->
+  <polygon points="40,0 50,-5 44,225 35,230" fill="#0a0f18" stroke="#1a2030" stroke-width="0.8"/>
+  <!-- Top band (cap) -->
+  <rect x="12" y="-5" width="35" height="8" rx="2" fill="#1a2a4a" stroke="#3a5a7a" stroke-width="0.8"/>
+  <!-- Red/white safety bands -->
+  <rect x="14" y="30" width="24" height="8" rx="1" fill="rgba(200,50,40,0.5)" stroke="none"/>
+  <rect x="14" y="60" width="24" height="8" rx="1" fill="rgba(200,50,40,0.5)" stroke="none"/>
+  <rect x="16" y="90" width="20" height="8" rx="1" fill="rgba(200,50,40,0.5)" stroke="none"/>
+  <!-- Outlet cap funnel at top -->
+  <ellipse cx="27" cy="0" rx="22" ry="6" fill="#1a2535" stroke="#3a4a6a" stroke-width="0.8"/>
+  <!-- Steam/clean gas plume -->
+  <path d="M25,-5 Q20,-20 28,-35 Q18,-50 26,-65" fill="none" stroke="rgba(130,180,255,0.25)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M27,-5 Q32,-22 24,-38 Q34,-55 22,-70" fill="none" stroke="rgba(130,180,255,0.15)" stroke-width="5" stroke-linecap="round"/>
+  <!-- Base platform -->
+  <rect x="8" y="228" width="48" height="10" rx="2" fill="#0a1020" stroke="#1a2a3a" stroke-width="0.8"/>
+  <!-- Label -->
+  <text x="27" y="258" text-anchor="middle" font-size="11" font-weight="600" fill="#4a6a90" font-family="IBM Plex Sans Arabic,sans-serif">مدخنة</text>
+  <text x="27" y="270" text-anchor="middle" font-size="8" fill="#2a3a5a" font-family="Share Tech Mono,monospace">CHIMNEY-C01</text>
+  <text x="27" y="281" text-anchor="middle" font-size="8" fill="#1a2a40" font-family="Share Tech Mono,monospace">H=120m</text>
+</g>
+
+<!-- ═══════ FLOW LINE LABELS ═══════ -->
+<text x="150" y="296" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-01 | 350°C</text>
+<text x="290" y="296" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-02 | 320°C</text>
+<text x="455" y="296" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-03 | 310°C</text>
+<text x="575" y="296" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-04 | 300°C</text>
+<text x="706" y="462" font-size="8" fill="#4a8ac0" font-family="Share Tech Mono,monospace">L-05</text>
+<text x="780" y="484" font-size="8" fill="#4a8ac0" font-family="Share Tech Mono,monospace">L-06 | 130°C</text>
+
+<!-- Grid reference lines (light) -->
+<line x1="0" y1="0" x2="1200" y2="0" stroke="rgba(42,127,255,0.05)" stroke-width="1"/>
+<line x1="0" y1="580" x2="1200" y2="580" stroke="rgba(42,127,255,0.05)" stroke-width="1"/>
+
+<!-- Document border -->
+<rect x="1" y="1" width="1198" height="578" rx="4" fill="none" stroke="rgba(42,127,255,0.1)" stroke-width="1"/>
+
+<!-- Title block -->
+<rect x="0" y="545" width="1200" height="35" fill="rgba(10,20,32,0.95)" stroke="none"/>
+<line x1="0" y1="545" x2="1200" y2="545" stroke="rgba(42,127,255,0.2)" stroke-width="0.8"/>
+<text x="20" y="560" font-size="9" fill="rgba(42,127,255,0.5)" font-family="Share Tech Mono,monospace">DWG NO: PID-FGT-001</text>
+<text x="20" y="572" font-size="9" fill="rgba(42,127,255,0.3)" font-family="Share Tech Mono,monospace">REV: 03 | DATE: 2025-04 | SCALE: NTS</text>
+<text x="600" y="563" text-anchor="middle" font-size="10" fill="rgba(180,210,255,0.4)" font-family="IBM Plex Sans Arabic,sans-serif">منظومة معالجة غازات الاحتراق — Flue Gas Treatment System</text>
+<text x="1180" y="560" text-anchor="end" font-size="9" fill="rgba(42,127,255,0.4)" font-family="Share Tech Mono,monospace">APPROVED: ENG. A. AL-RASHID</text>
+<text x="1180" y="572" text-anchor="end" font-size="9" fill="rgba(42,127,255,0.3)" font-family="Share Tech Mono,monospace">CLASS: CONFIDENTIAL</text>
+
+</svg>
+</div>
+</div>
+
+<!-- Info Panel -->
+<div class="info-panel" id="info-panel">
+  <div class="info-icon-wrap" id="info-icon">⚙️</div>
+  <div style="flex:1">
+    <div class="info-name" id="info-name">انقر على أي مكوّن للعرض التفصيلي</div>
+    <div class="info-name-en" id="info-name-en">Click any component to view details</div>
+    <div class="info-desc" id="info-desc">يمكنك النقر على المرجل، المرسّب الكهربائي، محوّل SCR، برج FGD، المدخنة وغيرها لعرض المواصفات التقنية والوصف التشغيلي.</div>
+    <div class="info-specs" id="info-specs"></div>
+  </div>
+</div>
+
+<script>
+const data = {
+  boiler: {
+    icon: '🔥', name: 'مرجل البخار', en: 'BOILER-B01',
+    desc: 'المصدر الرئيسي لحرق الوقود وتوليد البخار. يعمل بالفحم أو الغاز الطبيعي وينتج غازات المداخن الساخنة التي تحتوي على NOx وSO₂ والجسيمات الدقيقة والتي يجب معالجتها قبل الإطلاق في الغلاف الجوي.',
+    specs: ['T خروج: 350°C','P: 1.05 bar a','تدفق: 85,000 Nm³/h','NOx: 450 mg/Nm³','SO₂: 1200 mg/Nm³']
+  },
+  aph: {
+    icon: '🌀', name: 'سخان الهواء الدوّار', en: 'AIR PREHEATER — APH-A01',
+    desc: 'مبادل حراري دوّار من نوع Ljungström يستعيد الحرارة من غازات المداخن الخارجة ويستخدمها لتسخين هواء الاحتراق القادم إلى المرجل، مما يرفع كفاءة المحطة الكلية بنسبة 5-8%.',
+    specs: ['نوع: Ljungström','T دخول غاز: 350°C','T خروج غاز: 320°C','T هواء خروج: 280°C','قطر: 12m']
+  },
+  esp: {
+    icon: '⚡', name: 'المرسّب الكهربائي الجاف', en: 'ESP-E01 — Electrostatic Precipitator',
+    desc: 'يزيل 99.9% من الجسيمات الدقيقة والرماد الطائر من غازات المداخن عبر شحنها كهربائياً وترسيبها على لوحات جمع. الكفاءة تصل إلى 99.9% بكثافة غبار خروج < 30 mg/Nm³.',
+    specs: ['كفاءة: 99.9%','حقول: 4','جهد: 72 kV','غبار دخول: 15 g/Nm³','غبار خروج: <30 mg/Nm³']
+  },
+  hex1: {
+    icon: '🔄', name: 'المبادل الحراري ١', en: 'HEX-H01 — Shell & Tube',
+    desc: 'مبادل حراري من نوع Shell & Tube يرفع درجة حرارة الغاز الداخل إلى محوّل SCR إلى المستوى المثالي لتفاعل الأكسدة الاختزالية الانتقائية. يعمل بتبادل الحرارة مع الغاز النظيف الخارج من SCR.',
+    specs: ['نوع: Shell & Tube','مساحة: 850 m²','T دخول: 290°C','T خروج: 310°C','ضغط: 1.02 bar']
+  },
+  tank: {
+    icon: '🧪', name: 'خزان الأمونيا السائلة', en: 'T-NH3-01 — Liquid Ammonia Tank',
+    desc: 'خزان ضغط أفقي مُصنَّع من الفولاذ الكربوني المطعَّم، يخزن الأمونيا السائلة تحت الضغط. يُزوَّد بصمامات أمان وأجهزة قياس مستوى وضغط ودرجة حرارة، ومحاطاً بسور احتواء.',
+    specs: ['حجم: 10 m³','P تصميم: 18 bar','T تصميم: -33°C','مادة: CS + SS Clad','معيار: ASME VIII']
+  },
+  evap: {
+    icon: '♨️', name: 'مبخّر الأمونيا', en: 'EVAPORATOR — EV-01',
+    desc: 'يحوّل الأمونيا السائلة القادمة من الخزان إلى طور غازي بالتسخين بالبخار أو الماء الساخن. درجة حرارة الخروج تُضبط لضمان تبخر كامل قبل دخول الخلاط.',
+    specs: ['نوع: Shell & Tube','سطح: 45 m²','T خروج NH3: 30°C','P عمل: 4.5 bar','تدفق: 120 kg/h']
+  },
+  blower: {
+    icon: '💨', name: 'ناخب هواء التخفيف', en: 'DILUENT AIR BLOWER — BLW-01',
+    desc: 'ناخب طرد مركزي يضخ هواء التخفيف لخلطه مع بخار الأمونيا في الخلاط. يُقلل تركيز الأمونيا قبل الحقن في مجرى الغاز الساخن ويحسن توزيع NH3 على كامل مقطع القناة.',
+    specs: ['نوع: Centrifugal','تدفق: 1500 Nm³/h','ضغط: 3500 Pa','قدرة: 7.5 kW','معيار: ATEX Zone 1']
+  },
+  mixer: {
+    icon: '🔀', name: 'خلاط NH3/هواء', en: 'STATIC MIXER — MX-01',
+    desc: 'خلاط ستاتيكي يضمن اتحاد بخار الأمونيا مع هواء التخفيف بنسبة دقيقة ومتجانسة قبل الحقن في مجرى غاز المداخن الساخن لضمان كفاءة تفاعل SCR.',
+    specs: ['نوع: Static','نسبة خلط: 5% NH3','T دخول NH3: 30°C','مادة: SS 316L','ضغط: 4.5 bar g']
+  },
+  scr: {
+    icon: '⚗️', name: 'محوّل SCR (الاختزال الانتقائي)', en: 'SCR REACTOR — SCR-R01',
+    desc: 'قلب منظومة المعالجة. يُحوّل أكاسيد النيتروجين (NOx) إلى N₂ وH₂O باستخدام الأمونيا كمختزل على محفز V₂O₅/TiO₂ عند درجة حرارة 300-420°C. يحتوي على طبقتين نشاطيتين وطبقة احتياطية.',
+    specs: ['كفاءة: >85% NOx','T عمل: 300-420°C','محفز: V₂O₅/WO₃/TiO₂','NOx خروج: <50 mg/Nm³','NH3 slip: <3 ppm']
+  },
+  hex2: {
+    icon: '🔄', name: 'مبادل حراري الغاز/الغاز (GGH)', en: 'GGH-G01 — Gas Gas Heater',
+    desc: 'مبادل حراري دوّار يستعيد الحرارة من الغاز النظيف الخارج من SCR ويستخدمها لتدفئة الغاز الداخل إلى برج FGD، مما يمنع تكاثف حمض الكبريتيك ويحسن كفاءة التبادل.',
+    specs: ['نوع: Rotary GGH','T دخول غاز حار: 300°C','T خروج غاز بارد: 130°C','كفاءة: 75%','قطر: 8m']
+  },
+  fgd: {
+    icon: '🏭', name: 'برج امتصاص إزالة SO₂', en: 'FGD ABSORPTION TOWER — FGD-A01',
+    desc: 'برج امتصاص رطب (Wet Limestone FGD) يُزيل SO₂ من غازات المداخن بالتفاعل مع عجينة الحجر الجيري (CaCO₃). كفاءة الإزالة تتجاوز 96%. ينتج الجبس (CaSO₄·2H₂O) كمنتج ثانوي قابل للبيع.',
+    specs: ['كفاءة SO₂: >96%','طريقة: Wet Limestone','SO₂ خروج: <50 mg/Nm³','مستويات رش: 3','جبس إنتاج: 12 t/h']
+  },
+  chimney: {
+    icon: '🏗️', name: 'مدخنة', en: 'CHIMNEY — STACK-C01 | H=120m',
+    desc: 'مدخنة خرسانية مسلحة بارتفاع 120 متر تضمن تشتيت الغازات المعالجة على ارتفاع كافٍ. مُجهَّزة بأجهزة قياس مستمر للانبعاثات (CEMS) وأضواء تحذيرية وتصريف صرف صحي قاعدي.',
+    specs: ['ارتفاع: 120 m','قطر قمة: 3.8 m','مادة: RC + بطانة كيميائية','CEMS: NOx, SO₂, غبار','استهداف EU IED 2010/75']
+  }
+};
+
+let active = null;
+function showInfo(id) {
+  const d = data[id];
+  if (!d) return;
+  if (active) {
+    const prev = document.getElementById('c-' + active);
+    if (prev) prev.classList.remove('active');
+  }
+  active = id;
+  const el = document.getElementById('c-' + id);
+  if (el) el.classList.add('active');
+  document.getElementById('info-icon').textContent = d.icon;
+  document.getElementById('info-name').textContent = d.name;
+  document.getElementById('info-name-en').textContent = d.en;
+  document.getElementById('info-desc').textContent = d.desc;
+  const specsEl = document.getElementById('info-specs');
+  specsEl.innerHTML = d.specs.map(s => `<span class="spec-item">${s}</span>`).join('');
+}
+</script>
+</body>
+</html>

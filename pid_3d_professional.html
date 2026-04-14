@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P&ID — FGT System | PID-FGT-001 Rev.03</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e14;--bg2:#0f1520;--bg3:#141b28;--panel:#0d1420;
+  --border:rgba(80,160,255,0.18);--border2:rgba(80,160,255,0.08);
+  --accent:#2a7fff;--accent2:#00d4aa;--accent3:#ff6b35;--accent4:#ffc040;
+  --text:#c8d8f0;--text2:#7a99bb;--text3:#4a6a8a;
+  --red:#e24b4a;--blue:#378add;--green:#1d9e75;--amber:#ba7517;--purple:#7f77dd;
+  --pipe-hot:#c0392b;--pipe-clean:#1a6fa8;--pipe-nh3:#27ae60;--pipe-air:#5a7fa0;
+  --pipe-drain:#8a6a30;--pipe-bypass:#cc6600;--pipe-emergency:#dd3300;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;min-height:100vh;overflow:hidden;}
+
+/* ── HEADER ── */
+.header{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;z-index:200;position:relative;}
+.hlogo{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;opacity:.8;}
+.htitle{font-size:14px;font-weight:600;color:var(--text);text-align:center;}
+.hsub{font-size:10px;color:var(--text2);margin-top:1px;text-align:center;}
+.hbadge{font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(42,127,255,.1);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--accent);letter-spacing:1px;}
+.header-right{display:flex;gap:6px;align-items:center;}
+
+/* ── TOOLBAR ── */
+.toolbar{background:var(--bg2);border-bottom:1px solid var(--border2);padding:5px 12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;z-index:150;position:relative;}
+.tbtn{font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(42,127,255,.06);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;color:var(--text2);cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tbtn:hover{background:rgba(42,127,255,.14);color:var(--accent);border-color:var(--border);}
+.tbtn.active{background:rgba(42,127,255,.2);color:var(--accent);border-color:rgba(42,127,255,.4);}
+.tsep{width:1px;height:18px;background:var(--border2);margin:0 3px;}
+.search-wrap{display:flex;align-items:center;gap:5px;margin-right:auto;}
+.search-inp{font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(42,127,255,.05);border:1px solid var(--border2);border-radius:4px;padding:4px 10px;color:var(--text);width:160px;outline:none;}
+.search-inp:focus{border-color:var(--border);background:rgba(42,127,255,.1);}
+.search-inp::placeholder{color:var(--text3);}
+
+/* ── LEGEND BAR ── */
+.legend-bar{background:var(--bg2);border-bottom:1px solid var(--border2);padding:5px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+.leg{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text2);}
+
+/* ── SHEET TABS ── */
+.sheet-tabs{display:flex;gap:2px;padding:6px 16px 0;background:var(--bg);border-bottom:1px solid var(--border2);}
+.stab{font-family:'Share Tech Mono',monospace;font-size:9px;padding:4px 14px;border:1px solid var(--border2);border-bottom:none;border-radius:4px 4px 0 0;cursor:pointer;background:var(--bg2);color:var(--text3);}
+.stab.active{background:var(--bg3);color:var(--accent);border-color:var(--border);}
+
+/* ── MAIN CANVAS ── */
+.canvas-area{position:relative;overflow:hidden;cursor:grab;flex:1;}
+.canvas-area.grabbing{cursor:grabbing;}
+#svgwrap{position:absolute;transform-origin:0 0;will-change:transform;}
+
+/* ── HAZOP ZONES ── */
+.hazop-nh3{fill:rgba(220,80,40,.07);stroke:rgba(220,80,40,.25);stroke-width:1;stroke-dasharray:6 3;}
+.hazop-elec{fill:rgba(255,180,0,.05);stroke:rgba(255,180,0,.2);stroke-width:1;stroke-dasharray:6 3;}
+
+/* ── COMPONENTS ── */
+.comp-g{cursor:pointer;}
+.comp-g:hover .comp-body{filter:brightness(1.15);}
+.comp-g.active .comp-body{filter:brightness(1.2) drop-shadow(0 0 6px var(--accent));}
+.comp-g.highlighted .comp-body{filter:brightness(1.3) drop-shadow(0 0 10px #ffcc00);}
+.comp-g.dimmed{opacity:.25;}
+
+/* ── PIPES ── */
+.pipe-seg{transition:opacity .3s,filter .3s;}
+.pipe-seg.dimmed{opacity:.1;}
+.pipe-seg.highlighted{filter:drop-shadow(0 0 5px currentColor);opacity:1;}
+
+/* ── ANIMATIONS ── */
+@keyframes flow-r{from{stroke-dashoffset:24;}to{stroke-dashoffset:0;}}
+@keyframes flow-d{from{stroke-dashoffset:20;}to{stroke-dashoffset:0;}}
+@keyframes flow-u{from{stroke-dashoffset:0;}to{stroke-dashoffset:20;}}
+@keyframes pulse{0%,100%{opacity:.5;}50%{opacity:1;}}
+@keyframes blink-red{0%,100%{fill:rgba(220,60,40,.3);}50%{fill:rgba(220,60,40,.7);}}
+
+.anim-r{stroke-dasharray:8 4;animation:flow-r .7s linear infinite;}
+.anim-d{stroke-dasharray:8 4;animation:flow-d .7s linear infinite;}
+.anim-u{stroke-dasharray:8 4;animation:flow-u .7s linear infinite;}
+.anim-slow{stroke-dasharray:8 4;animation:flow-r 1.2s linear infinite;}
+.anim-dashed{stroke-dasharray:6 4;animation:flow-r 1s linear infinite;}
+.live-pulse{animation:pulse 2s ease-in-out infinite;}
+
+/* ── INFO PANEL ── */
+.info-panel{position:absolute;bottom:0;left:0;right:0;background:rgba(10,14,20,.95);border-top:1px solid var(--border);padding:10px 18px;display:flex;align-items:flex-start;gap:14px;z-index:100;min-height:80px;backdrop-filter:blur(8px);transition:all .3s;}
+.info-icon-w{width:40px;height:40px;background:rgba(42,127,255,.1);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.info-name{font-size:13px;font-weight:600;color:var(--text);}
+.info-en{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);margin-top:1px;}
+.info-desc{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.65;max-width:900px;}
+.info-specs{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.spec{background:rgba(42,127,255,.07);border:1px solid var(--border2);border-radius:4px;padding:2px 8px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent2);}
+.info-close{position:absolute;top:8px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;}
+
+/* ── LIVE GAUGES ── */
+.gauge-wrap{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:90;}
+.gauge-card{background:rgba(10,14,20,.92);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;min-width:130px;}
+.gauge-label{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);margin-bottom:3px;}
+.gauge-val{font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:600;color:var(--accent2);}
+.gauge-val.warn{color:var(--amber);}
+.gauge-val.danger{color:var(--red);}
+.gauge-unit{font-size:9px;color:var(--text3);margin-left:2px;}
+.gauge-bar{height:3px;background:rgba(42,127,255,.1);border-radius:2px;margin-top:4px;overflow:hidden;}
+.gauge-fill{height:100%;border-radius:2px;transition:width .5s;}
+
+/* ── COMMENT SYSTEM ── */
+.comment-pin{position:absolute;width:20px;height:20px;border-radius:50% 50% 50% 0;background:var(--amber);border:2px solid rgba(255,255,255,.3);cursor:pointer;transform:rotate(-45deg);z-index:80;transition:transform .2s;}
+.comment-pin:hover{transform:rotate(-45deg) scale(1.2);}
+.comment-popup{position:absolute;background:rgba(12,18,28,.97);border:1px solid rgba(186,117,23,.4);border-radius:8px;padding:10px;min-width:200px;max-width:260px;z-index:200;font-size:11px;color:var(--text);}
+.comment-popup textarea{background:rgba(42,127,255,.05);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;font-size:10px;width:100%;padding:5px;resize:none;outline:none;margin-top:5px;}
+
+/* ── MATERIAL BALANCE PANEL ── */
+.mb-panel{position:absolute;top:10px;left:10px;background:rgba(10,14,20,.95);border:1px solid var(--border);border-radius:8px;width:240px;z-index:90;overflow:hidden;transition:all .3s;}
+.mb-panel.collapsed{width:240px;height:28px;}
+.mb-header{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(42,127,255,.08);border-bottom:1px solid var(--border2);cursor:pointer;}
+.mb-title{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);}
+.mb-table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:8px;}
+.mb-table th{background:rgba(42,127,255,.08);color:var(--text2);padding:3px 6px;border-bottom:1px solid var(--border2);}
+.mb-table td{padding:3px 6px;border-bottom:1px solid var(--border2);color:var(--text3);}
+.mb-table td:first-child{color:var(--accent2);}
+.mb-table tr:hover td{background:rgba(42,127,255,.05);color:var(--text);}
+
+/* ── CUTAWAY MODAL ── */
+.cutaway-modal{display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);}
+.cutaway-modal.open{display:flex;}
+.cutaway-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:560px;max-width:95vw;max-height:85vh;overflow:auto;}
+.cutaway-hdr{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border2);}
+.cutaway-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;}
+.cutaway-body{padding:16px;}
+
+/* ── ZOOM CONTROLS ── */
+.zoom-ctrl{position:absolute;bottom:90px;right:10px;display:flex;flex-direction:column;gap:4px;z-index:90;}
+.zbtn{width:30px;height:30px;background:rgba(10,14,20,.92);border:1px solid var(--border2);border-radius:5px;color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.zbtn:hover{background:rgba(42,127,255,.15);color:var(--accent);}
+
+/* ── FLOW HIGHLIGHT overlay ── */
+.flow-tooltip{position:absolute;background:rgba(10,14,20,.95);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent2);pointer-events:none;z-index:150;display:none;}
+
+/* ── PRINT ── */
+@media print{
+  body{background:#fff;color:#000;}
+  .toolbar,.legend-bar,.gauge-wrap,.mb-panel,.zoom-ctrl,.info-panel,.sheet-tabs{display:none!important;}
+  .header{background:#fff;border-color:#ccc;}
+  .htitle,.hlogo,.hbadge{color:#000;}
+  #svgwrap{position:static!important;transform:none!important;}
+  .canvas-area{overflow:visible;height:auto;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <div>
+    <div class="hlogo">ISO 10628 · IEC 62424 · ISA S5.1</div>
+    <div style="font-size:9px;color:var(--text3);margin-top:2px;font-family:'Share Tech Mono',monospace">HAZOP REVIEWED · CLASS: CONFIDENTIAL</div>
+  </div>
+  <div>
+    <div class="htitle">منظومة معالجة غازات الاحتراق</div>
+    <div class="hsub">Flue Gas Treatment System — SCR / ESP / FGD</div>
+  </div>
+  <div class="header-right">
+    <div class="hbadge">DWG: PID-FGT-001</div>
+    <div class="hbadge">REV: 03</div>
+    <div class="hbadge">2025-04</div>
+  </div>
+</div>
+
+<!-- ══ SHEET TABS ══ -->
+<div class="sheet-tabs">
+  <div class="stab active" onclick="switchSheet(0)">Sheet 1 — معالجة الجسيمات &amp; APH</div>
+  <div class="stab" onclick="switchSheet(1)">Sheet 2 — منظومة SCR</div>
+  <div class="stab" onclick="switchSheet(2)">Sheet 3 — FGD &amp; المدخنة</div>
+</div>
+
+<!-- ══ TOOLBAR ══ -->
+<div class="toolbar">
+  <button class="tbtn active" id="btn-process" onclick="toggleLayer('process')">خطوط العملية</button>
+  <button class="tbtn active" id="btn-inst" onclick="toggleLayer('inst')">أجهزة القياس</button>
+  <button class="tbtn active" id="btn-service" onclick="toggleLayer('service')">خطوط الخدمات</button>
+  <button class="tbtn active" id="btn-labels" onclick="toggleLayer('labels')">التسميات</button>
+  <button class="tbtn active" id="btn-hazop" onclick="toggleLayer('hazop')">مناطق HAZOP</button>
+  <div class="tsep"></div>
+  <button class="tbtn" onclick="toggleCommentMode()" id="btn-comment">💬 إضافة ملاحظة</button>
+  <button class="tbtn" onclick="toggleMB()" id="btn-mb">📊 اتزان المادة</button>
+  <button class="tbtn" onclick="toggleCompare()">⚖️ قبل/بعد المعالجة</button>
+  <div class="tsep"></div>
+  <button class="tbtn" onclick="printPID()">🖨️ طباعة PDF</button>
+  <button class="tbtn" onclick="exportSVG()">💾 تصدير SVG</button>
+  <div class="tsep"></div>
+  <div class="search-wrap">
+    <input class="search-inp" id="searchbox" placeholder="🔍 ابحث عن tag أو مكوّن..." oninput="doSearch(this.value)">
+  </div>
+</div>
+
+<!-- ══ LEGEND ══ -->
+<div class="legend-bar">
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#c0392b" stroke-width="4" stroke-linecap="round"/></svg>غاز ساخن</div>
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#1a6fa8" stroke-width="4" stroke-linecap="round"/></svg>غاز معالج</div>
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="6 3"/></svg>أمونيا NH₃</div>
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 3"/></svg>هواء</div>
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#cc6600" stroke-width="2" stroke-dasharray="4 3"/></svg>Bypass</div>
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#8a6a30" stroke-width="1.5" stroke-dasharray="3 3"/></svg>Drain/Vent</div>
+  <div class="leg"><svg width="28" height="6"><line x1="0" y1="3" x2="28" y2="3" stroke="#dd3300" stroke-width="2" stroke-dasharray="4 2"/></svg>طوارئ</div>
+  <div class="leg"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="#ba7517" stroke-width="1.5"/><line x1="7" y1="2" x2="7" y2="12" stroke="#ba7517" stroke-width="1.2"/><line x1="2" y1="7" x2="12" y2="7" stroke="#ba7517" stroke-width="1.2"/></svg>صمام تحكم</div>
+  <div class="leg"><svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="4" width="10" height="6" rx="1" fill="none" stroke="#e24b4a" stroke-width="1.2"/><line x1="7" y1="0" x2="7" y2="4" stroke="#e24b4a" stroke-width="1"/><line x1="7" y1="10" x2="7" y2="14" stroke="#e24b4a" stroke-width="1"/></svg>PSV صمام أمان</div>
+  <div class="leg"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="none" stroke="#534ab7" stroke-width="1.5"/><text x="7" y="10" text-anchor="middle" font-size="6" fill="#534ab7">M</text></svg>مضخة</div>
+  <div class="leg" style="margin-right:auto"><span style="color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:9px">انقر المكوّنات | عجلة الماوس للتكبير | سحب للتنقل</span></div>
+</div>
+
+<!-- ══ MAIN CANVAS ══ -->
+<div class="canvas-area" id="canvas" style="height:calc(100vh - 230px)">
+<div id="svgwrap">
+<svg id="mainsvg" width="1400" height="680" viewBox="0 0 1400 680">
+<defs>
+  <!-- Arrow markers -->
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#1a6fa8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#5a7fa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#cc6600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="adr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#8a6a30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="aem" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1.5L9 5L1 8.5" fill="none" stroke="#dd3300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>
+
+  <!-- 3D Gradients -->
+  <linearGradient id="g-boiler-f" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2a1a1a"/><stop offset="40%" stop-color="#4a2020"/><stop offset="100%" stop-color="#1a1010"/></linearGradient>
+  <linearGradient id="g-boiler-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6a3030"/><stop offset="100%" stop-color="#3a1a1a"/></linearGradient>
+  <linearGradient id="g-boiler-s" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a1010"/><stop offset="100%" stop-color="#0a0808"/></linearGradient>
+  <linearGradient id="g-tank" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0a1830"/><stop offset="35%" stop-color="#1a3a6a"/><stop offset="100%" stop-color="#0a1020"/></linearGradient>
+  <linearGradient id="g-esp-f" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a1a3a"/><stop offset="40%" stop-color="#2a2a5a"/><stop offset="100%" stop-color="#0a0a20"/></linearGradient>
+  <linearGradient id="g-scr-f" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0a1a30"/><stop offset="40%" stop-color="#0f2040"/><stop offset="100%" stop-color="#060f1a"/></linearGradient>
+  <linearGradient id="g-scr-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a3050"/><stop offset="100%" stop-color="#0d2035"/></linearGradient>
+  <linearGradient id="g-fgd" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0a1a20"/><stop offset="40%" stop-color="#102a35"/><stop offset="100%" stop-color="#060f14"/></linearGradient>
+  <linearGradient id="g-pipe-h" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8a2a20"/><stop offset="45%" stop-color="#e05a40"/><stop offset="55%" stop-color="#c04030"/><stop offset="100%" stop-color="#4a1010"/></linearGradient>
+  <linearGradient id="g-pipe-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a2a4a"/><stop offset="45%" stop-color="#3a7ab4"/><stop offset="55%" stop-color="#2a5a90"/><stop offset="100%" stop-color="#0a1a2a"/></linearGradient>
+  <linearGradient id="g-chimney" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a2030"/><stop offset="40%" stop-color="#3a4060"/><stop offset="100%" stop-color="#0a1018"/></linearGradient>
+
+  <!-- Filters -->
+  <filter id="f-glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+
+<!-- ════════════════════════════════════════
+     GRID REFERENCE (improvement #12)
+════════════════════════════════════════ -->
+<g id="layer-grid" opacity="0.4">
+  <!-- Columns A-H -->
+  <text x="87" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">A</text>
+  <text x="262" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">B</text>
+  <text x="437" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">C</text>
+  <text x="612" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">D</text>
+  <text x="787" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">E</text>
+  <text x="962" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">F</text>
+  <text x="1137" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">G</text>
+  <text x="1312" y="18" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">H</text>
+  <!-- Rows 1-8 -->
+  <text x="18" y="88" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">1</text>
+  <text x="18" y="178" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">2</text>
+  <text x="18" y="268" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">3</text>
+  <text x="18" y="358" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">4</text>
+  <text x="18" y="448" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">5</text>
+  <text x="18" y="538" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">6</text>
+  <text x="18" y="618" text-anchor="middle" font-size="10" fill="#2a3a5a" font-family="Share Tech Mono,monospace">7</text>
+  <!-- Grid lines -->
+  <line x1="30" y1="25" x2="1390" y2="25" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="30" y1="645" x2="1390" y2="645" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="30" y1="25" x2="30" y2="645" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="1390" y1="25" x2="1390" y2="645" stroke="#1a2a3a" stroke-width="0.5"/>
+  <!-- Vertical dividers -->
+  <line x1="175" y1="25" x2="175" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="350" y1="25" x2="350" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="525" y1="25" x2="525" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="700" y1="25" x2="700" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="875" y1="25" x2="875" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="1050" y1="25" x2="1050" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="1225" y1="25" x2="1225" y2="645" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <!-- Horizontal dividers -->
+  <line x1="30" y1="115" x2="1390" y2="115" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="30" y1="205" x2="1390" y2="205" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="30" y1="295" x2="1390" y2="295" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="30" y1="385" x2="1390" y2="385" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="30" y1="475" x2="1390" y2="475" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+  <line x1="30" y1="565" x2="1390" y2="565" stroke="#1a2a3a" stroke-width="0.3" stroke-dasharray="3 6"/>
+</g>
+
+<!-- ════════════════════════════════════════
+     HAZOP ZONES (improvement #22)
+════════════════════════════════════════ -->
+<g id="layer-hazop">
+  <!-- NH3 zone (red) -->
+  <rect class="hazop-nh3" x="350" y="70" width="320" height="140" rx="8"/>
+  <text x="360" y="88" font-size="9" fill="rgba(220,80,40,.7)" font-family="Share Tech Mono,monospace">⚠ HAZOP ZONE — NH3 · ATEX Zone 1 · T3</text>
+  <!-- ESP electrical zone (yellow) -->
+  <rect class="hazop-elec" x="430" y="270" width="130" height="140" rx="8"/>
+  <text x="440" y="287" font-size="9" fill="rgba(255,180,0,.6)" font-family="Share Tech Mono,monospace">⚡ HIGH VOLTAGE · 72kV</text>
+</g>
+
+<!-- ════════════════════════════════════════
+     MAIN PROCESS PIPES (layer: process)
+════════════════════════════════════════ -->
+<g id="layer-process">
+
+<!-- ─ L-01: Boiler → APH (DN600 / CS / 350°C / 1.05 bar) ─ -->
+<g class="pipe-seg" data-line="L-01" onmouseenter="showPipeTip(event,'L-01','DN600 · CS · 350°C · 1.05 bar')" onmouseleave="hideTip()">
+  <rect x="140" y="336" width="80" height="16" rx="3" fill="url(#g-pipe-h)"/>
+  <rect x="136" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <rect x="214" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <line x1="142" y1="344" x2="220" y2="344" stroke="#c0392b" stroke-width="5" stroke-linecap="round" class="anim-r" marker-end="url(#ah)" opacity=".75"/>
+  <text x="180" y="330" text-anchor="middle" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-01</text>
+</g>
+
+<!-- ─ L-02: APH → ESP (DN600 / CS / 320°C) ─ -->
+<g class="pipe-seg" data-line="L-02" onmouseenter="showPipeTip(event,'L-02','DN600 · CS · 320°C · 1.04 bar')" onmouseleave="hideTip()">
+  <rect x="318" y="336" width="108" height="16" rx="3" fill="url(#g-pipe-h)"/>
+  <rect x="314" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <rect x="424" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <line x1="320" y1="344" x2="430" y2="344" stroke="#c0392b" stroke-width="5" stroke-linecap="round" class="anim-r" marker-end="url(#ah)" opacity=".75"/>
+  <text x="374" y="330" text-anchor="middle" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-02</text>
+</g>
+
+<!-- ─ L-03: ESP → HEX1 (DN600 / CS / 310°C) ─ -->
+<g class="pipe-seg" data-line="L-03" onmouseenter="showPipeTip(event,'L-03','DN600 · CS · 310°C · 1.03 bar')" onmouseleave="hideTip()">
+  <rect x="578" y="336" width="90" height="16" rx="3" fill="url(#g-pipe-h)"/>
+  <rect x="574" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <rect x="667" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <line x1="580" y1="344" x2="673" y2="344" stroke="#c0392b" stroke-width="5" stroke-linecap="round" class="anim-r" marker-end="url(#ah)" opacity=".75"/>
+  <text x="625" y="330" text-anchor="middle" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-03</text>
+</g>
+
+<!-- ─ L-04: HEX1 → SCR (DN600 / CS / 305°C) ─ -->
+<g class="pipe-seg" data-line="L-04" onmouseenter="showPipeTip(event,'L-04','DN600 · CS · 305°C · 1.02 bar')" onmouseleave="hideTip()">
+  <rect x="738" y="336" width="70" height="16" rx="3" fill="url(#g-pipe-h)"/>
+  <rect x="734" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <rect x="807" y="334" width="6" height="20" rx="1" fill="#3a5070" stroke="#5a7090" stroke-width="0.5"/>
+  <line x1="740" y1="344" x2="813" y2="344" stroke="#c0392b" stroke-width="5" stroke-linecap="round" class="anim-r" marker-end="url(#ah)" opacity=".75"/>
+  <text x="773" y="330" text-anchor="middle" font-size="8" fill="#e05a40" font-family="Share Tech Mono,monospace">L-04</text>
+</g>
+
+<!-- ─ L-05: SCR out vertical down → GGH (DN600 / SS304 / 300°C) ─ -->
+<g class="pipe-seg" data-line="L-05" onmouseenter="showPipeTip(event,'L-05','DN600 · SS304 · 300°C · 1.01 bar')" onmouseleave="hideTip()">
+  <rect x="856" y="485" width="16" height="100" rx="3" fill="url(#g-pipe-c)"/>
+  <rect x="854" y="483" width="20" height="6" rx="1" fill="#3a5070"/>
+  <line x1="864" y1="490" x2="864" y2="585" stroke="#1a6fa8" stroke-width="5" stroke-linecap="round" class="anim-d" marker-end="url(#ab)" opacity=".75"/>
+  <text x="880" y="540" font-size="8" fill="#4a8ac0" font-family="Share Tech Mono,monospace">L-05</text>
+</g>
+
+<!-- ─ L-05h: GGH horizontal → FGD (DN600) ─ -->
+<g class="pipe-seg" data-line="L-05" onmouseenter="showPipeTip(event,'L-05','DN600 · SS304 · 130°C')" onmouseleave="hideTip()">
+  <rect x="920" y="576" width="130" height="16" rx="3" fill="url(#g-pipe-c)"/>
+  <rect x="916" y="574" width="6" height="20" rx="1" fill="#3a5070"/>
+  <rect x="1049" y="574" width="6" height="20" rx="1" fill="#3a5070"/>
+  <line x1="922" y1="584" x2="1055" y2="584" stroke="#1a6fa8" stroke-width="5" stroke-linecap="round" class="anim-r" marker-end="url(#ab)" opacity=".75"/>
+  <text x="988" y="570" text-anchor="middle" font-size="8" fill="#4a8ac0" font-family="Share Tech Mono,monospace">L-05 | 130°C</text>
+</g>
+
+<!-- ─ L-06: FGD → Chimney vertical (DN1200 / FRP / 55°C) ─ -->
+<g class="pipe-seg" data-line="L-06" onmouseenter="showPipeTip(event,'L-06','DN1200 · FRP · 55°C · clean')" onmouseleave="hideTip()">
+  <rect x="1212" y="310" width="16" height="290" rx="3" fill="url(#g-pipe-c)"/>
+  <line x1="1220" y1="600" x2="1220" y2="315" stroke="#1a6fa8" stroke-width="5" stroke-linecap="round" class="anim-u" marker-end="url(#ab)" opacity=".75"/>
+  <!-- horizontal to chimney -->
+  <rect x="1220" y="304" width="60" height="16" rx="3" fill="url(#g-pipe-c)"/>
+  <line x1="1220" y1="312" x2="1280" y2="312" stroke="#1a6fa8" stroke-width="5" stroke-linecap="round" class="anim-r" marker-end="url(#ab)" opacity=".75"/>
+  <text x="1200" y="460" font-size="8" fill="#4a8ac0" font-family="Share Tech Mono,monospace">L-06</text>
+</g>
+
+<!-- ─ NH3 LINES (green dashed) ─ -->
+<g id="layer-service">
+<!-- Tank → Evaporator -->
+<line x1="450" y1="160" x2="500" y2="160" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="7 4" class="anim-dashed" marker-end="url(#ag)"/>
+<!-- Evaporator → Mixer -->
+<line x1="550" y1="160" x2="600" y2="160" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="7 4" class="anim-dashed" marker-end="url(#ag)"/>
+<!-- FCV-01 on NH3 line -->
+<g transform="translate(575,151)" id="layer-inst">
+  <circle r="9" fill="#0a1020" stroke="#ba7517" stroke-width="1.5"/>
+  <line x1="-9" y1="0" x2="9" y2="0" stroke="#ba7517" stroke-width="1.2"/>
+  <line x1="0" y1="-9" x2="0" y2="9" stroke="#ba7517" stroke-width="1.2"/>
+  <line x1="0" y1="-16" x2="0" y2="-9" stroke="#ba7517" stroke-width="1"/>
+  <rect x="-6" y="-22" width="12" height="7" rx="1" fill="#ba7517" opacity=".8"/>
+  <text x="0" y="22" text-anchor="middle" font-size="7" fill="#ba7517" font-family="Share Tech Mono,monospace">FCV-01</text>
+</g>
+<!-- Mixer → injection onto L-04 -->
+<line x1="650" y1="175" x2="650" y2="270" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="7 4" class="anim-dashed" marker-end="url(#ag)"/>
+<line x1="650" y1="270" x2="760" y2="340" stroke="#27ae60" stroke-width="2" stroke-dasharray="6 4" class="anim-dashed" marker-end="url(#ag)" opacity=".7"/>
+<text x="640" y="225" font-size="8" fill="#27ae60" font-family="Share Tech Mono,monospace">NH3-01</text>
+<!-- Diluent air: Blower → Mixer -->
+<line x1="235" y1="155" x2="380" y2="155" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 4" class="anim-slow" marker-end="url(#aa)"/>
+<text x="310" y="148" text-anchor="middle" font-size="8" fill="#5a7fa0" font-family="Share Tech Mono,monospace">AIR-01</text>
+<!-- Air into APH -->
+<line x1="270" y1="290" x2="270" y2="334" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="5 3" class="anim-dashed" marker-end="url(#aa)"/>
+<text x="280" y="315" font-size="8" fill="#5a7fa0" font-family="Share Tech Mono,monospace">AIR-02</text>
+
+<!-- ═══ BYPASS LINES (improvement #5) ═══ -->
+<!-- ESP Bypass -->
+<path d="M430 320 Q430 250 504 250 Q578 250 578 320" fill="none" stroke="#cc6600" stroke-width="2" stroke-dasharray="6 3" class="anim-slow" marker-end="url(#ao)" opacity=".8"/>
+<text x="504" y="242" text-anchor="middle" font-size="8" fill="#cc6600" font-family="Share Tech Mono,monospace">BYP-01 (ESP bypass)</text>
+<!-- SCR Bypass -->
+<path d="M813 320 Q813 240 864 240 Q920 240 920 320" fill="none" stroke="#cc6600" stroke-width="2" stroke-dasharray="6 3" class="anim-slow" marker-end="url(#ao)" opacity=".7"/>
+<text x="864" y="232" text-anchor="middle" font-size="8" fill="#cc6600" font-family="Share Tech Mono,monospace">BYP-02 (SCR bypass)</text>
+<!-- SCR bypass valve -->
+<g transform="translate(864,248)">
+  <circle r="8" fill="#0a1020" stroke="#cc6600" stroke-width="1.2"/>
+  <line x1="-8" y1="0" x2="8" y2="0" stroke="#cc6600" stroke-width="1"/>
+  <line x1="0" y1="-8" x2="0" y2="8" stroke="#cc6600" stroke-width="1"/>
+</g>
+
+<!-- ═══ DRAIN / VENT LINES (improvement #7) ═══ -->
+<!-- ESP drain -->
+<line x1="504" y1="450" x2="504" y2="490" stroke="#8a6a30" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#adr)" opacity=".7"/>
+<text x="515" y="478" font-size="7" fill="#8a6a30" font-family="Share Tech Mono,monospace">DR-01</text>
+<!-- SCR vent -->
+<line x1="870" y1="230" x2="870" y2="200" stroke="#8a6a30" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#adr)" opacity=".7"/>
+<text x="882" y="218" font-size="7" fill="#8a6a30" font-family="Share Tech Mono,monospace">VNT-01</text>
+<!-- Tank drain -->
+<line x1="385" y1="190" x2="385" y2="220" stroke="#8a6a30" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#adr)" opacity=".7"/>
+<text x="396" y="210" font-size="7" fill="#8a6a30" font-family="Share Tech Mono,monospace">DR-02</text>
+<!-- FGD drain (gypsum slurry) -->
+<line x1="1145" y1="600" x2="1145" y2="640" stroke="#8a6a30" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#adr)" opacity=".8"/>
+<text x="1160" y="628" font-size="8" fill="#8a6a30" font-family="Share Tech Mono,monospace">GYP-01 (جبس)</text>
+
+<!-- ═══ FIRE SUPPRESSION (improvement #6) ═══ -->
+<line x1="330" y1="70" x2="390" y2="100" stroke="#dd3300" stroke-width="1.5" stroke-dasharray="4 2" opacity=".7" marker-end="url(#aem)"/>
+<line x1="450" y1="80" x2="440" y2="100" stroke="#dd3300" stroke-width="1.5" stroke-dasharray="4 2" opacity=".7" marker-end="url(#aem)"/>
+<text x="395" y="68" text-anchor="middle" font-size="8" fill="#dd3300" font-family="Share Tech Mono,monospace">WFR-01 (fire water)</text>
+
+<!-- ═══ EMERGENCY DEPRESSURIZATION (improvement #24) ═══ -->
+<path d="M420 130 L420 75 L600 75" fill="none" stroke="#dd3300" stroke-width="2" stroke-dasharray="5 2" opacity=".6" marker-end="url(#aem)"/>
+<text x="510" y="70" text-anchor="middle" font-size="8" fill="#dd3300" font-family="Share Tech Mono,monospace">EDP-01 (طوارئ → flare)</text>
+
+<!-- ═══ GYPSUM LINE (improvement #1) ═══ -->
+<line x1="1145" y1="640" x2="1145" y2="665" stroke="#8a6a30" stroke-width="2" stroke-dasharray="4 3" opacity=".7"/>
+<text x="1150" y="662" font-size="8" fill="#8a6a30" font-family="Share Tech Mono,monospace">→ وحدة معالجة الجبس · PID-FGT-003</text>
+
+<!-- ═══ ISOLATION VALVES on main lines (improvement #4) ═══ -->
+<!-- Gate valves (shown as parallel lines) -->
+<!-- On L-01 before APH -->
+<g transform="translate(155,344)">
+  <rect x="-5" y="-8" width="10" height="16" rx="1" fill="#0a1020" stroke="#5a7090" stroke-width="1"/>
+  <line x1="0" y1="-8" x2="0" y2="8" stroke="#8ab0d0" stroke-width="0.8"/>
+  <text x="0" y="20" text-anchor="middle" font-size="7" fill="#4a6a8a" font-family="Share Tech Mono,monospace">GV-01</text>
+</g>
+<!-- On L-02 before ESP -->
+<g transform="translate(445,344)">
+  <rect x="-5" y="-8" width="10" height="16" rx="1" fill="#0a1020" stroke="#5a7090" stroke-width="1"/>
+  <line x1="0" y1="-8" x2="0" y2="8" stroke="#8ab0d0" stroke-width="0.8"/>
+  <text x="0" y="20" text-anchor="middle" font-size="7" fill="#4a6a8a" font-family="Share Tech Mono,monospace">GV-02</text>
+</g>
+<!-- On L-03 before HEX1 -->
+<g transform="translate(590,344)">
+  <rect x="-5" y="-8" width="10" height="16" rx="1" fill="#0a1020" stroke="#5a7090" stroke-width="1"/>
+  <line x1="0" y1="-8" x2="0" y2="8" stroke="#8ab0d0" stroke-width="0.8"/>
+  <text x="0" y="20" text-anchor="middle" font-size="7" fill="#4a6a8a" font-family="Share Tech Mono,monospace">GV-03</text>
+</g>
+<!-- On L-04 before SCR -->
+<g transform="translate(820,344)">
+  <rect x="-5" y="-8" width="10" height="16" rx="1" fill="#0a1020" stroke="#5a7090" stroke-width="1"/>
+  <line x1="0" y1="-8" x2="0" y2="8" stroke="#8ab0d0" stroke-width="0.8"/>
+  <text x="0" y="20" text-anchor="middle" font-size="7" fill="#4a6a8a" font-family="Share Tech Mono,monospace">GV-04</text>
+</g>
+
+</g><!-- end layer-service -->
+
+<!-- ════════════════════════════════════════
+     INSTRUMENTS (ISA S5.1) — improvement #2,3
+════════════════════════════════════════ -->
+<g id="layer-inst">
+
+<!-- Macro: instrument circle helper -->
+<!-- FT-201 on L-02 -->
+<g transform="translate(374,320)">
+  <circle r="11" fill="#0a1320" stroke="#534ab7" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#7f77dd" font-family="Share Tech Mono,monospace">FT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#534ab7" font-family="Share Tech Mono,monospace">201</text>
+  <line x1="0" y1="-22" x2="0" y2="-11" stroke="#534ab7" stroke-width="0.8" stroke-dasharray="3 2"/>
+  <text x="0" y="-25" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">FT-201</text>
+</g>
+<!-- PT-101 on Boiler outlet -->
+<g transform="translate(170,318)">
+  <circle r="11" fill="#0a1320" stroke="#e24b4a" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#e24b4a" font-family="Share Tech Mono,monospace">PT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#e24b4a" font-family="Share Tech Mono,monospace">101</text>
+  <text x="0" y="-25" text-anchor="middle" font-size="7" fill="#e24b4a" font-family="Share Tech Mono,monospace">PT-101</text>
+</g>
+<!-- TT-301 on SCR outlet -->
+<g transform="translate(856,505)">
+  <circle r="11" fill="#0a1320" stroke="#1d9e75" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#1d9e75" font-family="Share Tech Mono,monospace">TT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#1d9e75" font-family="Share Tech Mono,monospace">301</text>
+  <line x1="11" y1="0" x2="22" y2="0" stroke="#1d9e75" stroke-width="0.8" stroke-dasharray="3 2"/>
+  <text x="25" y="3" font-size="7" fill="#1d9e75" font-family="Share Tech Mono,monospace">TT-301</text>
+</g>
+<!-- AT-401: NOx Analyzer on SCR outlet (improvement #2) -->
+<g transform="translate(900,505)">
+  <circle r="11" fill="#0a1320" stroke="#ba7517" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#ba7517" font-family="Share Tech Mono,monospace">AT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#ba7517" font-family="Share Tech Mono,monospace">401</text>
+  <text x="14" y="3" font-size="7" fill="#ba7517" font-family="Share Tech Mono,monospace">NOx</text>
+  <text x="0" y="-25" text-anchor="middle" font-size="7" fill="#ba7517" font-family="Share Tech Mono,monospace">AT-401</text>
+</g>
+<!-- AT-402: O2 Analyzer on Boiler outlet -->
+<g transform="translate(210,318)">
+  <circle r="11" fill="#0a1320" stroke="#ba7517" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#ba7517" font-family="Share Tech Mono,monospace">AT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#ba7517" font-family="Share Tech Mono,monospace">402</text>
+  <text x="14" y="3" font-size="7" fill="#ba7517" font-family="Share Tech Mono,monospace">O₂</text>
+</g>
+<!-- AT-403: NH3 slip Analyzer -->
+<g transform="translate(944,505)">
+  <circle r="11" fill="#0a1320" stroke="#27ae60" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#27ae60" font-family="Share Tech Mono,monospace">AT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#27ae60" font-family="Share Tech Mono,monospace">403</text>
+  <text x="14" y="3" font-size="7" fill="#27ae60" font-family="Share Tech Mono,monospace">NH₃</text>
+</g>
+<!-- AT-404: pH on FGD -->
+<g transform="translate(1100,580)">
+  <circle r="11" fill="#0a1320" stroke="#378add" stroke-width="1.2"/>
+  <text x="0" y="-1" text-anchor="middle" font-size="6.5" fill="#378add" font-family="Share Tech Mono,monospace">AT</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5.5" fill="#378add" font-family="Share Tech Mono,monospace">404</text>
+  <text x="14" y="3" font-size="7" fill="#378add" font-family="Share Tech Mono,monospace">pH</text>
+</g>
+<!-- CEMS on chimney (improvement #20) -->
+<g transform="translate(1310,310)">
+  <rect x="-14" y="-12" width="28" height="24" rx="3" fill="#0a1320" stroke="#ba7517" stroke-width="1.2"/>
+  <text x="0" y="-2" text-anchor="middle" font-size="6" fill="#ba7517" font-family="Share Tech Mono,monospace">CEMS</text>
+  <text x="0" y="7" text-anchor="middle" font-size="5" fill="#ba7517" font-family="Share Tech Mono,monospace">AT-501</text>
+  <text x="0" y="28" text-anchor="middle" font-size="6" fill="#ba7517" font-family="Share Tech Mono,monospace">NOx·SO₂·Dust</text>
+</g>
+
+<!-- ─ DCS Signal lines (improvement #3) ─ -->
+<!-- FT-201 to DCS box -->
+<line x1="374" y1="309" x2="374" y2="285" stroke="#534ab7" stroke-width="0.8" stroke-dasharray="2 3" opacity=".6"/>
+<line x1="374" y1="285" x2="560" y2="285" stroke="#534ab7" stroke-width="0.8" stroke-dasharray="2 3" opacity=".6"/>
+<!-- AT-401 to DCS -->
+<line x1="900" y1="494" x2="900" y2="470" stroke="#ba7517" stroke-width="0.8" stroke-dasharray="2 3" opacity=".5"/>
+<!-- DCS box -->
+<rect x="540" y="270" width="80" height="24" rx="4" fill="#0a1020" stroke="rgba(83,74,183,.4)" stroke-width="1"/>
+<text x="580" y="280" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">DCS PANEL</text>
+<text x="580" y="290" text-anchor="middle" font-size="6" fill="#3a3a7a" font-family="Share Tech Mono,monospace">10-CP-001</text>
+
+<!-- ─ PSV / Safety valves (improvement #23) ─ -->
+<!-- PSV on NH3 Tank -->
+<g transform="translate(420,105)">
+  <rect x="-7" y="-12" width="14" height="10" rx="2" fill="#0a1020" stroke="#e24b4a" stroke-width="1.2"/>
+  <line x1="0" y1="-2" x2="0" y2="8" stroke="#e24b4a" stroke-width="1.2"/>
+  <line x1="-5" y1="8" x2="5" y2="8" stroke="#e24b4a" stroke-width="1.2"/>
+  <line x1="0" y1="8" x2="0" y2="16" stroke="#e24b4a" stroke-width="1" stroke-dasharray="2 2"/>
+  <text x="0" y="-16" text-anchor="middle" font-size="7" fill="#e24b4a" font-family="Share Tech Mono,monospace">PSV-01</text>
+</g>
+<!-- PSV on SCR top -->
+<g transform="translate(870,240)">
+  <rect x="-7" y="-12" width="14" height="10" rx="2" fill="#0a1020" stroke="#e24b4a" stroke-width="1.2"/>
+  <line x1="0" y1="-2" x2="0" y2="8" stroke="#e24b4a" stroke-width="1.2"/>
+  <line x1="-5" y1="8" x2="5" y2="8" stroke="#e24b4a" stroke-width="1.2"/>
+  <line x1="0" y1="8" x2="0" y2="18" stroke="#e24b4a" stroke-width="1" stroke-dasharray="2 2"/>
+  <text x="0" y="-16" text-anchor="middle" font-size="7" fill="#e24b4a" font-family="Share Tech Mono,monospace">PSV-02</text>
+</g>
+
+</g><!-- end instruments -->
+
+<!-- ════════════════════════════════════════
+     COMPONENTS (3D)
+════════════════════════════════════════ -->
+
+<!-- ─── BOILER (A4) ─── -->
+<g class="comp-g" id="c-boiler" onclick="showInfo('boiler')">
+  <g class="comp-body">
+    <rect x="48" y="255" width="92" height="120" rx="6" fill="url(#g-boiler-f)" stroke="#5a3030" stroke-width="1"/>
+    <polygon points="48,255 140,255 154,242 62,242" fill="url(#g-boiler-t)" stroke="#7a4040" stroke-width="0.8"/>
+    <polygon points="140,255 154,242 154,362 140,375" fill="url(#g-boiler-s)" stroke="#3a2020" stroke-width="0.8"/>
+    <rect x="58" y="268" width="32" height="18" rx="2" fill="#1a0808" stroke="#6a3030" stroke-width="0.7"/>
+    <rect x="98" y="268" width="32" height="18" rx="2" fill="#1a0808" stroke="#6a3030" stroke-width="0.7"/>
+    <rect x="58" y="268" width="32" height="16" rx="1" fill="rgba(200,80,60,.12)"/>
+    <rect x="98" y="268" width="32" height="16" rx="1" fill="rgba(200,80,60,.12)"/>
+    <rect x="62" y="296" width="64" height="38" rx="3" fill="#0a0404" stroke="#5a2020" stroke-width="0.7"/>
+    <path d="M72 330 Q80 316 86 323 Q92 310 98 323 Q104 312 110 330" fill="rgba(200,60,20,.4)" stroke="#e05020" stroke-width="1.2"/>
+    <rect x="70" y="344" width="48" height="12" rx="2" fill="#2a1010" stroke="#4a2020" stroke-width="0.7"/>
+    <path d="M48,255 Q94,235 140,255" fill="none" stroke="#8a5050" stroke-width="1" stroke-dasharray="4 2"/>
+  </g>
+  <text x="94" y="398" text-anchor="middle" font-size="11" font-weight="600" fill="#e08070" font-family="IBM Plex Sans Arabic,sans-serif">مرجل البخار</text>
+  <text x="94" y="410" text-anchor="middle" font-size="8" fill="#7a5050" font-family="Share Tech Mono,monospace">10-B-001</text>
+  <text x="94" y="420" text-anchor="middle" font-size="7" fill="#4a3030" font-family="Share Tech Mono,monospace">A4</text>
+</g>
+
+<!-- ─── AIR PREHEATER (B4) ─── -->
+<g class="comp-g" id="c-aph" onclick="showInfo('aph')">
+  <g class="comp-body">
+    <ellipse cx="270" cy="344" rx="48" ry="52" fill="url(#g-boiler-f)" stroke="#3a4a6a" stroke-width="1"/>
+    <ellipse cx="284" cy="336" rx="48" ry="52" fill="url(#g-boiler-s)" stroke="#2a3a5a" stroke-width="0.8"/>
+    <ellipse cx="270" cy="344" rx="44" ry="48" fill="#0f1a30" stroke="#3a5a8a" stroke-width="0.5"/>
+    <path d="M270 300 L270 388 A38,38 0 0,1 232,344 Z" fill="rgba(40,80,140,.3)" stroke="#3a6aa0" stroke-width="0.5"/>
+    <path d="M270 300 L308 344 A38,38 0 0,1 270,388 Z" fill="rgba(20,50,100,.2)" stroke="#2a5080" stroke-width="0.5"/>
+    <line x1="270" y1="300" x2="308" y2="344" fill="none" stroke="#3a5a8a" stroke-width="0.8"/>
+    <line x1="270" y1="344" x2="270" y2="388" stroke="#3a5a8a" stroke-width="0.8"/>
+    <circle cx="270" cy="344" r="9" fill="#1a2a4a" stroke="#4a6a9a" stroke-width="1"/>
+    <circle cx="270" cy="344" r="4" fill="#3a5a8a"/>
+  </g>
+  <line x1="270" y1="400" x2="270" y2="420" stroke="#5a7fa0" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#aa)"/>
+  <text x="270" y="436" text-anchor="middle" font-size="9" fill="#5a7fa0" font-family="IBM Plex Sans Arabic,sans-serif">هواء احتراق</text>
+  <text x="270" y="452" text-anchor="middle" font-size="11" font-weight="600" fill="#7090c0" font-family="IBM Plex Sans Arabic,sans-serif">سخان الهواء</text>
+  <text x="270" y="464" text-anchor="middle" font-size="8" fill="#3a5070" font-family="Share Tech Mono,monospace">10-APH-001</text>
+  <text x="270" y="474" text-anchor="middle" font-size="7" fill="#2a3a5a" font-family="Share Tech Mono,monospace">B4</text>
+</g>
+
+<!-- ─── ESP (C4) ─── -->
+<g class="comp-g" id="c-esp" onclick="showInfo('esp')">
+  <g class="comp-body">
+    <rect x="435" y="305" width="140" height="120" rx="5" fill="url(#g-esp-f)" stroke="#3a3a6a" stroke-width="1"/>
+    <polygon points="435,305 575,305 592,290 452,290" fill="#1a1a3a" stroke="#4a4a7a" stroke-width="0.8"/>
+    <polygon points="575,305 592,290 592,410 575,425" fill="#0a0a1a" stroke="#2a2a4a" stroke-width="0.8"/>
+    <!-- collection plates -->
+    <line x1="452" y1="316" x2="452" y2="410" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="466" y1="312" x2="466" y2="414" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="480" y1="312" x2="480" y2="414" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="494" y1="312" x2="494" y2="414" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="508" y1="312" x2="508" y2="414" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="522" y1="312" x2="522" y2="414" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="536" y1="312" x2="536" y2="414" stroke="#5a5a9a" stroke-width="1.2"/>
+    <line x1="550" y1="316" x2="550" y2="410" stroke="#4a4a8a" stroke-width="1"/>
+    <!-- discharge electrodes -->
+    <circle cx="473" cy="362" r="2.5" fill="#7f77dd"/>
+    <circle cx="501" cy="362" r="2.5" fill="#7f77dd"/>
+    <circle cx="529" cy="362" r="2.5" fill="#7f77dd"/>
+    <circle cx="557" cy="362" r="2.5" fill="#7f77dd" opacity=".8"/>
+    <path d="M473 356 L471 358 L474 360 L472 364" fill="none" stroke="#afa9ec" stroke-width="0.8" opacity=".7"/>
+    <path d="M501 356 L499 358 L502 360 L500 364" fill="none" stroke="#afa9ec" stroke-width="0.8" opacity=".7"/>
+    <!-- hoppers -->
+    <polygon points="440,425 468,425 454,460" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+    <polygon points="471,425 502,425 487,460" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+    <polygon points="505,425 536,425 520,460" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+    <polygon points="539,425 572,425 556,460" fill="#1a1a3a" stroke="#3a3a6a" stroke-width="0.8"/>
+  </g>
+  <text x="505" y="482" text-anchor="middle" font-size="11" font-weight="600" fill="#9090d0" font-family="IBM Plex Sans Arabic,sans-serif">مرسّب كهربائي</text>
+  <text x="505" y="494" text-anchor="middle" font-size="8" fill="#4a4a7a" font-family="Share Tech Mono,monospace">10-ESP-001 · C4</text>
+</g>
+
+<!-- ─── HEX-1 (D4) ─── -->
+<g class="comp-g" id="c-hex1" onclick="showInfo('hex1')">
+  <g class="comp-body">
+    <rect x="675" y="315" width="60" height="60" rx="4" fill="#0f2035" stroke="#1d9e75" stroke-width="1"/>
+    <ellipse cx="675" cy="345" rx="10" ry="30" fill="#0a2a3a" stroke="#1d9e75" stroke-width="1"/>
+    <ellipse cx="735" cy="345" rx="10" ry="30" fill="#0a2a3a" stroke="#1d9e75" stroke-width="1"/>
+    <line x1="680" y1="325" x2="730" y2="325" stroke="#27ae60" stroke-width="1" opacity=".7"/>
+    <line x1="680" y1="335" x2="730" y2="335" stroke="#27ae60" stroke-width="1" opacity=".7"/>
+    <line x1="680" y1="345" x2="730" y2="345" stroke="#27ae60" stroke-width="1" opacity=".7"/>
+    <line x1="680" y1="355" x2="730" y2="355" stroke="#27ae60" stroke-width="1" opacity=".7"/>
+    <line x1="680" y1="365" x2="730" y2="365" stroke="#27ae60" stroke-width="1" opacity=".7"/>
+    <rect x="698" y="305" width="10" height="14" rx="2" fill="#0a2030" stroke="#1d9e75" stroke-width="0.8"/>
+    <rect x="698" y="375" width="10" height="14" rx="2" fill="#0a2030" stroke="#1d9e75" stroke-width="0.8"/>
+  </g>
+  <text x="705" y="410" text-anchor="middle" font-size="10" font-weight="600" fill="#3a9a70" font-family="IBM Plex Sans Arabic,sans-serif">مبادل حراري ١</text>
+  <text x="705" y="422" text-anchor="middle" font-size="8" fill="#1a5040" font-family="Share Tech Mono,monospace">10-HEX-001 · D4</text>
+</g>
+
+<!-- ─── NH3 TANK (C2) ─── -->
+<g class="comp-g" id="c-tank" onclick="showInfo('tank')">
+  <g class="comp-body">
+    <rect x="360" y="128" width="130" height="48" fill="url(#g-tank)" stroke="#1a4a7a" stroke-width="1"/>
+    <ellipse cx="360" cy="152" rx="12" ry="24" fill="#0a2040" stroke="#1a4a7a" stroke-width="1"/>
+    <ellipse cx="490" cy="152" rx="12" ry="24" fill="#0a2040" stroke="#1a4a7a" stroke-width="1"/>
+    <rect x="360" y="124" width="130" height="6" rx="2" fill="#1a3a60" stroke="#2a5a8a" stroke-width="0.5"/>
+    <!-- Saddles -->
+    <rect x="376" y="176" width="16" height="16" rx="1" fill="#0a1a2a" stroke="#1a3050" stroke-width="0.7"/>
+    <rect x="455" y="176" width="16" height="16" rx="1" fill="#0a1a2a" stroke="#1a3050" stroke-width="0.7"/>
+    <!-- Level gauge -->
+    <rect x="494" y="135" width="5" height="34" rx="1" fill="#0a1520" stroke="#27ae60" stroke-width="0.8"/>
+    <rect x="495" y="148" width="3" height="18" rx="1" fill="rgba(39,174,96,.4)"/>
+  </g>
+  <text x="425" y="210" text-anchor="middle" font-size="10" font-weight="600" fill="#4a90c0" font-family="IBM Plex Sans Arabic,sans-serif">خزان أمونيا سائلة</text>
+  <text x="425" y="222" text-anchor="middle" font-size="8" fill="#1a5080" font-family="Share Tech Mono,monospace">10-T-001 · C2</text>
+</g>
+
+<!-- ─── EVAPORATOR (D2) ─── -->
+<g class="comp-g" id="c-evap" onclick="showInfo('evap')">
+  <g class="comp-body">
+    <rect x="510" y="122" width="50" height="80" rx="5" fill="#0a1525" stroke="#1d9e75" stroke-width="1"/>
+    <ellipse cx="535" cy="122" rx="25" ry="9" fill="#0f2535" stroke="#1d9e75" stroke-width="0.8"/>
+    <ellipse cx="535" cy="202" rx="25" ry="9" fill="#0f2535" stroke="#1d9e75" stroke-width="0.8"/>
+    <path d="M517 140 Q535 134 553 140 Q535 148 517 155 Q535 163 553 168 Q535 176 517 182" fill="none" stroke="#27ae60" stroke-width="1" opacity=".6"/>
+    <rect x="528" y="110" width="10" height="14" rx="2" fill="#0a2030" stroke="#1d9e75" stroke-width="0.8"/>
+  </g>
+  <text x="535" y="225" text-anchor="middle" font-size="10" font-weight="600" fill="#3a9a70" font-family="IBM Plex Sans Arabic,sans-serif">مبخّر</text>
+  <text x="535" y="237" text-anchor="middle" font-size="8" fill="#1a5040" font-family="Share Tech Mono,monospace">10-EV-001 · D2</text>
+</g>
+
+<!-- ─── DILUENT AIR BLOWER (B2) ─── -->
+<g class="comp-g" id="c-blower" onclick="showInfo('blower')">
+  <g class="comp-body">
+    <circle cx="185" cy="155" r="32" fill="#0a1520" stroke="#3a5a8a" stroke-width="1.2"/>
+    <g transform="translate(185,155)">
+      <path d="M0,0 L-8,-22 Q0,-28 8,-22 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5"/>
+      <path d="M0,0 L16,-16 Q22,-10 16,0 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(45)"/>
+      <path d="M0,0 L22,0 Q26,8 18,14 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(90)"/>
+      <path d="M0,0 L16,16 Q10,22 0,18 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(135)"/>
+      <path d="M0,0 L0,22 Q-8,26 -14,18 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(180)"/>
+      <path d="M0,0 L-16,16 Q-22,10 -18,0 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(225)"/>
+      <path d="M0,0 L-22,0 Q-26,-8 -16,-16 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(270)"/>
+      <path d="M0,0 L-16,-16 Q-10,-22 0,-18 Z" fill="#1a3a6a" stroke="#2a5a8a" stroke-width="0.5" transform="rotate(315)"/>
+      <circle r="5" fill="#2a4a7a" stroke="#4a7aaa" stroke-width="0.8"/>
+    </g>
+    <rect x="213" y="145" width="24" height="20" rx="3" fill="#0a1020" stroke="#2a3a5a" stroke-width="0.8"/>
+  </g>
+  <text x="185" y="206" text-anchor="middle" font-size="10" font-weight="600" fill="#6a90c0" font-family="IBM Plex Sans Arabic,sans-serif">ناخب هواء</text>
+  <text x="185" y="218" text-anchor="middle" font-size="8" fill="#3a5070" font-family="Share Tech Mono,monospace">10-BLW-001 · B2</text>
+</g>
+
+<!-- ─── MIXER (D2) ─── -->
+<g class="comp-g" id="c-mixer" onclick="showInfo('mixer')">
+  <g class="comp-body">
+    <rect x="610" y="138" width="60" height="44" rx="6" fill="#0f1a2a" stroke="#2a7fff" stroke-width="1"/>
+    <ellipse cx="610" cy="160" rx="9" ry="22" fill="#0a1525" stroke="#2a7fff" stroke-width="0.8"/>
+    <ellipse cx="670" cy="160" rx="9" ry="22" fill="#0a1525" stroke="#2a7fff" stroke-width="0.8"/>
+    <line x1="620" y1="148" x2="626" y2="178" stroke="#3a7fff" stroke-width="1" opacity=".7"/>
+    <line x1="638" y1="142" x2="632" y2="178" stroke="#3a7fff" stroke-width="1" opacity=".7"/>
+    <line x1="650" y1="148" x2="656" y2="178" stroke="#3a7fff" stroke-width="1" opacity=".7"/>
+  </g>
+  <text x="640" y="202" text-anchor="middle" font-size="10" font-weight="600" fill="#5a9fff" font-family="IBM Plex Sans Arabic,sans-serif">خلاط NH₃</text>
+  <text x="640" y="214" text-anchor="middle" font-size="8" fill="#2a5fa0" font-family="Share Tech Mono,monospace">10-MX-001 · D2</text>
+</g>
+
+<!-- ─── NH3 TRUCK ─── -->
+<g transform="translate(600,215)" opacity=".85">
+  <rect x="0" y="4" width="90" height="32" rx="10" fill="#0a1a2a" stroke="#1a4a7a" stroke-width="1"/>
+  <ellipse cx="0" cy="20" rx="10" ry="16" fill="#0a2535" stroke="#1a4a7a" stroke-width="0.8"/>
+  <ellipse cx="90" cy="20" rx="10" ry="16" fill="#0a2535" stroke="#1a4a7a" stroke-width="0.8"/>
+  <rect x="82" y="10" width="32" height="26" rx="3" fill="#1a2535" stroke="#2a4a6a" stroke-width="0.8"/>
+  <rect x="88" y="15" width="14" height="12" rx="1" fill="rgba(180,220,255,.1)"/>
+  <circle cx="18" cy="38" r="7" fill="#0a0f14" stroke="#2a3a4a" stroke-width="1"/><circle cx="18" cy="38" r="3" fill="#1a2a3a"/>
+  <circle cx="68" cy="38" r="7" fill="#0a0f14" stroke="#2a3a4a" stroke-width="1"/><circle cx="68" cy="38" r="3" fill="#1a2a3a"/>
+  <circle cx="98" cy="38" r="6" fill="#0a0f14" stroke="#2a3a4a" stroke-width="1"/><circle cx="98" cy="38" r="3" fill="#1a2a3a"/>
+  <text x="42" y="25" text-anchor="middle" font-size="9" fill="#27ae60" font-family="Share Tech Mono,monospace">NH₃</text>
+  <text x="55" y="58" text-anchor="middle" font-size="8" fill="#1a5a8a" font-family="IBM Plex Sans Arabic,sans-serif">صهريج توريد</text>
+</g>
+
+<!-- ─── SCR REACTOR (E3-5) ─── -->
+<g class="comp-g" id="c-scr" onclick="showInfo('scr')">
+  <g class="comp-body">
+    <!-- inlet duct -->
+    <rect x="758" y="330" width="55" height="28" rx="3" fill="url(#g-pipe-h)" stroke="#5a3030" stroke-width="0.8"/>
+    <!-- main body -->
+    <rect x="813" y="255" width="110" height="260" rx="7" fill="url(#g-scr-f)" stroke="#1a4a8a" stroke-width="1.2"/>
+    <polygon points="813,255 923,255 940,242 830,242" fill="url(#g-scr-t)" stroke="#2a5a9a" stroke-width="0.8"/>
+    <polygon points="923,255 940,242 940,502 923,515" fill="#040d1a" stroke="#0a2a4a" stroke-width="0.8"/>
+    <!-- flow dist. grid -->
+    <rect x="820" y="268" width="96" height="12" rx="2" fill="#0d1e35" stroke="#1a3a5a" stroke-width="0.5"/>
+    <!-- Catalyst L1 -->
+    <rect x="820" y="290" width="96" height="40" rx="4" fill="#0f2540" stroke="#2a6aa0" stroke-width="1"/>
+    <rect x="820" y="288" width="96" height="8" rx="2" fill="#1a3a5a" stroke="#2a5a8a" stroke-width="0.5"/>
+    <text x="818" y="283" font-size="7" fill="#5a9ad0" font-family="IBM Plex Sans Arabic,sans-serif">طبقة المحفز الأولى</text>
+    <text x="826" y="308" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦</text>
+    <text x="826" y="320" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦</text>
+    <!-- Catalyst L2 -->
+    <rect x="820" y="348" width="96" height="40" rx="4" fill="#0f2540" stroke="#2a6aa0" stroke-width="1"/>
+    <rect x="820" y="346" width="96" height="8" rx="2" fill="#1a3a5a" stroke="#2a5a8a" stroke-width="0.5"/>
+    <text x="818" y="342" font-size="7" fill="#5a9ad0" font-family="IBM Plex Sans Arabic,sans-serif">طبقة المحفز الثانية</text>
+    <text x="826" y="366" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦</text>
+    <text x="826" y="378" font-size="7" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦</text>
+    <!-- Spare Layer -->
+    <rect x="820" y="406" width="96" height="36" rx="4" fill="#0a1a2a" stroke="#1a3a5a" stroke-width="0.8" stroke-dasharray="4 2"/>
+    <text x="868" y="428" text-anchor="middle" font-size="8" fill="#2a4a6a" font-family="IBM Plex Sans Arabic,sans-serif">طبقة احتياطية</text>
+    <!-- Outlet -->
+    <rect x="820" y="515" width="96" height="22" rx="3" fill="url(#g-pipe-c)" stroke="#1a4a7a" stroke-width="0.8"/>
+    <!-- Manway -->
+    <rect x="908" y="440" width="20" height="28" rx="4" fill="#0a1020" stroke="#1a3a5a" stroke-width="0.8"/>
+  </g>
+  <text x="868" y="562" text-anchor="middle" font-size="12" font-weight="600" fill="#5a9ad0" font-family="IBM Plex Sans Arabic,sans-serif">محوّل SCR</text>
+  <text x="868" y="575" text-anchor="middle" font-size="8" fill="#2a5a8a" font-family="Share Tech Mono,monospace">10-SCR-001 · E3</text>
+  <text x="868" y="585" text-anchor="middle" font-size="7" fill="#1a3a5a" font-family="Share Tech Mono,monospace">V₂O₅/WO₃/TiO₂</text>
+</g>
+
+<!-- ─── GGH (F5) ─── -->
+<g class="comp-g" id="c-hex2" onclick="showInfo('hex2')">
+  <g class="comp-body">
+    <ellipse cx="876" cy="555" rx="44" ry="40" fill="#0a1a25" stroke="#1d9e75" stroke-width="1.2"/>
+    <ellipse cx="890" cy="547" rx="44" ry="40" fill="#060e14" stroke="#0f6e56" stroke-width="0.8"/>
+    <ellipse cx="876" cy="555" rx="40" ry="36" fill="#0d1e2e" stroke="#1d9e75" stroke-width="0.5"/>
+    <path d="M876 517 L876 593 A36,36 0 0,1 840,555 Z" fill="rgba(29,158,117,.15)" stroke="#1d9e75" stroke-width="0.5"/>
+    <path d="M876 517 L912 555 A36,36 0 0,1 876,593 Z" fill="rgba(15,110,86,.1)" stroke="#0f6e56" stroke-width="0.5"/>
+    <circle cx="876" cy="555" r="7" fill="#0a1a20" stroke="#1d9e75" stroke-width="1"/>
+    <rect x="866" y="508" width="12" height="14" rx="2" fill="#0a1520" stroke="#1d9e75" stroke-width="0.8"/>
+    <rect x="872" y="595" width="12" height="14" rx="2" fill="#0a1520" stroke="#1d9e75" stroke-width="0.8"/>
+  </g>
+  <text x="876" y="630" text-anchor="middle" font-size="10" font-weight="600" fill="#3a9a70" font-family="IBM Plex Sans Arabic,sans-serif">مبادل غاز/غاز GGH</text>
+  <text x="876" y="642" text-anchor="middle" font-size="8" fill="#1a5040" font-family="Share Tech Mono,monospace">10-GGH-001 · F5</text>
+</g>
+
+<!-- ─── FGD ABSORPTION TOWER (G3-6) ─── -->
+<g class="comp-g" id="c-fgd" onclick="showInfo('fgd')">
+  <g class="comp-body">
+    <rect x="1060" y="340" width="115" height="240" rx="8" fill="url(#g-fgd)" stroke="#1a6a9a" stroke-width="1.2"/>
+    <ellipse cx="1117" cy="340" rx="57" ry="20" fill="#102030" stroke="#1a6a9a" stroke-width="1"/>
+    <polygon points="1175,340 1192,330 1192,570 1175,580" fill="#060f14" stroke="#0a3a5a" stroke-width="0.8"/>
+    <!-- mist eliminator -->
+    <rect x="1068" y="358" width="99" height="24" rx="3" fill="#0a2535" stroke="#1a5a7a" stroke-width="0.8"/>
+    <line x1="1068" y1="364" x2="1167" y2="364" stroke="#1a5a7a" stroke-width="0.5" stroke-dasharray="3 2"/>
+    <line x1="1068" y1="370" x2="1167" y2="370" stroke="#1a5a7a" stroke-width="0.5" stroke-dasharray="3 2"/>
+    <line x1="1068" y1="376" x2="1167" y2="376" stroke="#1a5a7a" stroke-width="0.5" stroke-dasharray="3 2"/>
+    <text x="1117" y="356" text-anchor="middle" font-size="7" fill="#3a8ab0" font-family="IBM Plex Sans Arabic,sans-serif">فاصل الرذاذ</text>
+    <!-- spray levels -->
+    <g><line x1="1068" y1="404" x2="1167" y2="404" stroke="#1a6aaa" stroke-width="0.4"/>
+    <circle cx="1082" cy="404" r="3" fill="#1a5a8a"/><circle cx="1105" cy="404" r="3" fill="#1a5a8a"/>
+    <circle cx="1128" cy="404" r="3" fill="#1a5a8a"/><circle cx="1151" cy="404" r="3" fill="#1a5a8a"/>
+    <line x1="1082" y1="407" x2="1078" y2="420" stroke="#2a7aaa" stroke-width="0.8" opacity=".8"/>
+    <line x1="1105" y1="407" x2="1101" y2="420" stroke="#2a7aaa" stroke-width="0.8" opacity=".8"/>
+    <line x1="1128" y1="407" x2="1124" y2="420" stroke="#2a7aaa" stroke-width="0.8" opacity=".8"/>
+    <line x1="1151" y1="407" x2="1147" y2="420" stroke="#2a7aaa" stroke-width="0.8" opacity=".8"/>
+    </g>
+    <g><line x1="1068" y1="446" x2="1167" y2="446" stroke="#1a6aaa" stroke-width="0.4"/>
+    <circle cx="1090" cy="446" r="3" fill="#1a5a8a"/><circle cx="1117" cy="446" r="3" fill="#1a5a8a"/>
+    <circle cx="1144" cy="446" r="3" fill="#1a5a8a"/>
+    <line x1="1090" y1="449" x2="1086" y2="462" stroke="#2a7aaa" stroke-width="0.8" opacity=".7"/>
+    <line x1="1117" y1="449" x2="1113" y2="462" stroke="#2a7aaa" stroke-width="0.8" opacity=".7"/>
+    <line x1="1144" y1="449" x2="1140" y2="462" stroke="#2a7aaa" stroke-width="0.8" opacity=".7"/>
+    </g>
+    <g><line x1="1068" y1="488" x2="1167" y2="488" stroke="#1a6aaa" stroke-width="0.4"/>
+    <circle cx="1085" cy="488" r="3" fill="#1a5a8a"/><circle cx="1117" cy="488" r="3" fill="#1a5a8a"/>
+    <circle cx="1150" cy="488" r="3" fill="#1a5a8a"/>
+    <line x1="1085" y1="491" x2="1081" y2="504" stroke="#2a7aaa" stroke-width="0.8" opacity=".6"/>
+    <line x1="1117" y1="491" x2="1113" y2="504" stroke="#2a7aaa" stroke-width="0.8" opacity=".6"/>
+    <line x1="1150" y1="491" x2="1146" y2="504" stroke="#2a7aaa" stroke-width="0.8" opacity=".6"/>
+    </g>
+    <text x="1117" y="528" text-anchor="middle" font-size="8" fill="#2a5a7a" font-family="IBM Plex Sans Arabic,sans-serif">منطقة الامتصاص</text>
+    <!-- sump -->
+    <rect x="1068" y="538" width="99" height="38" rx="4" fill="#0a1a28" stroke="#1a5a7a" stroke-width="0.8"/>
+    <rect x="1070" y="544" width="95" height="28" rx="3" fill="rgba(26,90,150,.2)"/>
+    <text x="1117" y="562" text-anchor="middle" font-size="8" fill="#2a6a9a" font-family="IBM Plex Sans Arabic,sans-serif">حوض الامتصاص</text>
+    <!-- pump -->
+    <circle cx="1200" cy="562" r="14" fill="#0a1020" stroke="#534ab7" stroke-width="1.2"/>
+    <line x1="1186" y1="562" x2="1214" y2="562" stroke="#534ab7" stroke-width="1"/>
+    <text x="1200" y="585" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">10-P-001</text>
+  </g>
+  <text x="1117" y="606" text-anchor="middle" font-size="12" font-weight="600" fill="#4a9ac0" font-family="IBM Plex Sans Arabic,sans-serif">برج امتصاص FGD</text>
+  <text x="1117" y="618" text-anchor="middle" font-size="8" fill="#1a5a7a" font-family="Share Tech Mono,monospace">10-FGD-001 · G4</text>
+</g>
+
+<!-- ─── CHIMNEY (H1-7) ─── -->
+<g class="comp-g" id="c-chimney" onclick="showInfo('chimney')">
+  <g class="comp-body">
+    <polygon points="1295,60 1320,60 1314,600 1301,600" fill="url(#g-chimney)" stroke="#2a3a5a" stroke-width="1"/>
+    <polygon points="1320,60 1332,54 1325,594 1314,600" fill="#0a0f18" stroke="#1a2030" stroke-width="0.8"/>
+    <rect x="1292" y="53" width="38" height="10" rx="2" fill="#1a2a4a" stroke="#3a5a7a" stroke-width="0.8"/>
+    <rect x="1295" y="100" width="24" height="10" rx="1" fill="rgba(200,50,40,.4)"/>
+    <rect x="1297" y="145" width="22" height="10" rx="1" fill="rgba(200,50,40,.4)"/>
+    <rect x="1298" y="190" width="20" height="10" rx="1" fill="rgba(200,50,40,.4)"/>
+    <rect x="1299" y="235" width="18" height="10" rx="1" fill="rgba(200,50,40,.4)"/>
+    <ellipse cx="1307" cy="60" rx="18" ry="6" fill="#1a2535" stroke="#3a4a6a" stroke-width="0.8"/>
+    <!-- plume -->
+    <path d="M1305,55 Q1298,-5 1310,-60 Q1295,-120 1308,-175" fill="none" stroke="rgba(130,180,255,.2)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M1309,55 Q1318,-10 1305,-65 Q1318,-125 1302,-180" fill="none" stroke="rgba(130,180,255,.12)" stroke-width="6" stroke-linecap="round"/>
+    <!-- base -->
+    <rect x="1285" y="598" width="60" height="12" rx="2" fill="#0a1020" stroke="#1a2a3a" stroke-width="0.8"/>
+    <!-- Aviation lights -->
+    <circle cx="1307" cy="65" r="3" fill="rgba(255,80,80,.8)" class="live-pulse"/>
+    <circle cx="1307" cy="300" r="3" fill="rgba(255,80,80,.6)" class="live-pulse" style="animation-delay:.5s"/>
+  </g>
+  <text x="1307" y="635" text-anchor="middle" font-size="11" font-weight="600" fill="#4a6a90" font-family="IBM Plex Sans Arabic,sans-serif">مدخنة</text>
+  <text x="1307" y="647" text-anchor="middle" font-size="8" fill="#2a3a5a" font-family="Share Tech Mono,monospace">10-STK-001 · H1</text>
+  <text x="1307" y="657" text-anchor="middle" font-size="7" fill="#1a2a40" font-family="Share Tech Mono,monospace">H=120m | Ø=3.8m</text>
+</g>
+
+<!-- ════════════════════════════════════════
+     CROSS-BOUNDARY REFERENCES (improvement #10)
+════════════════════════════════════════ -->
+<g id="layer-labels">
+<!-- Boiler feed water (from other sheet) -->
+<rect x="30" y="238" width="36" height="16" rx="3" fill="#0a1020" stroke="rgba(42,127,255,.3)" stroke-width="1"/>
+<text x="48" y="249" text-anchor="middle" font-size="7" fill="rgba(42,127,255,.6)" font-family="Share Tech Mono,monospace">← PID-FGT-002</text>
+<text x="48" y="260" text-anchor="middle" font-size="6" fill="rgba(42,127,255,.4)" font-family="Share Tech Mono,monospace">BFW</text>
+<!-- Gypsum to next sheet -->
+<rect x="1354" y="635" width="36" height="16" rx="3" fill="#0a1020" stroke="rgba(42,127,255,.3)" stroke-width="1"/>
+<text x="1372" y="646" text-anchor="middle" font-size="7" fill="rgba(42,127,255,.6)" font-family="Share Tech Mono,monospace">→ PID-FGT-003</text>
+<!-- Flare header -->
+<rect x="520" y="60" width="36" height="16" rx="3" fill="#0a1020" stroke="rgba(221,51,0,.3)" stroke-width="1"/>
+<text x="538" y="71" text-anchor="middle" font-size="7" fill="rgba(221,51,0,.6)" font-family="Share Tech Mono,monospace">→ FLARE</text>
+<text x="538" y="80" text-anchor="middle" font-size="6" fill="rgba(221,51,0,.4)" font-family="Share Tech Mono,monospace">PID-FGT-004</text>
+
+<!-- ════ LINE LIST TABLE (improvement #8) ════ -->
+<g transform="translate(30,30)">
+  <rect x="0" y="0" width="200" height="90" rx="4" fill="rgba(10,14,20,.9)" stroke="rgba(42,127,255,.15)" stroke-width="0.8"/>
+  <rect x="0" y="0" width="200" height="14" rx="4" fill="rgba(42,127,255,.08)"/>
+  <text x="100" y="10" text-anchor="middle" font-size="7" fill="var(--accent,#2a7fff)" font-family="Share Tech Mono,monospace">LINE LIST SUMMARY</text>
+  <!-- Header row -->
+  <line x1="0" y1="14" x2="200" y2="14" stroke="rgba(42,127,255,.15)" stroke-width="0.5"/>
+  <text x="12" y="23" font-size="6" fill="#4a6a8a" font-family="Share Tech Mono,monospace">LINE</text>
+  <text x="55" y="23" font-size="6" fill="#4a6a8a" font-family="Share Tech Mono,monospace">DN</text>
+  <text x="85" y="23" font-size="6" fill="#4a6a8a" font-family="Share Tech Mono,monospace">MAT</text>
+  <text x="120" y="23" font-size="6" fill="#4a6a8a" font-family="Share Tech Mono,monospace">T°C</text>
+  <text x="148" y="23" font-size="6" fill="#4a6a8a" font-family="Share Tech Mono,monospace">P bar</text>
+  <text x="178" y="23" font-size="6" fill="#4a6a8a" font-family="Share Tech Mono,monospace">Fluid</text>
+  <line x1="0" y1="26" x2="200" y2="26" stroke="rgba(42,127,255,.1)" stroke-width="0.4"/>
+  <!-- Data rows -->
+  <text x="12" y="35" font-size="6" fill="#2a7fff" font-family="Share Tech Mono,monospace">L-01</text><text x="55" y="35" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">600</text><text x="85" y="35" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">CS</text><text x="120" y="35" font-size="6" fill="#e05a40" font-family="Share Tech Mono,monospace">350</text><text x="148" y="35" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1.05</text><text x="178" y="35" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">FG</text>
+  <text x="12" y="44" font-size="6" fill="#2a7fff" font-family="Share Tech Mono,monospace">L-02</text><text x="55" y="44" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">600</text><text x="85" y="44" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">CS</text><text x="120" y="44" font-size="6" fill="#e05a40" font-family="Share Tech Mono,monospace">320</text><text x="148" y="44" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1.04</text><text x="178" y="44" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">FG</text>
+  <text x="12" y="53" font-size="6" fill="#2a7fff" font-family="Share Tech Mono,monospace">L-03</text><text x="55" y="53" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">600</text><text x="85" y="53" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">CS</text><text x="120" y="53" font-size="6" fill="#e05a40" font-family="Share Tech Mono,monospace">310</text><text x="148" y="53" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1.03</text><text x="178" y="53" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">FG</text>
+  <text x="12" y="62" font-size="6" fill="#2a7fff" font-family="Share Tech Mono,monospace">L-04</text><text x="55" y="62" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">600</text><text x="85" y="62" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">CS</text><text x="120" y="62" font-size="6" fill="#e05a40" font-family="Share Tech Mono,monospace">305</text><text x="148" y="62" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1.02</text><text x="178" y="62" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">FG</text>
+  <text x="12" y="71" font-size="6" fill="#2a7fff" font-family="Share Tech Mono,monospace">L-05</text><text x="55" y="71" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">600</text><text x="85" y="71" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">SS304</text><text x="120" y="71" font-size="6" fill="#4a8ac0" font-family="Share Tech Mono,monospace">300</text><text x="148" y="71" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1.01</text><text x="178" y="71" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">CG</text>
+  <text x="12" y="80" font-size="6" fill="#2a7fff" font-family="Share Tech Mono,monospace">L-06</text><text x="55" y="80" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1200</text><text x="85" y="80" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">FRP</text><text x="120" y="80" font-size="6" fill="#4a8ac0" font-family="Share Tech Mono,monospace">55</text><text x="148" y="80" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">1.00</text><text x="178" y="80" font-size="6" fill="#5a8aa0" font-family="Share Tech Mono,monospace">CG</text>
+  <line x1="0" y1="83" x2="200" y2="83" stroke="rgba(42,127,255,.08)" stroke-width="0.4"/>
+  <text x="100" y="89" text-anchor="middle" font-size="5.5" fill="#2a3a4a" font-family="Share Tech Mono,monospace">FG=Flue Gas · CG=Clean Gas</text>
+</g>
+
+<!-- ════ TITLE BLOCK ISO 7200 (improvement #13) ════ -->
+<g transform="translate(0,648)">
+  <rect x="0" y="0" width="1400" height="32" fill="rgba(8,12,20,.98)" stroke="none"/>
+  <line x1="0" y1="0" x2="1400" y2="0" stroke="rgba(42,127,255,.2)" stroke-width="0.8"/>
+  <line x1="200" y1="0" x2="200" y2="32" stroke="rgba(42,127,255,.1)" stroke-width="0.5"/>
+  <line x1="500" y1="0" x2="500" y2="32" stroke="rgba(42,127,255,.1)" stroke-width="0.5"/>
+  <line x1="700" y1="0" x2="700" y2="32" stroke="rgba(42,127,255,.1)" stroke-width="0.5"/>
+  <line x1="900" y1="0" x2="900" y2="32" stroke="rgba(42,127,255,.1)" stroke-width="0.5"/>
+  <line x1="1050" y1="0" x2="1050" y2="32" stroke="rgba(42,127,255,.1)" stroke-width="0.5"/>
+  <line x1="1180" y1="0" x2="1180" y2="32" stroke="rgba(42,127,255,.1)" stroke-width="0.5"/>
+  <text x="10" y="11" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">COMPANY: AL-RASHID ENERGY</text>
+  <text x="10" y="22" font-size="7" fill="rgba(42,127,255,.5)" font-family="Share Tech Mono,monospace">DWG: PID-FGT-001 | REV: 03</text>
+  <text x="210" y="11" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">PROJECT: FLUE GAS TREATMENT</text>
+  <text x="210" y="22" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">UNIT: 10 — EMISSIONS CONTROL</text>
+  <text x="510" y="16" text-anchor="start" font-size="9" fill="rgba(180,210,255,.4)" font-family="IBM Plex Sans Arabic,sans-serif">منظومة معالجة غازات الاحتراق</text>
+  <text x="510" y="27" font-size="7" fill="#1a2a3a" font-family="Share Tech Mono,monospace">Flue Gas Treatment System — Sheet 1/3</text>
+  <text x="710" y="11" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">DRAWN: ENG. M. AL-RASHID</text>
+  <text x="710" y="22" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">DATE: 2025-04-10</text>
+  <text x="910" y="11" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">CHECKED: ENG. K. HASSAN</text>
+  <text x="910" y="22" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">DATE: 2025-04-12</text>
+  <text x="1060" y="11" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">APPROVED: ENG. A. IBRAHIM</text>
+  <text x="1060" y="22" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">DATE: 2025-04-15</text>
+  <text x="1190" y="11" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">SCALE: NTS</text>
+  <text x="1190" y="22" font-size="6.5" fill="rgba(42,127,255,.4)" font-family="Share Tech Mono,monospace">ISO 10628 · IEC 62424</text>
+  <text x="1350" y="11" text-anchor="middle" font-size="6.5" fill="#2a3a5a" font-family="Share Tech Mono,monospace">CLASS:</text>
+  <text x="1350" y="22" text-anchor="middle" font-size="7" fill="rgba(221,51,0,.5)" font-family="Share Tech Mono,monospace">CONFID.</text>
+</g>
+</g><!-- end labels -->
+
+<!-- Main border -->
+<rect x="1" y="1" width="1398" height="678" rx="4" fill="none" stroke="rgba(42,127,255,.12)" stroke-width="1"/>
+<rect x="28" y="23" width="1364" height="623" rx="2" fill="none" stroke="rgba(42,127,255,.06)" stroke-width="0.5"/>
+
+</svg>
+</div>
+</div>
+
+<!-- ══ LIVE GAUGES (improvement #20) ══ -->
+<div class="gauge-wrap" id="gauge-wrap">
+  <div class="gauge-card">
+    <div class="gauge-label">NOx OUTLET (AT-401)</div>
+    <div class="gauge-val" id="g-nox">42 <span class="gauge-unit">mg/Nm³</span></div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gb-nox" style="width:42%;background:#1d9e75"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">SO₂ OUTLET (AT-501)</div>
+    <div class="gauge-val" id="g-so2">38 <span class="gauge-unit">mg/Nm³</span></div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gb-so2" style="width:38%;background:#1d9e75"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">DUST OUTLET (AT-501)</div>
+    <div class="gauge-val" id="g-dust">18 <span class="gauge-unit">mg/Nm³</span></div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gb-dust" style="width:36%;background:#1d9e75"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">SCR INLET TEMP (TT-301)</div>
+    <div class="gauge-val" id="g-temp">304 <span class="gauge-unit">°C</span></div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gb-temp" style="width:72%;background:#ba7517"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">NH₃ SLIP (AT-403)</div>
+    <div class="gauge-val" id="g-nh3">2.1 <span class="gauge-unit">ppm</span></div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gb-nh3" style="width:21%;background:#27ae60"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">FGD pH (AT-404)</div>
+    <div class="gauge-val" id="g-ph">5.8 <span class="gauge-unit">pH</span></div>
+    <div class="gauge-bar"><div class="gauge-fill" id="gb-ph" style="width:58%;background:#378add"></div></div>
+  </div>
+</div>
+
+<!-- ══ MATERIAL BALANCE PANEL (improvement #25) ══ -->
+<div class="mb-panel" id="mb-panel" style="display:none">
+  <div class="mb-header" onclick="toggleMBCollapse()">
+    <span class="mb-title">📊 اتزان المادة</span>
+    <span style="font-size:10px;color:var(--text3)" id="mb-arrow">▼</span>
+  </div>
+  <div id="mb-body" style="padding:8px">
+    <table class="mb-table">
+      <thead><tr><th>خط</th><th>Nm³/h</th><th>NOx mg/Nm³</th><th>SO₂ mg/Nm³</th><th>Dust mg/Nm³</th></tr></thead>
+      <tbody>
+        <tr><td>L-01 (خروج مرجل)</td><td>85,000</td><td>450</td><td>1,200</td><td>15,000</td></tr>
+        <tr><td>L-02 (خروج APH)</td><td>85,200</td><td>448</td><td>1,195</td><td>14,900</td></tr>
+        <tr><td>L-03 (خروج ESP)</td><td>85,200</td><td>446</td><td>1,190</td><td style="color:#27ae60">28</td></tr>
+        <tr><td>L-04 (خروج HEX1)</td><td>85,400</td><td>446</td><td>1,188</td><td>28</td></tr>
+        <tr><td>L-05 (خروج SCR)</td><td>85,400</td><td style="color:#27ae60">48</td><td>1,185</td><td>28</td></tr>
+        <tr><td>L-06 (خروج FGD)</td><td>86,000</td><td>48</td><td style="color:#27ae60">42</td><td>20</td></tr>
+      </tbody>
+    </table>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:7px;color:var(--text3);margin-top:6px">
+      NH₃ consumption: 122 kg/h | Limestone: 380 kg/h | Gypsum: 520 kg/h
+    </div>
+  </div>
+</div>
+
+<!-- ══ COMPARE BEFORE/AFTER PANEL (improvement #21) ══ -->
+<div id="compare-panel" style="display:none;position:absolute;top:10px;left:260px;z-index:90;background:rgba(10,14,20,.95);border:1px solid var(--border);border-radius:8px;padding:14px;min-width:320px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent)">⚖️ مقارنة الانبعاثات قبل/بعد</span>
+    <button onclick="toggleCompare()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px">×</button>
+  </div>
+  <div id="compare-bars"></div>
+</div>
+
+<!-- ══ FLOW TOOLTIP ══ -->
+<div class="flow-tooltip" id="flow-tip"></div>
+
+<!-- ══ INFO PANEL ══ -->
+<div class="info-panel" id="info-panel">
+  <div class="info-icon-w" id="info-icon">⚙️</div>
+  <div style="flex:1">
+    <div class="info-name" id="info-name">انقر على أي مكوّن للعرض التفصيلي</div>
+    <div class="info-en" id="info-en">Click any component to view technical details</div>
+    <div class="info-desc" id="info-desc">مخطط P&ID كامل وفق معايير ISO 10628 وIEC 62424 وISA S5.1 — يشمل المرجل، سخان الهواء، المرسّب الكهربائي، محوّل SCR، برج FGD، والمدخنة مع كامل خطوط الأنابيب والأجهزة وخطوط Bypass وأجهزة الأمان.</div>
+    <div class="info-specs" id="info-specs"></div>
+  </div>
+  <button class="info-close" onclick="closeInfo()">×</button>
+</div>
+
+<!-- ══ ZOOM CONTROLS (improvement #17) ══ -->
+<div class="zoom-ctrl">
+  <button class="zbtn" onclick="zoom(1.2)" title="تكبير">+</button>
+  <button class="zbtn" onclick="zoom(0.83)" title="تصغير">−</button>
+  <button class="zbtn" onclick="resetView()" title="إعادة ضبط" style="font-size:11px">⌂</button>
+</div>
+
+<!-- ══ CUTAWAY MODAL (improvement #16) ══ -->
+<div class="cutaway-modal" id="cutaway-modal">
+  <div class="cutaway-box">
+    <div class="cutaway-hdr">
+      <span style="font-size:13px;font-weight:600;color:var(--text)" id="cutaway-title">مقطع تفصيلي</span>
+      <button class="cutaway-close" onclick="document.getElementById('cutaway-modal').classList.remove('open')">×</button>
+    </div>
+    <div class="cutaway-body" id="cutaway-body"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+const INFO = {
+  boiler:{icon:'🔥',name:'مرجل البخار',en:'STEAM BOILER — 10-B-001 | A4',
+    desc:'المصدر الرئيسي لحرق الوقود (فحم حجري أو غاز طبيعي) وتوليد البخار. ينتج غازات مداخن تحتوي على NOx وSO₂ وجسيمات دقيقة تتجاوز حدود EU-IED وتستوجب معالجة قبل الإطلاق في الغلاف الجوي.',
+    specs:['Q: 85,000 Nm³/h','T خروج: 350°C','P: 1.05 bar a','NOx: 450 mg/Nm³','SO₂: 1,200 mg/Nm³','Dust: 15 g/Nm³'],
+    cutaway:'scr'},
+  aph:{icon:'🌀',name:'سخان الهواء الدوّار',en:'AIR PREHEATER — 10-APH-001 | B4',
+    desc:'مبادل حراري دوّار من نوع Ljungström يستعيد الحرارة من غازات المداخن الخارجة (350°C) ويستخدمها لتسخين هواء الاحتراق القادم إلى المرجل. يرفع كفاءة المحطة بنسبة 5-8% ويقلل استهلاك الوقود.',
+    specs:['نوع: Ljungström','T دخول غاز: 350°C','T خروج غاز: 320°C','T هواء خروج: 280°C','قطر: 12 m','وزن: 420 t']},
+  esp:{icon:'⚡',name:'المرسّب الكهربائي الجاف',en:'DRY ESP — 10-ESP-001 | C4',
+    desc:'يزيل ≥99.9% من الجسيمات الدقيقة والرماد الطائر من غازات المداخن عبر شحنها بتيار كهربائي عالٍ (72kV) وترسيبها على لوحات جمع فولاذية. 4 حقول كهربائية متتالية مع 4 قماع جمع وآليات طرق ميكانيكية.',
+    specs:['كفاءة: 99.9%','حقول: 4','جهد: 72 kV','Dust دخول: 15 g/Nm³','Dust خروج: <30 mg/Nm³','مساحة: 2,400 m²'],
+    cutaway:'esp'},
+  hex1:{icon:'🔄',name:'المبادل الحراري ١',en:'SHELL & TUBE HEX — 10-HEX-001 | D4',
+    desc:'مبادل حراري من نوع Shell & Tube يرفع درجة حرارة الغاز الداخل إلى SCR إلى النطاق المثالي (300-320°C) لتفاعل الاختزال الانتقائي. يعمل بتبادل حرارة عكسي مع الغاز النظيف الخارج من SCR.',
+    specs:['نوع: Shell & Tube','مساحة: 850 m²','T دخول: 290°C','T خروج: 310°C','P تصميم: 1.5 bar','مادة: CS/SS304']},
+  tank:{icon:'🧪',name:'خزان الأمونيا السائلة',en:'LIQUID NH₃ TANK — 10-T-001 | C2',
+    desc:'خزان ضغط أفقي مُصنَّع من الفولاذ الكربوني المطعَّم، يخزن الأمونيا السائلة تحت الضغط في درجة حرارة -33°C. مُزوَّد بصمامات أمان PSV-01، ومقياس مستوى LG، ومقياس ضغط PT، ومحاطاً بسور احتواء HDPE.',
+    specs:['حجم: 10 m³','P تصميم: 18 bar','T تصميم: -33°C','مادة: CS ASME VIII','PSV ضبط: 17 bar','سور احتواء: HDPE']},
+  evap:{icon:'♨️',name:'مبخّر الأمونيا',en:'NH₃ EVAPORATOR — 10-EV-001 | D2',
+    desc:'يحوّل الأمونيا السائلة القادمة من الخزان (-33°C) إلى طور غازي بالتسخين بالماء الساخن (70°C) عبر ملفات تبادل حراري. T خروج NH3 = 30°C بضغط 4.5 bar. تُضبط درجة حرارة الخروج بصمام FCV ذاتي التنظيم.',
+    specs:['نوع: Shell & Tube','سطح: 45 m²','T خروج NH3: 30°C','P عمل: 4.5 bar','تدفق: 120 kg/h','T وسيط تسخين: 70°C']},
+  blower:{icon:'💨',name:'ناخب هواء التخفيف',en:'DILUENT AIR BLOWER — 10-BLW-001 | B2',
+    desc:'ناخب طرد مركزي يضخ هواء التخفيف لخلطه مع بخار الأمونيا في الخلاط الستاتيكي. تصنيف ATEX Zone 1 للعمل في بيئة NH3 المتفجرة المحتملة. يُقلل تركيز NH3 من 100% إلى 5% قبل الحقن.',
+    specs:['نوع: Centrifugal','تدفق: 1,500 Nm³/h','ضغط: 3,500 Pa','قدرة: 7.5 kW','معيار: ATEX Zone 1','مادة: SS316']},
+  mixer:{icon:'🔀',name:'خلاط NH₃/هواء ستاتيكي',en:'STATIC MIXER — 10-MX-001 | D2',
+    desc:'خلاط ستاتيكي من نوع Kenics يضمن اتحاد بخار الأمونيا مع هواء التخفيف بنسبة 5% NH3 في الهواء قبل الحقن عبر شبكة موزعات في مجرى غاز المداخن الساخن.',
+    specs:['نوع: Kenics Static','نسبة NH3: 5%','T دخول NH3: 30°C','مادة: SS316L','P عمل: 4.5 bar','ΔP: <0.05 bar']},
+  scr:{icon:'⚗️',name:'محوّل الاختزال الانتقائي SCR',en:'SCR REACTOR — 10-SCR-001 | E3',
+    desc:'قلب المنظومة. يُحوّل NOx إلى N₂ وH₂O على محفز V₂O₅/WO₃/TiO₂ بتفاعل: 4NO + 4NH₃ + O₂ → 4N₂ + 6H₂O عند 300-420°C. يحتوي على طبقتين نشاطيتين وطبقة احتياطية للتوسع المستقبلي مع نظام PSV-02.',
+    specs:['كفاءة NOx: >85%','T عمل: 300-420°C','محفز: V₂O₅/WO₃/TiO₂','NOx خروج: <50 mg/Nm³','NH3 slip: <3 ppm','حجم محفز: 48 m³'],
+    cutaway:'scr'},
+  hex2:{icon:'🔄',name:'مبادل الغاز/الغاز GGH',en:'GAS GAS HEATER — 10-GGH-001 | F5',
+    desc:'مبادل حراري دوّار (Rotary GGH) يستعيد الحرارة من الغاز الساخن النظيف الخارج من SCR (300°C) ويستخدمها لتدفئة الغاز الداخل إلى FGD من 130°C، مما يمنع تكاثف حمض الكبريتيك ويحسن عمل FGD.',
+    specs:['نوع: Rotary GGH','T دخول غاز حار: 300°C','T خروج غاز بارد: 130°C','كفاءة حرارية: 75%','قطر: 8 m','محرك: 15 kW']},
+  fgd:{icon:'🏭',name:'برج امتصاص إزالة SO₂',en:'WET FGD TOWER — 10-FGD-001 | G4',
+    desc:'برج امتصاص رطب Wet Limestone FGD يُزيل SO₂ بتفاعله مع عجينة الحجر الجيري: SO₂ + CaCO₃ + ½O₂ + 2H₂O → CaSO₄·2H₂O. ثلاثة مستويات بخّ، فاصل رذاذ، مضخة تداول P-01، وأجهزة pH ومستوى.',
+    specs:['كفاءة SO₂: >96%','SO₂ خروج: <50 mg/Nm³','جبس إنتاج: 12 t/h','مستويات رش: 3','P: 0.97 bar','pH عمل: 5.5-6.0'],
+    cutaway:'fgd'},
+  chimney:{icon:'🏗️',name:'مدخنة الإطلاق',en:'EMISSION STACK — 10-STK-001 | H1',
+    desc:'مدخنة خرسانية مسلحة (ارتفاع 120م، قطر قمة 3.8م) مع بطانة كيميائية PP لحماية من الأحماض. مُجهَّزة بنظام CEMS لقياس NOx وSO₂ والغبار والـO₂ باستمرار، وأضواء تحذيرية للطيران، وخط تسرب قاعدي.',
+    specs:['ارتفاع: 120 m','Ø قمة: 3.8 m','مادة: RC + PP liner','CEMS: AT-501 (NOx/SO₂/Dust)','فحص: كل 6 أشهر','معيار: EU-IED 2010/75']}
+};
+
+const COMPARE_DATA = [
+  {label:'NOx',unit:'mg/Nm³',before:450,after:48,limit:100,color:'#e24b4a'},
+  {label:'SO₂',unit:'mg/Nm³',before:1200,after:42,limit:200,color:'#ba7517'},
+  {label:'Dust',unit:'mg/Nm³',before:15000,after:20,limit:30,color:'#534ab7'},
+  {label:'NH₃ slip',unit:'ppm',before:0,after:2.1,limit:3,color:'#27ae60'},
+];
+
+// ════════════════════════════════════════
+// INFO PANEL
+// ════════════════════════════════════════
+let activeComp = null;
+function showInfo(id) {
+  const d = INFO[id]; if (!d) return;
+  if (activeComp) { const p = document.getElementById('c-'+activeComp); if(p) p.classList.remove('active'); }
+  activeComp = id;
+  const el = document.getElementById('c-'+id); if(el) el.classList.add('active');
+  document.getElementById('info-icon').textContent = d.icon;
+  document.getElementById('info-name').textContent = d.name;
+  document.getElementById('info-en').textContent = d.en;
+  document.getElementById('info-desc').textContent = d.desc;
+  document.getElementById('info-specs').innerHTML = d.specs.map(s=>`<span class="spec">${s}</span>`).join('');
+  // show cutaway button if available
+  const extra = d.cutaway ? `<button class="spec" style="cursor:pointer;background:rgba(42,127,255,.15);border-color:var(--border)" onclick="showCutaway('${id}')">🔍 مقطع تفصيلي</button>` : '';
+  document.getElementById('info-specs').innerHTML += extra;
+}
+function closeInfo() {
+  if (activeComp) { const p=document.getElementById('c-'+activeComp); if(p) p.classList.remove('active'); activeComp=null; }
+  document.getElementById('info-name').textContent = 'انقر على أي مكوّن للعرض التفصيلي';
+  document.getElementById('info-en').textContent = 'Click any component to view technical details';
+  document.getElementById('info-desc').textContent = '';
+  document.getElementById('info-specs').innerHTML = '';
+}
+
+// ════════════════════════════════════════
+// CUTAWAY MODAL
+// ════════════════════════════════════════
+function showCutaway(id) {
+  const modal = document.getElementById('cutaway-modal');
+  const title = document.getElementById('cutaway-title');
+  const body = document.getElementById('cutaway-body');
+  const d = INFO[id];
+  title.textContent = `مقطع تفصيلي — ${d.name}`;
+  // Generate cutaway SVG based on component
+  let svg = '';
+  if (id === 'scr' || d.cutaway === 'scr') {
+    svg = `<svg width="100%" viewBox="0 0 480 360">
+      <rect x="80" y="20" width="200" height="310" rx="8" fill="#0a1a30" stroke="#2a6aa0" stroke-width="1.5"/>
+      <rect x="80" y="18" width="200" height="14" rx="3" fill="#0d2035" stroke="#2a5a8a" stroke-width="0.8"/>
+      <text x="180" y="13" text-anchor="middle" font-size="9" fill="#3a7ab4" font-family="Share Tech Mono,monospace">توزيع التدفق</text>
+      <rect x="88" y="42" width="184" height="55" rx="4" fill="#0f2540" stroke="#3a7ab0" stroke-width="1"/>
+      <text x="180" y="38" text-anchor="middle" font-size="9" fill="#5a9ad0" font-family="IBM Plex Sans Arabic,sans-serif">طبقة المحفز الأولى (V₂O₅/TiO₂)</text>
+      <text x="92" y="62" font-size="8" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦</text>
+      <text x="92" y="74" font-size="8" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦</text>
+      <text x="92" y="86" font-size="8" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦</text>
+      <rect x="88" y="112" width="184" height="55" rx="4" fill="#0f2540" stroke="#3a7ab0" stroke-width="1"/>
+      <text x="180" y="108" text-anchor="middle" font-size="9" fill="#5a9ad0" font-family="IBM Plex Sans Arabic,sans-serif">طبقة المحفز الثانية</text>
+      <text x="92" y="132" font-size="8" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦</text>
+      <text x="92" y="144" font-size="8" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦</text>
+      <text x="92" y="156" font-size="8" fill="#3a7ab4" font-family="Share Tech Mono,monospace">▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦▦</text>
+      <rect x="88" y="182" width="184" height="50" rx="4" fill="#0a1a2a" stroke="#1a3a5a" stroke-width="0.8" stroke-dasharray="4 2"/>
+      <text x="180" y="211" text-anchor="middle" font-size="10" fill="#2a4a6a" font-family="IBM Plex Sans Arabic,sans-serif">طبقة احتياطية (فارغة)</text>
+      <rect x="88" y="244" width="184" height="70" rx="4" fill="#0a1525" stroke="#1a4060" stroke-width="0.8"/>
+      <text x="180" y="262" text-anchor="middle" font-size="9" fill="#2a5a7a" font-family="IBM Plex Sans Arabic,sans-serif">حجرة الخروج</text>
+      <text x="180" y="280" text-anchor="middle" font-size="8" fill="#1a4060" font-family="Share Tech Mono,monospace">N₂ + H₂O</text>
+      <text x="180" y="293" text-anchor="middle" font-size="8" fill="#1a4060" font-family="Share Tech Mono,monospace">NOx &lt;50 mg/Nm³</text>
+      <!-- NH3 injection arrows -->
+      <line x1="0" y1="50" x2="80" y2="50" stroke="#27ae60" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#ag)"/>
+      <text x="40" y="44" text-anchor="middle" font-size="8" fill="#27ae60" font-family="Share Tech Mono,monospace">NH₃ حقن</text>
+      <!-- hot gas arrows -->
+      <line x1="0" y1="160" x2="80" y2="160" stroke="#c0392b" stroke-width="3" marker-end="url(#ah)"/>
+      <text x="40" y="154" text-anchor="middle" font-size="8" fill="#c0392b" font-family="Share Tech Mono,monospace">NOx غاز</text>
+      <!-- labels right side -->
+      <text x="295" y="72" font-size="9" fill="#3a7ab4" font-family="Share Tech Mono,monospace">NOx → N₂+H₂O</text>
+      <text x="295" y="84" font-size="8" fill="#2a5a8a" font-family="Share Tech Mono,monospace">4NO+4NH₃+O₂</text>
+      <text x="295" y="95" font-size="8" fill="#2a5a8a" font-family="Share Tech Mono,monospace">→4N₂+6H₂O</text>
+      <text x="295" y="140" font-size="9" fill="#3a7ab4" font-family="Share Tech Mono,monospace">T: 300-420°C</text>
+      <text x="295" y="152" font-size="8" fill="#2a5a8a" font-family="Share Tech Mono,monospace">η: &gt;85%</text>
+    </svg>`;
+  } else if (d.cutaway === 'esp') {
+    svg = `<svg width="100%" viewBox="0 0 480 300">
+      <rect x="40" y="30" width="320" height="200" rx="5" fill="#1a1a3a" stroke="#3a3a7a" stroke-width="1.5"/>
+      <!-- discharge wires -->
+      <line x1="80" y1="30" x2="80" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <line x1="120" y1="30" x2="120" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <line x1="160" y1="30" x2="160" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <line x1="200" y1="30" x2="200" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <line x1="240" y1="30" x2="240" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <line x1="280" y1="30" x2="280" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <line x1="320" y1="30" x2="320" y2="230" stroke="#7f77dd" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>
+      <!-- collection plates -->
+      <line x1="100" y1="30" x2="100" y2="230" stroke="#4a4a8a" stroke-width="3"/>
+      <line x1="140" y1="30" x2="140" y2="230" stroke="#4a4a8a" stroke-width="3"/>
+      <line x1="180" y1="30" x2="180" y2="230" stroke="#4a4a8a" stroke-width="3"/>
+      <line x1="220" y1="30" x2="220" y2="230" stroke="#4a4a8a" stroke-width="3"/>
+      <line x1="260" y1="30" x2="260" y2="230" stroke="#4a4a8a" stroke-width="3"/>
+      <line x1="300" y1="30" x2="300" y2="230" stroke="#4a4a8a" stroke-width="3"/>
+      <!-- particle symbols -->
+      <circle cx="110" cy="100" r="3" fill="#ba7517" opacity=".7"/>
+      <circle cx="150" cy="140" r="2" fill="#ba7517" opacity=".6"/>
+      <circle cx="185" cy="90" r="3" fill="#ba7517" opacity=".8"/>
+      <circle cx="225" cy="160" r="2" fill="#ba7517" opacity=".5"/>
+      <!-- arrows showing flow -->
+      <line x1="0" y1="130" x2="40" y2="130" stroke="#c0392b" stroke-width="3" marker-end="url(#ah)"/>
+      <line x1="360" y1="130" x2="400" y2="130" stroke="#1a6fa8" stroke-width="3" marker-end="url(#ab)"/>
+      <text x="20" y="148" text-anchor="middle" font-size="8" fill="#c0392b" font-family="Share Tech Mono,monospace">غاز ملوث</text>
+      <text x="380" y="148" text-anchor="middle" font-size="8" fill="#1a6fa8" font-family="Share Tech Mono,monospace">غاز نظيف</text>
+      <!-- hoppers -->
+      <polygon points="40,230 130,230 85,270" fill="#0f0f25" stroke="#3a3a6a" stroke-width="0.8"/>
+      <polygon points="130,230 220,230 175,270" fill="#0f0f25" stroke="#3a3a6a" stroke-width="0.8"/>
+      <polygon points="220,230 310,230 265,270" fill="#0f0f25" stroke="#3a3a6a" stroke-width="0.8"/>
+      <text x="85" y="265" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">رماد</text>
+      <text x="175" y="265" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">رماد</text>
+      <text x="265" y="265" text-anchor="middle" font-size="7" fill="#534ab7" font-family="Share Tech Mono,monospace">رماد</text>
+      <!-- HV label -->
+      <text x="420" y="50" font-size="9" fill="#e24b4a" font-family="Share Tech Mono,monospace">72 kV DC</text>
+      <text x="420" y="62" font-size="8" fill="#a02020" font-family="Share Tech Mono,monospace">HV SUPPLY</text>
+    </svg>`;
+  } else if (d.cutaway === 'fgd') {
+    svg = `<svg width="100%" viewBox="0 0 480 340">
+      <rect x="100" y="20" width="180" height="290" rx="8" fill="#0a1a20" stroke="#1a6a9a" stroke-width="1.5"/>
+      <ellipse cx="190" cy="20" rx="90" ry="18" fill="#102030" stroke="#1a6a9a" stroke-width="1"/>
+      <!-- mist eliminator -->
+      <rect x="108" y="36" width="164" height="28" rx="3" fill="#0a2535" stroke="#1a5a7a" stroke-width="0.8"/>
+      <text x="190" y="54" text-anchor="middle" font-size="8" fill="#3a8ab0" font-family="Share Tech Mono,monospace">فاصل الرذاذ</text>
+      <!-- spray levels 3 -->
+      <circle cx="138" cy="85" r="4" fill="#1a5a8a"/><circle cx="166" cy="85" r="4" fill="#1a5a8a"/><circle cx="194" cy="85" r="4" fill="#1a5a8a"/><circle cx="222" cy="85" r="4" fill="#1a5a8a"/>
+      <line x1="138" y1="89" x2="130" y2="105" stroke="#2a7aaa" stroke-width="1"/><line x1="166" y1="89" x2="158" y2="105" stroke="#2a7aaa" stroke-width="1"/>
+      <line x1="194" y1="89" x2="186" y2="105" stroke="#2a7aaa" stroke-width="1"/><line x1="222" y1="89" x2="214" y2="105" stroke="#2a7aaa" stroke-width="1"/>
+      <circle cx="148" cy="135" r="4" fill="#1a5a8a"/><circle cx="182" cy="135" r="4" fill="#1a5a8a"/><circle cx="216" cy="135" r="4" fill="#1a5a8a"/>
+      <line x1="148" y1="139" x2="140" y2="155" stroke="#2a7aaa" stroke-width="1"/><line x1="182" y1="139" x2="174" y2="155" stroke="#2a7aaa" stroke-width="1"/>
+      <line x1="216" y1="139" x2="208" y2="155" stroke="#2a7aaa" stroke-width="1"/>
+      <circle cx="140" cy="183" r="4" fill="#1a5a8a"/><circle cx="190" cy="183" r="4" fill="#1a5a8a"/><circle cx="236" cy="183" r="4" fill="#1a5a8a"/>
+      <line x1="140" y1="187" x2="132" y2="203" stroke="#2a7aaa" stroke-width="1"/><line x1="190" y1="187" x2="182" y2="203" stroke="#2a7aaa" stroke-width="1"/>
+      <line x1="236" y1="187" x2="228" y2="203" stroke="#2a7aaa" stroke-width="1"/>
+      <text x="190" y="212" text-anchor="middle" font-size="8" fill="#2a5a7a" font-family="IBM Plex Sans Arabic,sans-serif">منطقة التفاعل</text>
+      <text x="190" y="224" text-anchor="middle" font-size="7" fill="#1a4060" font-family="Share Tech Mono,monospace">SO₂+CaCO₃+H₂O→CaSO₄</text>
+      <!-- sump -->
+      <rect x="108" y="248" width="164" height="56" rx="4" fill="#0a1a28" stroke="#1a5a7a" stroke-width="0.8"/>
+      <rect x="112" y="256" width="156" height="42" rx="3" fill="rgba(26,90,150,.2)"/>
+      <text x="190" y="282" text-anchor="middle" font-size="8" fill="#2a6a9a" font-family="IBM Plex Sans Arabic,sans-serif">حوض عجينة الجبس</text>
+      <!-- SO2 gas in -->
+      <line x1="0" y1="190" x2="100" y2="190" stroke="#c0392b" stroke-width="3" marker-end="url(#ah)"/>
+      <text x="50" y="185" text-anchor="middle" font-size="8" fill="#c0392b" font-family="Share Tech Mono,monospace">SO₂ غاز</text>
+      <!-- clean out top -->
+      <line x1="190" y1="2" x2="190" y2="-20" stroke="#1a6fa8" stroke-width="3" marker-end="url(#ab)"/>
+      <text x="190" y="-24" text-anchor="middle" font-size="8" fill="#1a6fa8" font-family="Share Tech Mono,monospace">غاز نظيف</text>
+      <!-- limestone in -->
+      <line x1="350" y1="90" x2="280" y2="90" stroke="#ba7517" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#ao)"/>
+      <text x="380" y="86" font-size="8" fill="#ba7517" font-family="Share Tech Mono,monospace">CaCO₃</text>
+      <text x="380" y="97" font-size="7" fill="#7a5010" font-family="Share Tech Mono,monospace">عجينة</text>
+      <!-- gypsum out -->
+      <line x1="350" y1="270" x2="280" y2="270" stroke="#8a6a30" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="380" y="267" font-size="8" fill="#8a6a30" font-family="Share Tech Mono,monospace">CaSO₄</text>
+      <text x="380" y="278" font-size="7" fill="#5a4a20" font-family="Share Tech Mono,monospace">جبس خروج</text>
+    </svg>`;
+  }
+  body.innerHTML = svg + `<div style="margin-top:12px;font-size:11px;color:var(--text2);line-height:1.7">${d.desc}</div>`;
+  modal.classList.add('open');
+}
+
+// ════════════════════════════════════════
+// ZOOM & PAN (improvement #17)
+// ════════════════════════════════════════
+let scale=1, tx=0, ty=0, dragging=false, lastX=0, lastY=0;
+const canvas = document.getElementById('canvas');
+const wrap = document.getElementById('svgwrap');
+function applyTransform(){wrap.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;}
+function zoom(factor){
+  const rect=canvas.getBoundingClientRect();
+  const cx=rect.width/2, cy=rect.height/2;
+  tx=(tx-cx)*factor+cx; ty=(ty-cy)*factor+cy;
+  scale=Math.max(0.2,Math.min(3,scale*factor)); applyTransform();
+}
+function resetView(){scale=0.72;tx=0;ty=0;applyTransform();}
+canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:0.89);},{passive:false});
+canvas.addEventListener('mousedown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.classList.add('grabbing');});
+window.addEventListener('mouseup',()=>{dragging=false;canvas.classList.remove('grabbing');});
+window.addEventListener('mousemove',e=>{if(!dragging)return;tx+=e.clientX-lastX;ty+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;applyTransform();});
+// Touch support
+canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){dragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;}},{passive:true});
+window.addEventListener('touchend',()=>{dragging=false;});
+window.addEventListener('touchmove',e=>{if(!dragging||e.touches.length!==1)return;tx+=e.touches[0].clientX-lastX;ty+=e.touches[0].clientY-lastY;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;applyTransform();},{passive:true});
+resetView();
+
+// ════════════════════════════════════════
+// PIPE HOVER TOOLTIP (improvement #18)
+// ════════════════════════════════════════
+const tip = document.getElementById('flow-tip');
+function showPipeTip(e,id,info){
+  tip.style.display='block';tip.innerHTML=`<b>${id}</b> — ${info}`;
+  tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-8)+'px';
+  // highlight all segs with this line
+  document.querySelectorAll(`.pipe-seg[data-line="${id}"]`).forEach(s=>s.classList.add('highlighted'));
+}
+function hideTip(){
+  tip.style.display='none';
+  document.querySelectorAll('.pipe-seg').forEach(s=>s.classList.remove('highlighted'));
+}
+
+// ════════════════════════════════════════
+// LAYER TOGGLE (improvement #14)
+// ════════════════════════════════════════
+const layerState={process:true,inst:true,service:true,labels:true,hazop:true};
+function toggleLayer(name){
+  layerState[name]=!layerState[name];
+  const btn=document.getElementById('btn-'+name);
+  if(btn) btn.classList.toggle('active',layerState[name]);
+  const el=document.getElementById('layer-'+name);
+  if(el) el.style.display=layerState[name]?'':'none';
+  // process also covers service (pipes)
+  if(name==='process'){
+    document.querySelectorAll('.pipe-seg').forEach(s=>s.style.display=layerState[name]?'':'none');
+  }
+  if(name==='inst'){
+    document.querySelectorAll('#layer-inst').forEach(s=>s.style.display=layerState[name]?'':'none');
+  }
+  if(name==='service'){
+    const sl=document.getElementById('layer-service');
+    if(sl) sl.style.display=layerState[name]?'':'none';
+  }
+  if(name==='labels'){
+    const ll=document.getElementById('layer-labels');
+    if(ll) ll.style.display=layerState[name]?'':'none';
+  }
+  if(name==='hazop'){
+    const hl=document.getElementById('layer-hazop');
+    if(hl) hl.style.display=layerState[name]?'':'none';
+  }
+}
+
+// ════════════════════════════════════════
+// SEARCH (improvement #27)
+// ════════════════════════════════════════
+const SEARCH_MAP = {
+  'boiler':'c-boiler','b-001':'c-boiler','مرجل':'c-boiler',
+  'aph':'c-aph','سخان':'c-aph','apH':'c-aph','10-aph':'c-aph',
+  'esp':'c-esp','مرسب':'c-esp','مرسّب':'c-esp','10-esp':'c-esp',
+  'hex1':'c-hex1','مبادل':'c-hex1','10-hex':'c-hex1',
+  'tank':'c-tank','خزان':'c-tank','nh3':'c-tank','10-t':'c-tank',
+  'evap':'c-evap','مبخر':'c-evap','مبخّر':'c-evap','10-ev':'c-evap',
+  'blower':'c-blower','ناخب':'c-blower','10-blw':'c-blower',
+  'mixer':'c-mixer','خلاط':'c-mixer','10-mx':'c-mixer',
+  'scr':'c-scr','محول':'c-scr','محوّل':'c-scr','10-scr':'c-scr',
+  'hex2':'c-hex2','ggh':'c-hex2','10-ggh':'c-hex2',
+  'fgd':'c-fgd','برج':'c-fgd','امتصاص':'c-fgd','10-fgd':'c-fgd',
+  'chimney':'c-chimney','مدخنة':'c-chimney','10-stk':'c-chimney',
+};
+function doSearch(q){
+  const qL=q.toLowerCase().trim();
+  // clear all highlights
+  document.querySelectorAll('.comp-g').forEach(el=>el.classList.remove('highlighted','dimmed'));
+  if(!qL){return;}
+  let found=null;
+  for(const[k,v] of Object.entries(SEARCH_MAP)){
+    if(qL.includes(k.toLowerCase())||k.toLowerCase().includes(qL)){found=v;break;}
+  }
+  if(found){
+    document.querySelectorAll('.comp-g').forEach(el=>el.id!==found?el.classList.add('dimmed'):el.classList.add('highlighted'));
+    showInfo(found.replace('c-',''));
+  }
+}
+
+// ════════════════════════════════════════
+// SHEET TABS (improvement #28)
+// ════════════════════════════════════════
+function switchSheet(i){
+  document.querySelectorAll('.stab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  // In a real impl each sheet would swap SVG content
+  const names=['معالجة الجسيمات & APH','منظومة SCR','FGD & المدخنة'];
+  // Just flash the panel for demo
+  closeInfo();
+}
+
+// ════════════════════════════════════════
+// MATERIAL BALANCE PANEL (improvement #25)
+// ════════════════════════════════════════
+function toggleMB(){
+  const p=document.getElementById('mb-panel');
+  p.style.display=p.style.display==='none'?'block':'none';
+}
+function toggleMBCollapse(){
+  const b=document.getElementById('mb-body');
+  const a=document.getElementById('mb-arrow');
+  const collapsed=b.style.display==='none';
+  b.style.display=collapsed?'block':'none';
+  a.textContent=collapsed?'▼':'▶';
+}
+
+// ════════════════════════════════════════
+// COMPARE BEFORE/AFTER (improvement #21)
+// ════════════════════════════════════════
+function toggleCompare(){
+  const p=document.getElementById('compare-panel');
+  if(p.style.display==='none'||!p.style.display){
+    p.style.display='block';
+    renderCompare();
+  } else {
+    p.style.display='none';
+  }
+}
+function renderCompare(){
+  const bars=document.getElementById('compare-bars');
+  bars.innerHTML=COMPARE_DATA.map(d=>{
+    const maxV=d.before||1;
+    const bw=Math.min(100,d.before/maxV*100);
+    const aw=Math.min(100,d.after/maxV*100);
+    const lw=Math.min(100,d.limit/maxV*100);
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);margin-bottom:3px">
+        <span>${d.label}</span><span>${d.unit}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <span style="font-size:9px;color:var(--text3);width:36px;text-align:right">قبل</span>
+        <div style="flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden">
+          <div style="width:${bw}%;height:100%;background:${d.color};opacity:.7;border-radius:2px"></div>
+        </div>
+        <span style="font-size:9px;font-family:'Share Tech Mono',monospace;color:${d.color};width:44px">${d.before}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:9px;color:var(--text3);width:36px;text-align:right">بعد</span>
+        <div style="flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;position:relative">
+          <div style="width:${aw}%;height:100%;background:#27ae60;border-radius:2px"></div>
+          <div style="position:absolute;top:0;right:${100-lw}%;width:2px;height:100%;background:#ffc040;opacity:.8"></div>
+        </div>
+        <span style="font-size:9px;font-family:'Share Tech Mono',monospace;color:#27ae60;width:44px">${d.after}</span>
+      </div>
+      <div style="font-size:8px;color:var(--text3);font-family:'Share Tech Mono',monospace;margin-top:1px;padding-right:42px">حد EU-IED: ${d.limit} ${d.unit}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// COMMENT MODE (improvement #30)
+// ════════════════════════════════════════
+let commentMode=false;
+const comments=JSON.parse(localStorage.getItem('pid_comments')||'[]');
+function toggleCommentMode(){
+  commentMode=!commentMode;
+  document.getElementById('btn-comment').classList.toggle('active',commentMode);
+  document.getElementById('canvas').style.cursor=commentMode?'crosshair':'grab';
+}
+canvas.addEventListener('click',e=>{
+  if(!commentMode)return;
+  const r=canvas.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  const text=prompt('أدخل ملاحظتك:');
+  if(!text)return;
+  const c={x,y,text,date:new Date().toLocaleString('ar')};
+  comments.push(c);
+  localStorage.setItem('pid_comments',JSON.stringify(comments));
+  addCommentPin(c,comments.length-1);
+});
+function addCommentPin(c,i){
+  const pin=document.createElement('div');
+  pin.className='comment-pin';
+  pin.style.left=(c.x-10)+'px';pin.style.top=(c.y-10)+'px';
+  pin.title=c.text;
+  pin.onclick=(e)=>{e.stopPropagation();showCommentPopup(c,pin);};
+  canvas.appendChild(pin);
+}
+function showCommentPopup(c,pin){
+  let popup=document.getElementById('active-popup');
+  if(popup)popup.remove();
+  popup=document.createElement('div');
+  popup.className='comment-popup';popup.id='active-popup';
+  popup.style.left=(parseInt(pin.style.left)+25)+'px';
+  popup.style.top=pin.style.top;
+  popup.innerHTML=`<div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--accent);margin-bottom:4px">${c.date}</div>
+  <div style="font-size:11px;color:var(--text)">${c.text}</div>
+  <button onclick="this.parentElement.remove()" style="margin-top:6px;font-size:9px;background:rgba(42,127,255,.1);border:1px solid var(--border2);border-radius:3px;color:var(--text2);cursor:pointer;padding:2px 8px">إغلاق</button>`;
+  canvas.appendChild(popup);
+}
+comments.forEach((c,i)=>addCommentPin(c,i));
+
+// ════════════════════════════════════════
+// LIVE GAUGES SIMULATION (improvement #20)
+// ════════════════════════════════════════
+function randomInRange(base,range){return +(base+( Math.random()-0.5)*range*2).toFixed(1);}
+function updateGauges(){
+  const nox=randomInRange(44,4);
+  const so2=randomInRange(40,5);
+  const dust=randomInRange(19,3);
+  const temp=randomInRange(305,8);
+  const nh3=randomInRange(2.1,0.3);
+  const ph=randomInRange(5.8,0.2);
+  function upd(id,gid,val,max,warn,danger,unit){
+    const el=document.getElementById(id);const bar=document.getElementById(gid);
+    if(!el||!bar)return;
+    el.innerHTML=`${val} <span class="gauge-unit">${unit}</span>`;
+    el.className='gauge-val'+(val>danger?' danger':val>warn?' warn':'');
+    bar.style.width=Math.min(100,val/max*100)+'%';
+    bar.style.background=val>danger?'#e24b4a':val>warn?'#ba7517':'#1d9e75';
+  }
+  upd('g-nox','gb-nox',nox,200,100,150,'mg/Nm³');
+  upd('g-so2','gb-so2',so2,200,100,180,'mg/Nm³');
+  upd('g-dust','gb-dust',dust,60,30,50,'mg/Nm³');
+  upd('g-temp','gb-temp',temp,420,420,440,'°C');
+  upd('g-nh3','gb-nh3',nh3,5,3,4.5,'ppm');
+  upd('g-ph','gb-ph',ph,14,5.5,4.5,'pH');
+}
+setInterval(updateGauges,2500);
+
+// ════════════════════════════════════════
+// PRINT / EXPORT (improvement #26,29)
+// ════════════════════════════════════════
+function printPID(){
+  window.print();
+}
+function exportSVG(){
+  const svg=document.getElementById('mainsvg');
+  const blob=new Blob([svg.outerHTML],{type:'image/svg+xml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='PID-FGT-001-Rev03.svg';
+  a.click();
+}
+</script>
+</body>
+</html>

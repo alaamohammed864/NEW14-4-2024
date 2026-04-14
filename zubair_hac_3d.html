@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zubair Oil Field — HAM Degassing Station | 3D Engineering Model</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0b0f1a;color:#c8d8e8;font-family:'Segoe UI',sans-serif;overflow:hidden;}
+  #canvas-container{position:fixed;inset:0;}
+  canvas{display:block;}
+
+  /* Loading screen */
+  #loading{position:fixed;inset:0;background:#0b0f1a;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  #loading h1{font-size:1.6rem;font-weight:300;letter-spacing:3px;color:#3a80d0;margin-bottom:8px;}
+  #loading p{font-size:0.78rem;color:#607090;letter-spacing:2px;margin-bottom:40px;}
+  #progress-bar-wrap{width:320px;height:3px;background:#1a2a3a;border-radius:2px;overflow:hidden;}
+  #progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#1a50a0,#3a80d0);transition:width 0.3s ease;border-radius:2px;}
+  #loading-label{margin-top:14px;font-size:0.7rem;color:#405070;letter-spacing:1px;}
+
+  /* Toolbar */
+  #toolbar{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:6px;background:rgba(8,12,24,0.96);border:1px solid #1a3050;border-radius:8px;padding:7px 12px;align-items:center;}
+  .tb-sep{width:1px;height:22px;background:#1a3050;margin:0 4px;}
+  .tb-btn{background:transparent;border:1px solid #1a3050;color:#8ab0d0;font-size:0.7rem;padding:5px 11px;border-radius:5px;cursor:pointer;letter-spacing:0.5px;transition:all 0.15s;}
+  .tb-btn:hover,.tb-btn.active{background:#1a3a5a;border-color:#3a80d0;color:#60b0f0;}
+  .tb-label{font-size:0.65rem;color:#405060;letter-spacing:1px;margin-right:4px;}
+
+  /* Left legend panel */
+  #legend{position:fixed;left:12px;top:60px;z-index:100;background:rgba(8,12,24,0.93);border:1px solid #1a3050;border-radius:8px;padding:14px;width:180px;}
+  #legend h3{font-size:0.65rem;letter-spacing:2px;color:#3a80d0;margin-bottom:12px;text-transform:uppercase;}
+  .leg-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .leg-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+  .leg-text{font-size:0.65rem;color:#a0b8c8;}
+
+  /* Info panel */
+  #info-panel{position:fixed;right:12px;top:60px;z-index:100;background:rgba(8,12,24,0.93);border:1px solid #1a3050;border-radius:8px;padding:16px;width:230px;display:none;}
+  #info-panel h3{font-size:0.7rem;letter-spacing:2px;color:#3a80d0;margin-bottom:12px;text-transform:uppercase;}
+  .info-row{display:flex;justify-content:space-between;margin-bottom:7px;border-bottom:1px solid #0f1e2e;padding-bottom:7px;}
+  .info-key{font-size:0.62rem;color:#607080;letter-spacing:0.5px;}
+  .info-val{font-size:0.68rem;color:#c0d8e8;text-align:right;max-width:130px;}
+  .status-badge{padding:2px 7px;border-radius:3px;font-size:0.6rem;letter-spacing:1px;}
+  .status-existing{background:#1a3a20;color:#60d080;border:1px solid #2a6a30;}
+  .status-new{background:#3a2010;color:#e09040;border:1px solid #804020;}
+
+  /* Stats panel */
+  #stats{position:fixed;left:12px;bottom:40px;z-index:100;background:rgba(8,12,24,0.93);border:1px solid #1a3050;border-radius:8px;padding:14px;width:210px;}
+  #stats h4{font-size:0.6rem;letter-spacing:2px;color:#3a80d0;margin-bottom:10px;text-transform:uppercase;}
+  .stat-row{display:flex;justify-content:space-between;margin-bottom:5px;}
+  .stat-k{font-size:0.6rem;color:#607080;}
+  .stat-v{font-size:0.6rem;color:#a0c0d8;}
+
+  /* Bottom hint */
+  #hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:0.6rem;color:#304050;letter-spacing:1px;z-index:100;white-space:nowrap;}
+
+  /* HAC legend */
+  #hac-legend{position:fixed;right:12px;bottom:40px;z-index:100;background:rgba(8,12,24,0.93);border:1px solid #1a3050;border-radius:8px;padding:12px;width:180px;}
+  #hac-legend h3{font-size:0.6rem;letter-spacing:2px;color:#3a80d0;margin-bottom:10px;text-transform:uppercase;}
+  .hac-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .hac-swatch{width:28px;height:10px;border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="loading">
+  <h1>ZUBAIR OIL FIELD</h1>
+  <p>HAM DEGASSING STATION — ZFT-JV-4-RS203</p>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="loading-label">INITIALIZING 3D ENGINE...</div>
+</div>
+<div id="canvas-container"></div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <span class="tb-label">VIEW</span>
+  <button class="tb-btn active" id="btn-persp" onclick="setView('persp')">Perspective</button>
+  <button class="tb-btn" id="btn-top" onclick="setView('top')">Top</button>
+  <button class="tb-btn" id="btn-iso" onclick="setView('iso')">Isometric</button>
+  <button class="tb-btn" id="btn-north" onclick="setView('north')">North</button>
+  <button class="tb-btn" id="btn-east" onclick="setView('east')">East</button>
+  <div class="tb-sep"></div>
+  <span class="tb-label">OPTIONS</span>
+  <button class="tb-btn" id="btn-wire" onclick="toggleWireframe()">Wireframe</button>
+  <button class="tb-btn" id="btn-shadow" onclick="toggleShadows()">Shadows</button>
+  <button class="tb-btn active" id="btn-labels" onclick="toggleLabels()">Labels</button>
+  <button class="tb-btn" id="btn-rotate" onclick="toggleAutoRotate()">Auto-Rotate</button>
+  <button class="tb-btn" onclick="setView('persp')">Fit All</button>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <h3>Equipment Legend</h3>
+  <div class="leg-item"><div class="leg-swatch" style="background:#e0d8c8;border:1px solid #a0988e;"></div><span class="leg-text">Pressure Vessels</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#ddd5b0;"></div><span class="leg-text">Storage Tanks</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#3a7050;"></div><span class="leg-text">Pumps</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#3c5468;"></div><span class="leg-text">Buildings</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#cc3322;"></div><span class="leg-text">Fire Water</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#a8adb8;"></div><span class="leg-text">Pipe Racks</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#e8c020;"></div><span class="leg-text">Chemical Skids</span></div>
+  <div class="leg-item"><div class="leg-swatch" style="background:#7a8090;"></div><span class="leg-text">Flare Stack</span></div>
+</div>
+
+<!-- Info panel -->
+<div id="info-panel">
+  <h3>Equipment Info</h3>
+  <div id="info-content"></div>
+</div>
+
+<!-- Stats -->
+<div id="stats">
+  <h4>Facility Statistics</h4>
+  <div class="stat-row"><span class="stat-k">Facility</span><span class="stat-v">HAM Degassing Stn.</span></div>
+  <div class="stat-row"><span class="stat-k">Location</span><span class="stat-v">Zubair Field, Iraq</span></div>
+  <div class="stat-row"><span class="stat-k">Drawing</span><span class="stat-v">ZFT-JV-4-RS203</span></div>
+  <div class="stat-row"><span class="stat-k">Scale</span><span class="stat-v">1:500</span></div>
+  <div class="stat-row"><span class="stat-k">Site Area</span><span class="stat-v">~55,200 m²</span></div>
+  <div class="stat-row"><span class="stat-k">Major Equipment</span><span class="stat-v">80+ Items</span></div>
+</div>
+
+<!-- HAC Legend -->
+<div id="hac-legend">
+  <h3>HAC Zones</h3>
+  <div class="hac-row"><div class="hac-swatch" style="background:rgba(204,34,0,0.35);border:1px solid rgba(204,34,0,0.5);"></div><span class="leg-text" style="font-size:0.6rem;">Cl.1 Div.1 (Process)</span></div>
+  <div class="hac-row"><div class="hac-swatch" style="background:rgba(255,102,68,0.2);border:1px solid rgba(255,102,68,0.35);"></div><span class="leg-text" style="font-size:0.6rem;">Cl.1 Div.2 (Extended)</span></div>
+</div>
+
+<!-- Hint -->
+<div id="hint">LMB: Rotate &nbsp;|&nbsp; RMB: Pan &nbsp;|&nbsp; Scroll: Zoom &nbsp;|&nbsp; Click Equipment: Info</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// ZUBAIR OIL FIELD — HAM DEGASSING STATION — 3D MODEL
+// Drawing No. ZFT-JV-4-RS203 | Onshore Iraq
+// ============================================================
+
+// --- Progress ---
+var progressEl = document.getElementById('progress-bar');
+var loadingLabelEl = document.getElementById('loading-label');
+function setProgress(pct, label) {
+  progressEl.style.width = pct + '%';
+  if (label) loadingLabelEl.textContent = label;
+}
+
+// --- Scene setup ---
+var renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f1a);
+scene.fog = new THREE.FogExp2(0x0b0f1a, 0.0012);
+
+var camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, 0.5, 3000);
+
+// --- Camera control state ---
+var camState = { theta: 0.75, phi: 0.85, radius: 380 };
+var camTarget = new THREE.Vector3(0, 12, 0);
+var mouse = { down: false, rightDown: false, lastX: 0, lastY: 0 };
+var autoRotate = false;
+var wireframeMode = false;
+var shadowsOn = true;
+var labelsOn = true;
+
+function updateCamera() {
+  var x = camState.radius * Math.sin(camState.phi) * Math.sin(camState.theta);
+  var y = camState.radius * Math.cos(camState.phi);
+  var z = camState.radius * Math.sin(camState.phi) * Math.cos(camState.theta);
+  camera.position.set(camTarget.x + x, camTarget.y + y, camTarget.z + z);
+  camera.lookAt(camTarget);
+}
+updateCamera();
+
+// --- Lighting ---
+var sunLight = new THREE.DirectionalLight(0xfffaea, 2.6);
+sunLight.position.set(150, 250, 120);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(4096, 4096);
+sunLight.shadow.camera.left = -280;
+sunLight.shadow.camera.right = 280;
+sunLight.shadow.camera.top = 280;
+sunLight.shadow.camera.bottom = -280;
+sunLight.shadow.bias = -0.0008;
+sunLight.shadow.normalBias = 0.04;
+scene.add(sunLight);
+
+var hemiLight = new THREE.HemisphereLight(0x90b8e0, 0x5a4a30, 0.85);
+scene.add(hemiLight);
+
+var fillLight = new THREE.DirectionalLight(0x4a80c0, 0.35);
+fillLight.position.set(-100, 60, -80);
+scene.add(fillLight);
+
+// Grid
+var grid = new THREE.GridHelper(500, 40, 0x1a3050, 0x111a28);
+grid.position.y = 0.01;
+scene.add(grid);
+
+// Raycaster
+var raycaster = new THREE.Raycaster();
+var mouseVec = new THREE.Vector2();
+var clickables = [];
+var labelSprites = [];
+var allMeshes = [];
+
+// Materials
+var MAT = {
+  ground:    new THREE.MeshLambertMaterial({color:0x8f7a52}),
+  gravel:    new THREE.MeshLambertMaterial({color:0xb8a870}),
+  road:      new THREE.MeshLambertMaterial({color:0x585850}),
+  concrete:  new THREE.MeshLambertMaterial({color:0xa09880}),
+  vessel:    new THREE.MeshStandardMaterial({color:0xe0d8c8, metalness:0.05, roughness:0.88}),
+  ssEnd:     new THREE.MeshStandardMaterial({color:0xc8ccd4, metalness:0.9,  roughness:0.15}),
+  pipe:      new THREE.MeshStandardMaterial({color:0x909aa8, metalness:0.75, roughness:0.3}),
+  fireWater: new THREE.MeshStandardMaterial({color:0xcc3322, metalness:0.6,  roughness:0.4}),
+  insPipe:   new THREE.MeshLambertMaterial({color:0xe8e0c0}),
+  tankBody:  new THREE.MeshStandardMaterial({color:0xddd5b0, metalness:0.2,  roughness:0.65}),
+  tankRoof:  new THREE.MeshStandardMaterial({color:0xc8b870, metalness:0.2,  roughness:0.7}),
+  struct:    new THREE.MeshStandardMaterial({color:0xa8adb8, metalness:0.85, roughness:0.22}),
+  pump:      new THREE.MeshStandardMaterial({color:0x3a7050, metalness:0.6,  roughness:0.4}),
+  bldgGen:   new THREE.MeshStandardMaterial({color:0x3c5468, metalness:0.2,  roughness:0.7}),
+  bldgAdm:   new THREE.MeshStandardMaterial({color:0xd0c8b8, metalness:0.05, roughness:0.85}),
+  bldgRoof:  new THREE.MeshStandardMaterial({color:0x607080, metalness:0.3,  roughness:0.6}),
+  ladder:    new THREE.MeshStandardMaterial({color:0x606878, metalness:0.7,  roughness:0.3}),
+  fireWTank: new THREE.MeshStandardMaterial({color:0x1a4080, metalness:0.3,  roughness:0.5}),
+  flare:     new THREE.MeshStandardMaterial({color:0x7a8090, metalness:0.8,  roughness:0.25}),
+  yellow:    new THREE.MeshStandardMaterial({color:0xe8c020, metalness:0.3,  roughness:0.5}),
+  blue:      new THREE.MeshStandardMaterial({color:0x2050a0, metalness:0.3,  roughness:0.5}),
+  green:     new THREE.MeshStandardMaterial({color:0x2a7a40, metalness:0.3,  roughness:0.5}),
+  orange:    new THREE.MeshStandardMaterial({color:0xd06020, metalness:0.3,  roughness:0.5}),
+  glass:     new THREE.MeshStandardMaterial({color:0x88ccff, metalness:0.1,  roughness:0.05, transparent:true, opacity:0.35}),
+  flame1:    new THREE.MeshStandardMaterial({color:0xff6600, emissive:0xff4400, emissiveIntensity:2, transparent:true, opacity:0.85}),
+  flame2:    new THREE.MeshStandardMaterial({color:0xffaa00, emissive:0xff8800, emissiveIntensity:2, transparent:true, opacity:0.7}),
+  flame3:    new THREE.MeshStandardMaterial({color:0xffff00, emissive:0xffcc00, emissiveIntensity:1.5, transparent:true, opacity:0.5}),
+  hacDiv1:   new THREE.MeshBasicMaterial({color:0xcc2200, transparent:true, opacity:0.12, side:THREE.DoubleSide}),
+  hacDiv2:   new THREE.MeshBasicMaterial({color:0xff6644, transparent:true, opacity:0.07, side:THREE.DoubleSide}),
+};
+
+// Helper: register clickable
+function regClick(mesh, info) {
+  mesh.userData.info = info;
+  clickables.push(mesh);
+}
+
+// Helper: add shadow to mesh
+function shadows(mesh, cast, recv) {
+  mesh.castShadow = (cast !== false);
+  mesh.receiveShadow = (recv !== false);
+  allMeshes.push(mesh);
+  return mesh;
+}
+
+// Helper: box
+function box(w, h, d, mat, x, y, z, rx, ry, rz) {
+  var g = new THREE.BoxGeometry(w, h, d);
+  var m = new THREE.Mesh(g, mat);
+  m.position.set(x||0, y||0, z||0);
+  if (rx) m.rotation.x = rx;
+  if (ry) m.rotation.y = ry;
+  if (rz) m.rotation.z = rz;
+  return shadows(m);
+}
+
+// Helper: cylinder
+function cyl(rt, rb, h, seg, mat, x, y, z, rx, ry, rz) {
+  var g = new THREE.CylinderGeometry(rt, rb, h, seg||32);
+  var m = new THREE.Mesh(g, mat);
+  m.position.set(x||0, y||0, z||0);
+  if (rx) m.rotation.x = rx;
+  if (ry) m.rotation.y = ry;
+  if (rz) m.rotation.z = rz;
+  return shadows(m);
+}
+
+// Helper: sphere
+function sph(r, mat, x, y, z) {
+  var m = new THREE.Mesh(new THREE.SphereGeometry(r,24,16), mat);
+  m.position.set(x||0, y||0, z||0);
+  return shadows(m);
+}
+
+// === GROUND ===
+setProgress(5, 'BUILDING GROUND...');
+var groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(600,600), MAT.ground);
+groundMesh.rotation.x = -Math.PI/2;
+groundMesh.receiveShadow = true;
+allMeshes.push(groundMesh);
+scene.add(groundMesh);
+
+// Site gravel pad
+var gravelPad = box(260, 0.08, 250, MAT.gravel, 0, 0.04, 0);
+gravelPad.receiveShadow = true;
+scene.add(gravelPad);
+
+// === ROADS ===
+function addRoad(x,z,w,h,rot) {
+  var m = box(w, 0.08, h, MAT.road, x, 0.05, z);
+  if (rot) m.rotation.y = rot;
+  scene.add(m);
+}
+addRoad(0, 0, 6, 250, 0);    // main N-S
+addRoad(-30, -20, 240, 6, 0); // E-W cross 1
+addRoad(-20, -50, 240, 6, 0); // E-W cross 2
+
+// Fence (posts)
+var fenceGroup = new THREE.Group();
+function addFenceSection(x1,z1,x2,z2) {
+  var dx=x2-x1, dz=z2-z1, len=Math.sqrt(dx*dx+dz*dz);
+  var ang = Math.atan2(dx,dz);
+  var numPosts = Math.floor(len/4);
+  for (var i=0;i<=numPosts;i++) {
+    var t=i/numPosts;
+    var px=x1+dx*t, pz=z1+dz*t;
+    var post = cyl(0.06,0.06,2.5,6,MAT.struct,px,1.25,pz);
+    fenceGroup.add(post);
+  }
+  // Rails
+  for (var r=0;r<2;r++) {
+    var ry2 = 0.8 + r*0.9;
+    var rail = box(len, 0.06, 0.04, MAT.struct, (x1+x2)/2, ry2, (z1+z2)/2, 0, ang, 0);
+    fenceGroup.add(rail);
+  }
+}
+addFenceSection(-120,-115,120,-115);
+addFenceSection(120,-115,120,115);
+addFenceSection(120,115,-120,115);
+addFenceSection(-120,115,-120,-115);
+scene.add(fenceGroup);
+
+// === STORAGE TANKS ===
+setProgress(12, 'BUILDING STORAGE TANKS...');
+function buildStorageTank(cx, cz, R, H, mat, roofMat, label, info) {
+  var g = new THREE.Group();
+  g.position.set(cx, 0, cz);
+
+  // Shell courses
+  var shell = cyl(R, R, H, 48, mat, 0, H/2, 0);
+  g.add(shell);
+
+  // Roof
+  var roofH = R/3;
+  var roof = cyl(0.1, R, roofH, 48, roofMat, 0, H+roofH/2, 0);
+  g.add(roof);
+
+  // Wind girder rings
+  for (var wg of [0.7, 0.45]) {
+    var ring = new THREE.Mesh(
+      new THREE.TorusGeometry(R+0.08, 0.1, 6, 48),
+      MAT.struct
+    );
+    ring.rotation.x = Math.PI/2;
+    ring.position.y = H*wg;
+    g.add(shadows(ring));
+  }
+
+  // Spiral staircase
+  var steps = 60;
+  for (var si=0; si<steps; si++) {
+    var t = si/steps;
+    var ang = t * Math.PI * 6;
+    var y2 = t * H + 0.3;
+    var sx = (R+0.4)*Math.cos(ang);
+    var sz = (R+0.4)*Math.sin(ang);
+    var step = box(1.0, 0.06, 0.3, MAT.ladder, sx, y2, sz, 0, -ang, 0);
+    g.add(step);
+  }
+
+  // Concrete ringwall
+  var ringwall = cyl(R+0.3, R+0.3, 0.4, 48, MAT.concrete, 0, 0.2, 0);
+  g.add(ringwall);
+
+  // Berm containment
+  var bermR = R * 1.45;
+  var berm = cyl(bermR, bermR+2, 1.0, 48, MAT.concrete, 0, -0.4, 0);
+  berm.material = new THREE.MeshLambertMaterial({color:0x907850});
+  g.add(berm);
+
+  // Gravel inside berm
+  var bermGravel = cyl(bermR-0.5, bermR-0.5, 0.1, 48, MAT.gravel, 0, 0.0, 0);
+  g.add(bermGravel);
+
+  // Nozzles at base
+  for (var ni=0; ni<3; ni++) {
+    var na = ni * Math.PI*2/3;
+    var nx = box(0.3, 0.3, 1.0, MAT.pipe, Math.cos(na)*(R+0.4), 0.5, Math.sin(na)*(R+0.4), 0, -na, 0);
+    g.add(nx);
+  }
+
+  // Roof vent
+  var vent = cyl(0.12, 0.12, 0.8, 8, MAT.struct, 0, H+roofH+0.4, 0);
+  g.add(vent);
+
+  shadows(shell, true, true);
+  scene.add(g);
+  regClick(shell, info);
+
+  // Label
+  addLabel(label, cx, H+3, cz);
+}
+
+buildStorageTank(-62, 42, 22, 16, MAT.tankBody, MAT.tankRoof, '60-TK-1\nMain Crude Tank',
+  {tag:'60-TK-1', desc:'Main Crude Oil Storage Tank', type:'API 650 Cone Roof', status:'EXISTING', hac:'Class 1 Div.2'});
+buildStorageTank(42, 65, 18, 14, MAT.tankBody, MAT.tankRoof, '60-TK-2\nCrude Tank',
+  {tag:'60-TK-2', desc:'Second Crude Oil Storage Tank', type:'API 650 Cone Roof', status:'EXISTING', hac:'Class 1 Div.2'});
+buildStorageTank(-80, 12, 5.5, 10, MAT.fireWTank, MAT.fireWTank, '60-TK-FW\nFire Water',
+  {tag:'60-TK-FW', desc:'Fire Water Storage Tank', type:'Vertical Fixed Roof', status:'EXISTING', hac:'Unclassified'});
+
+// Small test tank
+(function(){
+  var g=new THREE.Group(); g.position.set(-65,-28,0);
+  g.add(cyl(4,4,5,32,MAT.tankBody,0,2.5,0));
+  g.add(cyl(0.1,4,1.5,32,MAT.tankRoof,0,5.75,0));
+  scene.add(g);
+  addLabel('60-T-100',-65,8,-28);
+})();
+
+// Flow tank
+(function(){
+  var g=new THREE.Group(); g.position.set(30,-40,0);
+  g.add(cyl(1.8,1.8,3.5,32,MAT.tankBody,0,1.75,0));
+  g.add(cyl(0.1,1.8,0.6,32,MAT.tankRoof,0,3.8,0));
+  scene.add(g);
+})();
+
+// === HORIZONTAL PRESSURE VESSELS ===
+setProgress(22, 'BUILDING PRESSURE VESSELS...');
+function buildHorizVessel(x, z, L, R, bandMat, label, info) {
+  var g = new THREE.Group();
+  g.position.set(x, R+0.5, z);
+  g.rotation.y = Math.PI/2;
+
+  // Body
+  var body = cyl(R, R, L, 32, MAT.vessel, 0, 0, 0, 0, 0, Math.PI/2);
+  body.rotation.z = Math.PI/2;
+  g.add(body);
+
+  // End caps
+  var e1 = sph(R, MAT.ssEnd, L/2, 0, 0);
+  var e2 = sph(R, MAT.ssEnd, -L/2, 0, 0);
+  g.add(e1); g.add(e2);
+
+  // Insulation bands
+  for (var b of [-L/3, 0, L/3]) {
+    var band = cyl(R+0.03, R+0.03, 0.12, 32, MAT.struct, b, 0, 0, 0, 0, Math.PI/2);
+    band.rotation.z = Math.PI/2;
+    g.add(band);
+  }
+
+  // Color band
+  if (bandMat) {
+    var cb = cyl(R+0.04, R+0.04, 0.3, 32, bandMat, 0, 0, 0, 0, 0, Math.PI/2);
+    cb.rotation.z = Math.PI/2;
+    g.add(cb);
+  }
+
+  // Saddles
+  for (var sx of [-L/2+1.5, L/2-1.5]) {
+    var saddle = box(0.3, R*1.1, 0.5, MAT.concrete, sx, -R*0.55, 0);
+    g.add(saddle);
+    var plinth = box(0.5, 0.3, 0.8, MAT.concrete, sx, -R*1.1-0.15, 0);
+    g.add(plinth);
+  }
+
+  // Nozzles
+  var topNozzle = box(0.15, 0.6, 0.15, MAT.pipe, 0, R+0.3, 0);
+  g.add(topNozzle);
+  var sideNozzle = box(0.6, 0.15, 0.15, MAT.pipe, 0, 0, 0);
+  g.add(sideNozzle);
+
+  scene.add(g);
+  regClick(body, info);
+  if (label) addLabel(label, x, R*2+2.5, z);
+}
+
+buildHorizVessel(-35,-70,14,2.2, MAT.blue, '60-V-100\n1st Stage Sep',
+  {tag:'60-V-100', desc:'1st Stage Separator', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(-15,-70,14,2.2, MAT.blue, '60-V-200\n2nd Stage Sep',
+  {tag:'60-V-200', desc:'2nd Stage Separator', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(8,-70,13,2.0, MAT.green, '60-V-250\n3rd Stage Sep',
+  {tag:'60-V-250', desc:'3rd Stage Separator', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(28,-70,11,1.8, MAT.green, '60-V-320\n4th Stage Sep',
+  {tag:'60-V-320', desc:'4th Stage Separator', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(-65,-42,10,1.5, MAT.yellow, '60-V-120\nTest Sep',
+  {tag:'60-V-120', desc:'Test Separator', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(-50,-38,10,1.8, null, '40-V-350\nDehydrator',
+  {tag:'40-V-350', desc:'Dehydrator', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(-50,-46,12,2.0, null, '40-V-230\nDesalter',
+  {tag:'40-V-230', desc:'Desalter', type:'Horizontal Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+
+// MCT Bank Separators
+buildHorizVessel(45,-58,8,1.4, null, '40-V-210',
+  {tag:'40-V-210', desc:'MCT Bank 2nd Stage', type:'Horizontal Separator', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(53,-58,8,1.4, null, '40-V-223',
+  {tag:'40-V-223', desc:'MCT Bank 3rd Stage', type:'Horizontal Separator', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(61,-58,8,1.4, null, '40-V-229',
+  {tag:'40-V-229', desc:'MCT Bank 4th Stage', type:'Horizontal Separator', status:'EXISTING', hac:'Class 1 Div.1'});
+buildHorizVessel(37,-58,8,1.4, null, '40-V-600',
+  {tag:'40-V-600', desc:'MCT Bank 1st Stage', type:'Horizontal Separator', status:'EXISTING', hac:'Class 1 Div.1'});
+
+// === VERTICAL VESSELS ===
+setProgress(32, 'BUILDING VERTICAL VESSELS...');
+function buildVertVessel(x, z, H, R, bandMat, label, info) {
+  var g = new THREE.Group();
+  g.position.set(x, 0, z);
+
+  // Skirt
+  var skirt = cyl(R*0.9, R*0.9, 1.5, 24, MAT.concrete, 0, 0.75, 0);
+  g.add(skirt);
+
+  // Body
+  var body = cyl(R, R, H, 32, MAT.vessel, 0, H/2+1.5, 0);
+  g.add(body);
+
+  // Hemispherical heads
+  var topHead = sph(R, MAT.ssEnd, 0, H+1.5, 0);
+  var botHead = sph(R, MAT.ssEnd, 0, 1.5, 0);
+  g.add(topHead); g.add(botHead);
+
+  // Color band
+  if (bandMat) {
+    var cb = cyl(R+0.04, R+0.04, 0.4, 32, bandMat, 0, H*0.6+1.5, 0);
+    g.add(cb);
+  }
+
+  // Insulation bands
+  for (var b of [0.33, 0.66]) {
+    var band = cyl(R+0.03, R+0.03, 0.12, 32, MAT.struct, 0, H*b+1.5, 0);
+    g.add(band);
+  }
+
+  // Platforms
+  for (var p=3; p<H; p+=3) {
+    var plat = cyl(R+0.6, R+0.6, 0.08, 32, MAT.ladder, 0, p+1.5, 0);
+    g.add(plat);
+    var rail = cyl(R+0.65, R+0.65, 1.0, 32, MAT.struct, 0, p+2.0, 0);
+    rail.material = new THREE.MeshStandardMaterial({color:0x808898, wireframe:false});
+    g.add(rail);
+  }
+
+  // Ladder
+  for (var ld=0; ld<H; ld+=0.8) {
+    var rung = box(0.5, 0.05, 0.04, MAT.ladder, R+0.3, ld+1.5, 0);
+    g.add(rung);
+  }
+  var ladderRailL = box(0.04, H, 0.04, MAT.ladder, R+0.08, H/2+1.5, 0.22);
+  var ladderRailR = box(0.04, H, 0.04, MAT.ladder, R+0.08, H/2+1.5, -0.22);
+  g.add(ladderRailL); g.add(ladderRailR);
+
+  // Nozzles
+  var n1 = box(0.2, 0.6, 0.2, MAT.pipe, 0, H*0.7+1.5, R+0.3);
+  var n2 = box(0.2, 0.6, 0.2, MAT.pipe, 0, H*0.35+1.5, R+0.3);
+  var n3 = cyl(0.1, 0.1, 0.5, 8, MAT.pipe, 0, H+1.5+R+0.25, 0);
+  g.add(n1); g.add(n2); g.add(n3);
+
+  scene.add(g);
+  regClick(body, info);
+  if (label) addLabel(label, x, H+4, z);
+}
+
+// HP/LP Relief Drums (vertical)
+buildVertVessel(-68,-70,6,1.2, null, '40-V-550\nHP Relief KO',
+  {tag:'40-V-550', desc:'HP Relief KO Drum', type:'Vertical Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildVertVessel(-68,-62,5,1.0, null, '40-V-560\nLP Relief KO',
+  {tag:'40-V-560', desc:'LP Relief KO Drum', type:'Vertical Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+
+// Gas Scrubbers
+buildVertVessel(-52,-68,12,1.8, MAT.orange, '60-X-550\nHP Gas Scrubber',
+  {tag:'60-X-550', desc:'HP Gas Scrubber', type:'Vertical Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+buildVertVessel(-52,-60,10,1.5, MAT.orange, '60-X-560\nLP Gas Scrubber',
+  {tag:'60-X-560', desc:'LP Gas Scrubber', type:'Vertical Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+
+// Service Gas Vessels
+var svcVessels = [
+  [38,-68,5,1.0,'60-V-500A'],[44,-68,5,1.0,'60-V-500B'],[50,-68,5,1.0,'60-V-500C'],
+  [10,-82,6,1.2,'60-V-510'],[-10,-82,5,1.0,'60-V-660'],[-16,-82,5,1.0,'60-V-663'],
+  [-22,-82,5,1.0,'60-V-670']
+];
+for (var sv of svcVessels) {
+  buildVertVessel(sv[0], sv[1], sv[2], sv[3], null, sv[4],
+    {tag:sv[4], desc:'Service Gas Vessel', type:'Vertical Pressure Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+}
+
+// Ground Vessels (box shape)
+(function(){
+  var g1 = box(20, 3, 10, MAT.vessel, 10, 1.5, -56);
+  scene.add(g1);
+  regClick(g1, {tag:'60-V-280', desc:'Ground Vessel', type:'Rectangular Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+  addLabel('60-V-280', 10, 4.5, -56);
+
+  var g2 = box(20, 3, 10, MAT.vessel, 10, 1.5, -46);
+  scene.add(g2);
+  regClick(g2, {tag:'60-V-290', desc:'Ground Vessel', type:'Rectangular Vessel', status:'EXISTING', hac:'Class 1 Div.1'});
+  addLabel('60-V-290', 10, 4.5, -46);
+})();
+
+// === FINGER SEPARATORS ===
+setProgress(42, 'BUILDING FINGER SEPARATORS...');
+for (var fi=0; fi<6; fi++) {
+  var fx = 43 + fi*5.5;
+  var fz = -77;
+  buildVertVessel(fx, fz, 7, 1.0, null, fi===0?'60-SK-1001':'',
+    {tag:'60-SK-100'+(fi+1), desc:'Finger Separator', type:'Vertical Separator', status:'EXISTING', hac:'Class 1 Div.1'});
+}
+
+// Shared manifold pipe
+var manifold = cyl(0.15, 0.15, 33, 8, MAT.fireWater, 59.25, 0.8, -77, 0, 0, Math.PI/2);
+scene.add(manifold);
+
+// Gas outlet header
+var gasHdr = cyl(0.1, 0.1, 33, 8, MAT.pipe, 59.25, 9.5, -77, 0, 0, Math.PI/2);
+scene.add(gasHdr);
+
+// === PUMPS ===
+setProgress(50, 'BUILDING PUMPS...');
+function buildPump(x, z, label, info) {
+  var g = new THREE.Group();
+  g.position.set(x, 0, z);
+
+  // Baseplate
+  var bp = box(2.5, 0.15, 1.2, MAT.concrete, 0, 0.075, 0);
+  g.add(bp);
+
+  // Motor
+  var motor = box(1.2, 0.8, 0.9, MAT.pump, 0.5, 0.55, 0);
+  g.add(motor);
+
+  // Pump casing
+  var pumpCasing = box(0.8, 0.6, 0.8, MAT.pump, -0.5, 0.45, 0);
+  g.add(pumpCasing);
+
+  // Coupling guard
+  var guard = cyl(0.2, 0.2, 0.5, 12, MAT.yellow, 0.05, 0.55, 0, 0, 0, Math.PI/2);
+  g.add(guard);
+
+  // Nozzles
+  var suction = box(0.5, 0.15, 0.15, MAT.pipe, -0.9, 0.3, 0);
+  var discharge = box(0.15, 0.5, 0.15, MAT.pipe, -0.5, 0.85, 0);
+  g.add(suction); g.add(discharge);
+
+  scene.add(g);
+  regClick(motor, info);
+  if (label) addLabel(label, x, 2.5, z);
+}
+
+var pumpData = [
+  [-72,-22,'60-P-100',{tag:'60-P-100', desc:'Test Pump Duty', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-72,-27,'60-P-1100',{tag:'60-P-1100', desc:'Test Pump Spare', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-62,-30,'60-PT-680',{tag:'60-PT-680', desc:'Crude Transfer Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-62,-24,'60-P-680',{tag:'60-P-680', desc:'Crude Transfer Spare', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-62,-18,'60-P-620',{tag:'60-P-620', desc:'Water Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.2'}],
+  [-30,-80,'60-P-210A',{tag:'60-P-210A', desc:'Process Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-24,-80,'60-P-210B',{tag:'60-P-210B', desc:'Process Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-18,-80,'60-P-210C',{tag:'60-P-210C', desc:'Process Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-12,-80,'60-P-210D',{tag:'60-P-210D', desc:'Process Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-6,-80,'60-P-210E',{tag:'60-P-210E', desc:'Process Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-20,-85,'60-P-200A',{tag:'60-P-200A', desc:'Process Pump A', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-14,-85,'60-P-200B',{tag:'60-P-200B', desc:'Process Pump B', type:'Centrifugal Pump', status:'EXISTING', hac:'Class 1 Div.1'}],
+  [-90,20,'40-P-770',{tag:'40-P-770', desc:'Fire Water Jockey Pump', type:'Centrifugal Pump', status:'EXISTING', hac:'Unclassified'}],
+  [-90,15,'FW-Diesel',{tag:'FW-DIESEL', desc:'Fire Water Diesel Pump', type:'Diesel Engine Pump', status:'EXISTING', hac:'Unclassified'}],
+];
+for (var pd of pumpData) buildPump(pd[0], pd[1], pd[2], pd[3]);
+
+// === CHEMICAL INJECTION SKIDS ===
+function buildChemSkid(x, z, label, info) {
+  var g = new THREE.Group();
+  g.position.set(x, 0, z);
+
+  // Frame
+  var frame = box(3, 2.0, 2, MAT.struct, 0, 1.0, 0);
+  frame.material = MAT.yellow;
+  g.add(frame);
+
+  // IBC totes
+  var ib1 = box(0.8, 1.1, 0.8, new THREE.MeshLambertMaterial({color:0x80b0d0, transparent:true, opacity:0.7}), -0.7, 1.05, 0);
+  var ib2 = box(0.8, 1.1, 0.8, new THREE.MeshLambertMaterial({color:0x80b0d0, transparent:true, opacity:0.7}), 0.7, 1.05, 0);
+  g.add(ib1); g.add(ib2);
+
+  // Small pump
+  var mp = box(0.4, 0.3, 0.3, MAT.pump, 0, 0.25, 0.5);
+  g.add(mp);
+
+  scene.add(g);
+  regClick(frame, info);
+  addLabel(label, x, 3.5, z);
+}
+buildChemSkid(-15,-46,'40-V-840\nAntifoam',{tag:'40-V-840', desc:'Antifoam Injection Skid', type:'Chemical Injection', status:'EXISTING', hac:'Class 1 Div.2'});
+buildChemSkid(-15,-40,'40-V-845\nCorr. Inh.',{tag:'40-V-845', desc:'Corrosion Inhibitor Skid', type:'Chemical Injection', status:'EXISTING', hac:'Class 1 Div.2'});
+buildChemSkid(-15,-34,'40-V-472\nDemulsifier',{tag:'40-V-472', desc:'Demulsifier Injection Skid', type:'Chemical Injection', status:'EXISTING', hac:'Class 1 Div.2'});
+
+// === BUILDINGS ===
+setProgress(58, 'BUILDING STRUCTURES...');
+function buildBuilding(x, z, W, H2, D, mat, roofMat, label, info, hasAC) {
+  var g = new THREE.Group();
+  g.position.set(x, 0, z);
+
+  // Walls
+  var walls = box(W, H2, D, mat, 0, H2/2, 0);
+  g.add(walls);
+
+  // Roof
+  var roof = box(W+0.3, 0.3, D+0.3, roofMat, 0, H2+0.15, 0);
+  g.add(roof);
+
+  // Windows
+  var winW = 1.5, winH = 1.0;
+  for (var wi=-1; wi<=1; wi++) {
+    var win = box(winW, winH, 0.1, MAT.glass, wi*W*0.28, H2*0.55, D/2+0.01);
+    g.add(win);
+    var win2 = box(winW, winH, 0.1, MAT.glass, wi*W*0.28, H2*0.55, -D/2-0.01);
+    g.add(win2);
+  }
+
+  // Door
+  var door = box(1.2, H2*0.6, 0.1, new THREE.MeshLambertMaterial({color:0x4a5a6a}), 0, H2*0.3, D/2+0.01);
+  g.add(door);
+
+  // AC units on admin buildings
+  if (hasAC) {
+    for (var ai=-1; ai<=1; ai+=2) {
+      var ac = box(1.0, 0.5, 0.7, new THREE.MeshLambertMaterial({color:0xe0e0e0}), ai*W*0.25, H2+0.25, 0);
+      g.add(ac);
+    }
+  }
+
+  // Exhaust stacks for generator buildings
+  if (info && info.type === 'Generator Building') {
+    for (var si2=-1; si2<=1; si2+=2) {
+      var stack = cyl(0.3, 0.3, 9, 12, MAT.flare, si2*W*0.2, H2+4.5, 0);
+      g.add(stack);
+    }
+  }
+
+  scene.add(g);
+  regClick(walls, info);
+  addLabel(label, x, H2+3, z);
+}
+
+buildBuilding(82,-88,28,8,18, MAT.bldgGen, MAT.bldgRoof, '60-G-700\nDiesel Gen.',
+  {tag:'60-G-700', desc:'Emergency Diesel Generator Building', type:'Generator Building', status:'EXISTING', hac:'Unclassified'});
+buildBuilding(82,-65,24,8,16, MAT.bldgGen, MAT.bldgRoof, '60-G-600\nMain Power',
+  {tag:'60-G-600', desc:'Main Power Station', type:'Generator Building', status:'EXISTING', hac:'Unclassified'});
+buildBuilding(-90,-83,12,5,8, MAT.bldgGen, MAT.bldgRoof, 'Substation',
+  {tag:'SUBSTATION', desc:'Electrical Substation Building', type:'Electrical Building', status:'EXISTING', hac:'Unclassified'});
+buildBuilding(82,-12,16,6,12, MAT.bldgGen, MAT.bldgRoof, '40-S-600\nCompressor',
+  {tag:'40-S-600', desc:'Gas Compressor Unit', type:'Compressor Building', status:'EXISTING', hac:'Class 1 Div.2'});
+buildBuilding(82,14,8,4,5, MAT.bldgGen, MAT.bldgRoof, '60-K-100\nAir Comp.',
+  {tag:'60-K-100', desc:'Air Compressor Unit 1', type:'Compressor Unit', status:'EXISTING', hac:'Unclassified'});
+buildBuilding(82,24,8,4,5, MAT.bldgGen, MAT.bldgRoof, '60-K-101\nAir Comp.',
+  {tag:'60-K-101', desc:'Air Compressor Unit 2', type:'Compressor Unit', status:'EXISTING', hac:'Unclassified'});
+buildBuilding(82,36,22,5,14, MAT.bldgAdm, MAT.bldgRoof, 'CCR\nControl Room',
+  {tag:'CCR', desc:'Central Control Room', type:'Control Building', status:'EXISTING', hac:'Unclassified'}, true);
+buildBuilding(82,56,20,4.5,12, MAT.bldgAdm, MAT.bldgRoof, 'Admin.\nBuilding',
+  {tag:'ADMIN', desc:'Administration Building', type:'Administration', status:'EXISTING', hac:'Unclassified'}, true);
+buildBuilding(82,74,16,4,10, MAT.bldgAdm, MAT.bldgRoof, 'Ops/Maint.',
+  {tag:'OPS', desc:'Operations/Maintenance Building', type:'Operations', status:'EXISTING', hac:'Unclassified'});
+buildBuilding(-57,-52,6,3,4, MAT.bldgAdm, MAT.bldgRoof, 'I&T Bldg',
+  {tag:'I&T', desc:'Instrument/Telecom Building', type:'Instrument Building', status:'EXISTING', hac:'Class 1 Div.2'});
+
+// Air receivers for compressors
+buildVertVessel(92, 14, 3.5, 0.8, null, null, {tag:'AIR-REC-1', desc:'Air Receiver', type:'Pressure Vessel', status:'EXISTING', hac:'Unclassified'});
+buildVertVessel(92, 24, 3.5, 0.8, null, null, {tag:'AIR-REC-2', desc:'Air Receiver', type:'Pressure Vessel', status:'EXISTING', hac:'Unclassified'});
+
+// === PIPE RACKS ===
+setProgress(65, 'BUILDING PIPE RACKS...');
+function buildPipeRack(x1, z1, length, dir, label) {
+  var g = new THREE.Group();
+  var isNS = (dir === 'NS');
+  var numCols = Math.floor(length/6) + 1;
+
+  for (var ci=0; ci<numCols; ci++) {
+    var cx2 = isNS ? x1 : x1 + ci*6;
+    var cz2 = isNS ? z1 + ci*6 : z1;
+
+    // Column H-frame
+    for (var side of [-1.5, 1.5]) {
+      var col = box(0.2, 8, 0.2, MAT.struct, cx2+(isNS?side:0), 4, cz2+(isNS?0:side));
+      g.add(col);
+    }
+
+    // Cross beam at top
+    var beam = box(isNS?3.5:0.2, 0.2, isNS?0.2:3.5, MAT.struct, cx2, 7.9, cz2);
+    g.add(beam);
+
+    // Cross beam mid level
+    var beam2 = box(isNS?3.5:0.2, 0.2, isNS?0.2:3.5, MAT.struct, cx2, 4.8, cz2);
+    g.add(beam2);
+
+    // X-bracing
+    if (ci < numCols-1) {
+      var brace1 = box(isNS?0.1:6.5, 0.1, isNS?6.5:0.1, MAT.struct,
+        cx2+(isNS?0:3), 6, cz2+(isNS?3:0));
+      g.add(brace1);
+    }
+  }
+
+  // Pipes on rack
+  var pipeColors = [MAT.pipe, MAT.pipe, MAT.pipe, MAT.insPipe, MAT.insPipe, MAT.fireWater];
+  var pipeRads = [0.15, 0.15, 0.15, 0.1, 0.1, 0.075];
+  for (var pi=0; pi<6; pi++) {
+    var poff = (pi-2.5) * 0.55;
+    var pm = cyl(pipeRads[pi], pipeRads[pi], length, 12, pipeColors[pi],
+      isNS ? x1+poff : x1+length/2,
+      8.0,
+      isNS ? z1+length/2 : z1+poff,
+      isNS ? 0 : 0,
+      0,
+      isNS ? 0 : Math.PI/2
+    );
+    if (!isNS) { pm.rotation.y = Math.PI/2; pm.rotation.z = Math.PI/2; }
+    else { pm.rotation.z = Math.PI/2; }
+    g.add(pm);
+  }
+
+  scene.add(g);
+  if (label) addLabel(label, isNS?x1:x1+length/2, 11, isNS?z1+length/2:z1);
+}
+
+buildPipeRack(-5, -10, 80, 'NS', 'Rack-1');
+buildPipeRack(-22, -10, 80, 'NS', 'Rack-2');
+buildPipeRack(50, -100, 55, 'EW', 'Rack-3');
+
+// === FIRE WATER RING MAIN ===
+setProgress(72, 'BUILDING FIRE WATER SYSTEM...');
+(function(){
+  // Ring main pipes along fence perimeter (approx)
+  var ringSegs = [
+    [[-118,-110],[118,-110]],
+    [[118,-110],[118,110]],
+    [[118,110],[-118,110]],
+    [[-118,110],[-118,-110]],
+  ];
+  for (var rs of ringSegs) {
+    var dx2 = rs[1][0]-rs[0][0];
+    var dz2 = rs[1][1]-rs[0][1];
+    var len = Math.sqrt(dx2*dx2+dz2*dz2);
+    var ang2 = Math.atan2(dx2, dz2);
+    var rm = cyl(0.09, 0.09, len, 8, MAT.fireWater,
+      (rs[0][0]+rs[1][0])/2, 0.18, (rs[0][1]+rs[1][1])/2, 0, ang2, 0);
+    scene.add(rm);
+  }
+
+  // Fire hydrants
+  var hydrantPos = [[-50,-112],[0,-112],[50,-112],[118,-50],[118,50],[-118,-50],[-118,50],[-50,112],[50,112]];
+  for (var hp of hydrantPos) {
+    var hg = new THREE.Group();
+    hg.position.set(hp[0], 0, hp[1]);
+    var hbase = cyl(0.15, 0.15, 0.6, 8, MAT.fireWater, 0, 0.3, 0);
+    hg.add(hbase);
+    var hbody = cyl(0.12, 0.12, 0.5, 8, MAT.fireWater, 0, 0.85, 0);
+    hg.add(hbody);
+    var hcap = sph(0.14, MAT.fireWater, 0, 1.2, 0);
+    hg.add(hcap);
+    scene.add(hg);
+  }
+})();
+
+// === FLARE STACK ===
+setProgress(78, 'BUILDING FLARE STACK...');
+var flareGroup = new THREE.Group();
+flareGroup.position.set(0, 0, 108);
+
+// Foundation
+var flareFound = cyl(4, 4, 0.8, 8, MAT.concrete, 0, 0.4, 0);
+flareGroup.add(flareFound);
+
+// Stack sections
+var sections = [[0.6, 0.6, 5, 2.5], [0.5, 0.6, 12, 10.5], [0.375, 0.5, 12, 22], [0.275, 0.375, 10, 34]];
+for (var sec of sections) {
+  var secMesh = cyl(sec[0], sec[1], sec[2], 20, MAT.flare, 0, sec[3], 0);
+  flareGroup.add(secMesh);
+}
+
+// Guy wires
+for (var gwi=0; gwi<3; gwi++) {
+  var gwa = gwi * Math.PI*2/3;
+  var gwx = Math.cos(gwa)*28, gwz2 = Math.sin(gwa)*28;
+  var gwLen = Math.sqrt(28*28 + 25*25);
+  var gwAng = Math.atan2(28, 25);
+  var gw = box(0.04, gwLen, 0.04, MAT.struct, gwx/2, 12.5, gwz2/2);
+  gw.lookAt(flareGroup.position.clone().add(new THREE.Vector3(0,25,0)));
+  flareGroup.add(gw);
+}
+
+// Platforms at 10, 22, 34m
+for (var ph of [10, 22, 34]) {
+  var plat = cyl(1.2, 1.2, 0.1, 16, MAT.ladder, 0, ph, 0);
+  flareGroup.add(plat);
+  // Platform railing
+  var pRail = new THREE.Mesh(
+    new THREE.TorusGeometry(1.1, 0.04, 6, 16),
+    MAT.struct
+  );
+  pRail.rotation.x = Math.PI/2;
+  pRail.position.y = ph + 0.9;
+  flareGroup.add(pRail);
+}
+
+// Caged ladder
+for (var cl=0; cl<39; cl+=0.8) {
+  var clRung = box(0.5, 0.05, 0.04, MAT.ladder, 0.7, cl+0.5, 0);
+  flareGroup.add(clRung);
+}
+
+// Aviation warning light
+var avLight = cyl(0.2, 0.2, 0.3, 8, new THREE.MeshStandardMaterial({color:0xff2200, emissive:0xff0000, emissiveIntensity:3}), 0, 41.5, 0);
+flareGroup.add(avLight);
+
+// Flare tip
+var tip = cyl(0.18, 0.28, 0.8, 12, MAT.flare, 0, 40.5, 0);
+flareGroup.add(tip);
+
+// Animated flames
+var flame1 = new THREE.Mesh(new THREE.ConeGeometry(0.8, 3.5, 12), MAT.flame1);
+flame1.position.set(0, 43.5, 0);
+flareGroup.add(flame1);
+var flame2 = new THREE.Mesh(new THREE.ConeGeometry(0.5, 4.5, 12), MAT.flame2);
+flame2.position.set(0.2, 44.0, 0.2);
+flareGroup.add(flame2);
+var flame3 = new THREE.Mesh(new THREE.ConeGeometry(0.3, 5.5, 12), MAT.flame3);
+flame3.position.set(-0.15, 44.5, -0.1);
+flareGroup.add(flame3);
+
+// Flare point light
+var flareLight = new THREE.PointLight(0xff8844, 4.0, 80);
+flareLight.position.set(0, 45, 0);
+flareGroup.add(flareLight);
+
+scene.add(flareGroup);
+addLabel('Flare Stack\n40m', 0, 46, 108);
+
+// === WORKERS CAMP / LSC ===
+setProgress(83, 'BUILDING WORKERS CAMP...');
+(function(){
+  var campG = new THREE.Group();
+  campG.position.set(90, 0, 85);
+
+  // Inner fence
+  var fenceMat = new THREE.MeshLambertMaterial({color:0x808898});
+  for (var cf of [[-30,0,0,0.5,2,40],[30,0,0,0.5,2,40],[0,0,-20,60,2,0.5],[0,0,20,60,2,0.5]]) {
+    campG.add(box(cf[3], cf[4], cf[5], fenceMat, cf[0], 1, cf[2]));
+  }
+
+  // Prefab units 4x3 grid
+  for (var row=0; row<3; row++) {
+    for (var col=0; col<4; col++) {
+      var unit = box(10, 3, 4, MAT.bldgAdm, -15+col*11, 1.5, -8+row*9);
+      var uRoof = box(10.2, 0.25, 4.2, MAT.bldgRoof, -15+col*11, 3.125, -8+row*9);
+      campG.add(unit); campG.add(uRoof);
+    }
+  }
+
+  scene.add(campG);
+  addLabel('Workers Camp\n(LSC)', 90, 8, 85);
+})();
+
+// === KROEHNE METER ===
+(function(){
+  var km = box(1.5, 1.0, 1.5, MAT.yellow, -57, 0.5, -58);
+  scene.add(km);
+  addLabel('Kroehne Meter', -57, 2.5, -58);
+})();
+
+// === HAC ZONES ===
+setProgress(87, 'BUILDING HAC ZONES...');
+(function(){
+  // Div.1 zones (process areas)
+  var div1Positions = [
+    [-40,-65,80,60],   // main process
+    [-60,-70,30,30],   // HP/LP vessels
+    [50,-68,40,30],    // east process
+    [0,-80,50,20],     // pump area south
+    [-70,-25,20,20],   // pump area west
+  ];
+  for (var d1 of div1Positions) {
+    var d1plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(d1[2], d1[3]),
+      MAT.hacDiv1
+    );
+    d1plane.rotation.x = -Math.PI/2;
+    d1plane.position.set(d1[0], 0.08, d1[1]);
+    scene.add(d1plane);
+  }
+
+  // Div.2 zones (extended)
+  var div2Positions = [
+    [-40,-65,95,75],
+    [-60,-70,45,45],
+    [50,-68,55,45],
+  ];
+  for (var d2 of div2Positions) {
+    var d2plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(d2[2], d2[3]),
+      MAT.hacDiv2
+    );
+    d2plane.rotation.x = -Math.PI/2;
+    d2plane.position.set(d2[0], 0.05, d2[1]);
+    scene.add(d2plane);
+  }
+})();
+
+// === LABELS ===
+setProgress(90, 'CREATING LABELS...');
+function addLabel(text, x, y, z) {
+  var canvas2 = document.createElement('canvas');
+  canvas2.width = 256; canvas2.height = 80;
+  var ctx = canvas2.getContext('2d');
+  ctx.fillStyle = 'rgba(8,14,28,0.88)';
+  ctx.strokeStyle = '#3a80d0';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(2,2,252,76,6) : ctx.rect(2,2,252,76);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#c0d8f0';
+  ctx.font = 'bold 18px Segoe UI,sans-serif';
+  ctx.textAlign = 'center';
+  var lines = text.split('\n');
+  var startY = lines.length > 1 ? 28 : 46;
+  for (var i=0; i<lines.length; i++) {
+    ctx.fillText(lines[i], 128, startY + i*24);
+  }
+  var tex = new THREE.CanvasTexture(canvas2);
+  var mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false});
+  var sprite = new THREE.Sprite(mat);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(12, 3.8, 1);
+  sprite.visible = labelsOn;
+  scene.add(sprite);
+  labelSprites.push(sprite);
+}
+
+// === MOUSE CONTROLS ===
+setProgress(95, 'SETTING UP CONTROLS...');
+var canvas3d = renderer.domElement;
+
+canvas3d.addEventListener('mousedown', function(e){
+  if (e.button===0) { mouse.down=true; }
+  if (e.button===2) { mouse.rightDown=true; }
+  mouse.lastX=e.clientX; mouse.lastY=e.clientY;
+});
+canvas3d.addEventListener('mouseup', function(e){
+  if (e.button===0) mouse.down=false;
+  if (e.button===2) mouse.rightDown=false;
+});
+canvas3d.addEventListener('mousemove', function(e){
+  var dx=e.clientX-mouse.lastX, dy=e.clientY-mouse.lastY;
+  if (mouse.down) {
+    camState.theta -= dx*0.005;
+    camState.phi = Math.max(0.05, Math.min(Math.PI*0.49, camState.phi + dy*0.005));
+    updateCamera();
+  }
+  if (mouse.rightDown) {
+    var right = new THREE.Vector3();
+    var up2 = new THREE.Vector3();
+    right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
+    up2.copy(camera.up).normalize();
+    camTarget.addScaledVector(right, -dx * camState.radius * 0.001);
+    camTarget.addScaledVector(up2, dy * camState.radius * 0.001);
+    updateCamera();
+  }
+  mouse.lastX=e.clientX; mouse.lastY=e.clientY;
+});
+canvas3d.addEventListener('wheel', function(e){
+  camState.radius = Math.max(20, Math.min(800, camState.radius + e.deltaY * 0.3));
+  updateCamera();
+});
+canvas3d.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+// Click for info panel
+canvas3d.addEventListener('click', function(e){
+  if (Math.abs(e.clientX-mouse.lastX)<3 && Math.abs(e.clientY-mouse.lastY)<3) {
+    mouseVec.x = (e.clientX/window.innerWidth)*2-1;
+    mouseVec.y = -(e.clientY/window.innerHeight)*2+1;
+    raycaster.setFromCamera(mouseVec, camera);
+    var hits = raycaster.intersectObjects(clickables, true);
+    if (hits.length > 0) {
+      var mesh = hits[0].object;
+      var inf = mesh.userData.info || (mesh.parent && mesh.parent.userData && mesh.parent.userData.info);
+      if (!inf) {
+        for (var ci2=0; ci2<clickables.length; ci2++) {
+          if (clickables[ci2] === mesh || clickables[ci2].children.indexOf(mesh)>=0) {
+            inf = clickables[ci2].userData.info; break;
+          }
+        }
+      }
+      if (inf) showInfo(inf);
+    }
+  }
+});
+
+// Touch controls
+var touches = {};
+canvas3d.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  for (var t of e.changedTouches) touches[t.identifier]={x:t.clientX,y:t.clientY};
+});
+canvas3d.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  var tc = e.touches.length;
+  if (tc===1) {
+    var t=e.touches[0];
+    var old=touches[t.identifier];
+    if (old) {
+      camState.theta -= (t.clientX-old.x)*0.006;
+      camState.phi = Math.max(0.05,Math.min(Math.PI*0.49,camState.phi+(t.clientY-old.y)*0.006));
+      updateCamera();
+    }
+    touches[t.identifier]={x:t.clientX,y:t.clientY};
+  } else if (tc===2) {
+    var t0=e.touches[0],t1=e.touches[1];
+    var o0=touches[t0.identifier],o1=touches[t1.identifier];
+    if (o0&&o1) {
+      var oldDist=Math.hypot(o0.x-o1.x,o0.y-o1.y);
+      var newDist=Math.hypot(t0.clientX-t1.clientX,t0.clientY-t1.clientY);
+      camState.radius=Math.max(20,Math.min(800,camState.radius*(oldDist/newDist)));
+      updateCamera();
+    }
+    touches[t0.identifier]={x:t0.clientX,y:t0.clientY};
+    touches[t1.identifier]={x:t1.clientX,y:t1.clientY};
+  }
+});
+
+// Info panel
+function showInfo(info) {
+  var panel = document.getElementById('info-panel');
+  var content = document.getElementById('info-content');
+  var statusClass = info.status==='NEW' ? 'status-new' : 'status-existing';
+  content.innerHTML =
+    '<div class="info-row"><span class="info-key">Tag No.</span><span class="info-val" style="color:#3a80d0;font-weight:600;">'+info.tag+'</span></div>'+
+    '<div class="info-row"><span class="info-key">Description</span><span class="info-val">'+info.desc+'</span></div>'+
+    '<div class="info-row"><span class="info-key">Type</span><span class="info-val">'+info.type+'</span></div>'+
+    '<div class="info-row"><span class="info-key">Status</span><span class="info-val"><span class="status-badge '+statusClass+'">'+info.status+'</span></span></div>'+
+    '<div class="info-row" style="border:none;margin:0;padding:0;"><span class="info-key">HAC Class</span><span class="info-val">'+info.hac+'</span></div>';
+  panel.style.display='block';
+}
+
+// View presets
+function setView(name) {
+  var views = {
+    persp: {theta:0.75, phi:0.85, r:380, tx:0, ty:12, tz:0},
+    top:   {theta:0.75, phi:0.02, r:420, tx:0, ty:12, tz:0},
+    iso:   {theta:Math.PI/4, phi:Math.PI/4, r:360, tx:0, ty:12, tz:0},
+    north: {theta:0, phi:0.65, r:340, tx:0, ty:12, tz:0},
+    east:  {theta:Math.PI/2, phi:0.65, r:340, tx:0, ty:12, tz:0},
+  };
+  var v=views[name]; if (!v) return;
+  camState.theta=v.theta; camState.phi=v.phi; camState.radius=v.r;
+  camTarget.set(v.tx,v.ty,v.tz);
+  updateCamera();
+  document.querySelectorAll('.tb-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn=document.getElementById('btn-'+name);
+  if (btn) btn.classList.add('active');
+}
+
+// Toggle functions
+function toggleWireframe() {
+  wireframeMode = !wireframeMode;
+  allMeshes.forEach(function(m){
+    if (m.material && !Array.isArray(m.material)) m.material.wireframe = wireframeMode;
+    else if (Array.isArray(m.material)) m.material.forEach(function(mat){ mat.wireframe = wireframeMode; });
+  });
+  document.getElementById('btn-wire').classList.toggle('active', wireframeMode);
+}
+function toggleShadows() {
+  shadowsOn = !shadowsOn;
+  renderer.shadowMap.enabled = shadowsOn;
+  sunLight.castShadow = shadowsOn;
+  document.getElementById('btn-shadow').classList.toggle('active', shadowsOn);
+}
+function toggleLabels() {
+  labelsOn = !labelsOn;
+  labelSprites.forEach(function(s){ s.visible = labelsOn; });
+  document.getElementById('btn-labels').classList.toggle('active', labelsOn);
+}
+function toggleAutoRotate() {
+  autoRotate = !autoRotate;
+  document.getElementById('btn-rotate').classList.toggle('active', autoRotate);
+}
+
+// Resize
+window.addEventListener('resize', function(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animation clock
+var clock = new THREE.Clock();
+
+// === ANIMATE ===
+function animate() {
+  requestAnimationFrame(animate);
+  var t = clock.getElapsedTime();
+
+  // Auto-rotate
+  if (autoRotate) {
+    camState.theta += 0.003;
+    updateCamera();
+  }
+
+  // Flare animation
+  var flameScale = 0.85 + 0.15*Math.sin(t*3.1) + 0.08*Math.sin(t*7.3);
+  flame1.scale.set(flameScale*0.9, flameScale, flameScale*0.9);
+  flame2.scale.set(flameScale, flameScale*1.1+0.1*Math.sin(t*4.5), flameScale);
+  flame3.scale.set(flameScale*0.8, flameScale*1.2, flameScale*0.8);
+  flame1.rotation.y = t*0.8;
+  flame2.rotation.y = -t*1.1;
+
+  // Flare light pulse
+  flareLight.intensity = 3.5 + 1.5*Math.sin(t*3.2) + 0.8*Math.sin(t*7.1);
+
+  // Aviation light blink
+  var avMat = avLight.material;
+  avMat.emissiveIntensity = (Math.sin(t*2.0) > 0) ? 4.0 : 0.3;
+
+  renderer.render(scene, camera);
+}
+
+// === LOADING COMPLETE ===
+setProgress(100, 'COMPLETE');
+setTimeout(function(){
+  document.getElementById('loading').style.opacity='0';
+  document.getElementById('loading').style.transition='opacity 0.8s';
+  setTimeout(function(){ document.getElementById('loading').style.display='none'; }, 800);
+}, 800);
+
+animate();
+</script>
+</body>
+</html>

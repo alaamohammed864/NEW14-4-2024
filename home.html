@@ -1,0 +1,2043 @@
+<!-- 
+  بيتي للتسويق العقاري
+  نسخة الويب v1.0
+  مستوحى من تطبيق Baity Real Estate
+  مطور بواسطة: مساعد الذكاء الاصطناعي
+-->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="بيتي للتسويق العقاري - منصة العقارات العراقية الأولى">
+  <meta name="theme-color" content="#B8860B">
+  <title>بيتي للتسويق العقاري</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* ════════════════════════════════════════
+       🎨 المتغيرات والألوان الأساسية
+       ════════════════════════════════════════ */
+    :root {
+      --gold-dark: #B8860B;
+      --gold-light: #D4A017;
+      --white: #FFFFFF;
+      --gray-light: #F5F5F5;
+      --gray-dark: #333333;
+      --gray-medium: #666666;
+      --orange-highlight: #F5A623;
+      --green-success: #27AE60;
+      --blue-link: #2980B9;
+      --dark-bg: #1a1a2e;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 50%;
+    }
+
+    /* ════════════════════════════════════════
+       🔄 إعادة تعيين وأنماط أساسية
+       ════════════════════════════════════════ */
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    html { scroll-behavior: smooth; }
+    
+    body { 
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background: var(--gray-light);
+      color: var(--gray-dark);
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding-bottom: 70px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    /* إخفاء شريط التمرير مع الحفاظ على الوظيفة */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gold-light); border-radius: 2px; }
+
+    /* ════════════════════════════════════════
+       🎯 مكونات عامة
+       ════════════════════════════════════════ */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-center { display: flex; align-items: center; justify-content: center; }
+    .flex-between { display: flex; align-items: center; justify-content: space-between; }
+    .flex-column { flex-direction: column; }
+    .text-center { text-align: center; }
+    .text-gold { color: var(--gold-dark); }
+    .text-orange { color: var(--orange-highlight); }
+    .text-green { color: var(--green-success); }
+    .text-blue { color: var(--blue-link); }
+    .font-bold { font-weight: 700; }
+    .font-semi { font-weight: 600; }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: var(--gold-dark);
+      color: var(--white);
+    }
+    .btn-primary:hover { background: var(--gold-light); }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--gold-dark);
+      color: var(--gold-dark);
+    }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-icon { width: 40px; height: 40px; padding: 0; border-radius: var(--radius-full); }
+
+    /* ════════════════════════════════════════
+       🔄 Spinner التحميل
+       ════════════════════════════════════════ */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      gap: 16px;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--gray-light);
+      border-top-color: var(--gold-dark);
+      border-radius: var(--radius-full);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--gray-dark); font-weight: 600; }
+
+    /* ════════════════════════════════════════
+       🏷️ الشعار والهيدر
+       ════════════════════════════════════════ */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--gray-dark);
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--dark-bg);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold-light);
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      background: var(--white);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+      z-index: 90;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-dark);
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .header-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--gray-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gray-dark);
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .header-btn:hover { background: var(--gold-light); color: var(--white); }
+    .header-btn.active { background: var(--gold-dark); color: var(--white); }
+
+    .location-badge {
+      background: var(--gold-light);
+      color: var(--white);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    /* ════════════════════════════════════════
+       🎠 البانر المتحرك (Carousel)
+       ════════════════════════════════════════ */
+    .banner {
+      height: 200px;
+      position: relative;
+      overflow: hidden;
+      margin: 12px 16px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold-light));
+    }
+    .banner-slide {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      color: var(--white);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      background-size: cover;
+      background-position: center;
+    }
+    .banner-slide.active { opacity: 1; }
+    .banner-slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    }
+    .banner-content {
+      position: relative;
+      z-index: 2;
+    }
+    .banner-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .banner-desc {
+      font-size: 14px;
+      opacity: 0.95;
+      margin-bottom: 12px;
+    }
+    .banner-dots {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 2;
+    }
+    .banner-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .banner-dot.active {
+      background: var(--white);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    /* ════════════════════════════════════════
+       📊 شبكة التصنيفات
+       ════════════════════════════════════════ */
+    .section {
+      padding: 16px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-dark);
+    }
+    .section-link {
+      color: var(--gold-dark);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 4px;
+    }
+    .category-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+    .category-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .category-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 8px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 20px;
+    }
+    .category-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-dark);
+      line-height: 1.3;
+    }
+
+    /* ════════════════════════════════════════
+       🏠 بطاقة العقار
+       ════════════════════════════════════════ */
+    .properties-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 4px 4px 12px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .properties-scroll::-webkit-scrollbar { display: none; }
+    
+    .property-card {
+      min-width: 160px;
+      max-width: 160px;
+      background: var(--white);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      scroll-snap-align: start;
+      transition: transform 0.2s;
+    }
+    .property-card:hover { transform: translateY(-3px); }
+    
+    .property-image {
+      position: relative;
+      height: 120px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 32px;
+    }
+    .property-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .property-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--orange-highlight);
+      color: var(--white);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .property-fav {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gray-medium);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .property-fav.active {
+      color: #e74c3c;
+      background: rgba(231, 76, 60, 0.1);
+    }
+    
+    .property-info {
+      padding: 10px;
+    }
+    .property-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-dark);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .property-location {
+      font-size: 11px;
+      color: var(--gray-medium);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .property-price {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--gold-dark);
+    }
+    .property-meta {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--gray-medium);
+    }
+
+    /* ════════════════════════════════════════
+       🏢 قسم المجمعات السكنية
+       ════════════════════════════════════════ */
+    .filter-bar {
+      background: var(--white);
+      padding: 10px 16px;
+      margin: 8px 16px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+    .filter-count {
+      background: var(--gold-light);
+      color: var(--white);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+    
+    .sticky-controls {
+      position: sticky;
+      bottom: 70px;
+      background: var(--white);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 80;
+    }
+    
+    .complex-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      margin: 0 16px 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .complex-image {
+      height: 140px;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold-light));
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 40px;
+    }
+    .complex-views {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.6);
+      color: var(--white);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .complex-info {
+      padding: 12px;
+    }
+    .complex-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-dark);
+      margin-bottom: 4px;
+    }
+    .complex-location {
+      font-size: 12px;
+      color: var(--gray-medium);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ════════════════════════════════════════
+       📰 قسم الأخبار والتبويبات
+       ════════════════════════════════════════ */
+    .news-tabs {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding: 8px 16px;
+      scrollbar-width: none;
+      margin-bottom: 8px;
+    }
+    .news-tabs::-webkit-scrollbar { display: none; }
+    
+    .tab-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--gray-light);
+      border-radius: 20px;
+      background: var(--white);
+      color: var(--gray-medium);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .tab-btn.active {
+      background: #FFF3E0;
+      border-color: var(--orange-highlight);
+      color: var(--orange-highlight);
+    }
+    
+    .news-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      margin: 0 16px 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .news-image {
+      height: 140px;
+      background: linear-gradient(135deg, var(--blue-link), #3498db);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 40px;
+    }
+    .news-views {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.6);
+      color: var(--white);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .news-info {
+      padding: 12px;
+    }
+    .news-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-dark);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+    .news-excerpt {
+      font-size: 12px;
+      color: var(--gray-medium);
+      margin-bottom: 10px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .news-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--gray-medium);
+    }
+    .news-publisher {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      color: var(--gold-dark);
+    }
+
+    /* ════════════════════════════════════════
+       ➕ Bottom Sheet لإضافة عقار
+       ════════════════════════════════════════ */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    .overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 20px 16px;
+      z-index: 201;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-out;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .bottom-sheet.active {
+      transform: translateY(0);
+    }
+    
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--gray-light);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    
+    .add-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .add-option {
+      background: var(--gray-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .add-option:hover { background: #e8e8e8; }
+    .add-option-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--gold-dark);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .add-option-info { flex: 1; }
+    .add-option-title {
+      font-weight: 700;
+      color: var(--gray-dark);
+      margin-bottom: 2px;
+    }
+    .add-option-desc {
+      font-size: 12px;
+      color: var(--gray-medium);
+    }
+    .add-option-count {
+      font-size: 12px;
+      color: var(--gold-dark);
+      font-weight: 600;
+    }
+    
+    /* فورم إضافة عقار */
+    .add-form {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .add-form.active { display: flex; }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-dark);
+    }
+    .form-input, .form-select, .form-textarea {
+      padding: 12px;
+      border: 1px solid var(--gray-light);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      background: var(--white);
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--gold-dark);
+    }
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-hint {
+      font-size: 11px;
+      color: var(--gray-medium);
+    }
+    
+    .file-upload {
+      border: 2px dashed var(--gray-light);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .file-upload:hover { border-color: var(--gold-dark); }
+    .file-upload i {
+      font-size: 24px;
+      color: var(--gold-dark);
+      margin-bottom: 8px;
+    }
+    .file-upload-text {
+      font-size: 13px;
+      color: var(--gray-medium);
+    }
+
+    /* ════════════════════════════════════════
+       ⋯ قسم المزيد
+       ════════════════════════════════════════ */
+    .more-section {
+      padding: 16px;
+    }
+    .more-register {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold-light));
+      color: var(--white);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      margin-bottom: 20px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .more-list {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .more-list-title {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gray-medium);
+      text-transform: uppercase;
+      background: var(--gray-light);
+    }
+    .more-item {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--gray-light);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .more-item:last-child { border-bottom: none; }
+    .more-item:hover { background: var(--gray-light); }
+    .more-item-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .more-item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--gold-light);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .more-item-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-dark);
+    }
+    .more-item-arrow {
+      color: var(--gray-medium);
+      font-size: 16px;
+    }
+
+    /* ════════════════════════════════════════
+       📱 شريط التنقل السفلي
+       ════════════════════════════════════════ */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: var(--white);
+      box-shadow: 0 -2px 20px rgba(0,0,0,0.1);
+      padding: 8px 0 12px;
+      z-index: 100;
+    }
+    
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--gray-medium);
+      transition: color 0.2s;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .nav-item i {
+      font-size: 20px;
+    }
+    .nav-item.active {
+      color: var(--gold-dark);
+    }
+    
+    .nav-add {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--dark-bg);
+      color: var(--white);
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: -20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      border: 4px solid var(--gray-light);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .nav-add:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    }
+    .nav-add:active { transform: scale(0.98); }
+
+    /* ════════════════════════════════════════
+       🔍 شريط البحث العائم
+       ════════════════════════════════════════ */
+    .search-bar {
+      position: fixed;
+      top: 60px;
+      left: 16px;
+      right: 16px;
+      max-width: 448px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow-lg);
+      z-index: 95;
+      transform: translateY(-150%);
+      transition: transform 0.3s;
+    }
+    .search-bar.active {
+      transform: translateY(0);
+    }
+    .search-bar input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 14px;
+      background: transparent;
+    }
+    .search-bar input::placeholder { color: var(--gray-medium); }
+    .search-close {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: var(--gray-light);
+      border: none;
+      color: var(--gray-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ════════════════════════════════════════
+       💬 رسائل التنبيه
+       ════════════════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--gray-dark);
+      color: var(--white);
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 300;
+      transition: transform 0.3s;
+      max-width: 80%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success { background: var(--green-success); }
+    .toast.error { background: #e74c3c; }
+
+    /* ════════════════════════════════════════
+       📱 تحسينات للشاشات المختلفة
+       ════════════════════════════════════════ */
+    @media (min-width: 481px) {
+      body {
+        border-left: 1px solid var(--gray-light);
+        border-right: 1px solid var(--gray-light);
+        box-shadow: 0 0 30px rgba(0,0,0,0.1);
+      }
+    }
+    
+    @media (max-width: 360px) {
+      .category-name { font-size: 11px; }
+      .property-title { font-size: 12px; }
+      .nav-item { font-size: 10px; padding: 6px 8px; }
+    }
+
+    /* ════════════════════════════════════════
+       🎬 تأثيرات الانتقال بين الأقسام
+       ════════════════════════════════════════ */
+    .page {
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray-medium);
+    }
+    .empty-state i {
+      font-size: 48px;
+      color: var(--gray-light);
+      margin-bottom: 16px;
+    }
+    .empty-state-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-dark);
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════
+       🔄 شاشة التحميل
+       ════════════════════════════════════════ -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">جاري التحميل...</div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       🔍 شريط البحث العائم
+       ════════════════════════════════════════ -->
+  <div class="search-bar" id="searchBar">
+    <i class="fas fa-search" style="color: var(--gold-dark)"></i>
+    <input type="text" id="searchInput" placeholder="ابحث عن عقار، مجمع، خبر...">
+    <button class="search-close" id="searchClose"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       🏠 قسم الرئيسية
+       ════════════════════════════════════════ -->
+  <section id="home" class="page">
+    <!-- الهيدر -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">B</div>
+        <span>بيتي للتسويق العقاري</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" id="locationBtn" title="الموقع">
+          <i class="fas fa-map-marker-alt"></i>
+        </button>
+        <button class="header-btn" id="searchBtn" title="بحث">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- البانر المتحرك -->
+    <div class="banner" id="banner">
+      <div class="banner-slide active" style="background-image: linear-gradient(135deg, #1a1a2e, #16213e);">
+        <div class="banner-content">
+          <div class="banner-title">أفضل العقارات في العراق</div>
+          <div class="banner-desc">اكتشف فرص استثمارية مميزة</div>
+          <button class="btn btn-sm btn-primary">تصفح الآن</button>
+        </div>
+      </div>
+      <div class="banner-slide" style="background-image: linear-gradient(135deg, #B8860B, #D4A017);">
+        <div class="banner-content">
+          <div class="banner-title">مجمعات سكنية فاخرة</div>
+          <div class="banner-desc">تملك حلمك بأسعار منافسة</div>
+          <button class="btn btn-sm btn-primary">شاهد المجمعات</button>
+        </div>
+      </div>
+      <div class="banner-slide" style="background-image: linear-gradient(135deg, #27AE60, #2ECC71);">
+        <div class="banner-content">
+          <div class="banner-title">عروض الإيجار اليومي</div>
+          <div class="banner-desc">للسفر والسياحة الداخلية</div>
+          <button class="btn btn-sm btn-primary">احجز الآن</button>
+        </div>
+      </div>
+      <div class="banner-dots">
+        <span class="banner-dot active" data-slide="0"></span>
+        <span class="banner-dot" data-slide="1"></span>
+        <span class="banner-dot" data-slide="2"></span>
+      </div>
+    </div>
+
+    <!-- شبكة التصنيفات -->
+    <div class="section">
+      <div class="category-grid">
+        <div class="category-card" data-type="daily-rent">
+          <div class="category-icon"><i class="fas fa-bed"></i></div>
+          <div class="category-name">إيجار (يومي)</div>
+        </div>
+        <div class="category-card" data-type="monthly-rent">
+          <div class="category-icon"><i class="fas fa-home"></i></div>
+          <div class="category-name">إيجار (شهري)</div>
+        </div>
+        <div class="category-card" data-type="for-sale">
+          <div class="category-icon"><i class="fas fa-key"></i></div>
+          <div class="category-name">عقارات للبيع</div>
+        </div>
+        <div class="category-card" data-type="wanted">
+          <div class="category-icon"><i class="fas fa-search"></i></div>
+          <div class="category-name">عقارات مطلوبة</div>
+        </div>
+        <div class="category-card" data-type="news" onclick="navigateTo('news')">
+          <div class="category-icon"><i class="fas fa-newspaper"></i></div>
+          <div class="category-name">الأخبار</div>
+        </div>
+        <div class="category-card" data-type="complexes" onclick="navigateTo('complexes')">
+          <div class="category-icon"><i class="fas fa-building"></i></div>
+          <div class="category-name">مجمعات سكنية</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- عقارات للبيع المميزة -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">عقارات للبيع <span class="text-gold">(مميزة)</span></div>
+        <a href="#" class="section-link" onclick="filterProperties('للبيع'); return false;">
+          عرض الكل <i class="fas fa-chevron-left"></i>
+        </a>
+      </div>
+      <div class="properties-scroll" id="featuredSale">
+        <!-- سيتم تعبئتها بواسطة JavaScript -->
+      </div>
+    </div>
+
+    <!-- عقارات للإيجار المميزة -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">عقارات للإيجار <span class="text-gold">(مميزة)</span></div>
+        <a href="#" class="section-link" onclick="filterProperties('للإيجار'); return false;">
+          عرض الكل <i class="fas fa-chevron-left"></i>
+        </a>
+      </div>
+      <div class="properties-scroll" id="featuredRent">
+        <!-- سيتم تعبئتها بواسطة JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       🏢 قسم المجمعات السكنية
+       ════════════════════════════════════════ -->
+  <section id="complexes" class="page hidden">
+    <header class="header">
+      <div class="header-title">مجمعات سكنية</div>
+      <div class="header-actions">
+        <button class="header-btn" title="مشاركة"><i class="fas fa-share-alt"></i></button>
+      </div>
+    </header>
+    
+    <div class="location-badge" style="margin: 8px 16px; justify-content: center;">
+      <i class="fas fa-map-marker-alt"></i> العراق - جميع المحافظات
+    </div>
+    
+    <div class="filter-bar">
+      <span>جميع المحافظات</span>
+      <span class="filter-count" id="complexesCount">522</span>
+    </div>
+    
+    <div class="sticky-controls">
+      <button class="btn btn-outline btn-sm"><i class="fas fa-sort"></i> ترتيب</button>
+      <button class="btn btn-primary btn-sm"><i class="fas fa-map"></i> الخارطة</button>
+    </div>
+    
+    <div id="complexesList">
+      <!-- سيتم تعبئتها بواسطة JavaScript -->
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       📰 قسم الأخبار
+       ════════════════════════════════════════ -->
+  <section id="news" class="page hidden">
+    <header class="header">
+      <div class="header-title">آخر الأخبار</div>
+      <div class="header-actions">
+        <button class="header-btn" id="newsSearchBtn"><i class="fas fa-search"></i></button>
+      </div>
+    </header>
+    
+    <div class="news-tabs">
+      <button class="tab-btn active" data-category="all">الكل</button>
+      <button class="tab-btn" data-category="baity">بيتي</button>
+      <button class="tab-btn" data-category="offices">مكاتب عقارية</button>
+      <button class="tab-btn" data-category="complexes">مجمعات سكنية</button>
+      <button class="tab-btn" data-category="marketer">مسوق عقاري</button>
+    </div>
+    
+    <div id="newsList">
+      <!-- سيتم تعبئتها بواسطة JavaScript -->
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       ⋯ قسم المزيد
+       ════════════════════════════════════════ -->
+  <section id="more" class="page hidden">
+    <header class="header">
+      <div class="header-title">المزيد</div>
+      <div class="header-actions">
+        <button class="header-btn"><i class="fas fa-cog"></i></button>
+      </div>
+    </header>
+    
+    <div class="more-section">
+      <div class="more-register" onclick="showToast('سيتم إضافة ميزة التسجيل قريباً!')">
+        <i class="fas fa-user-plus"></i> تسجيل الدخول / إنشاء حساب
+      </div>
+      
+      <div class="more-list">
+        <div class="more-list-title">خدماتي</div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-clipboard-list"></i></div>
+            <span class="more-item-text">طلباتي</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-chart-bar"></i></div>
+            <span class="more-item-text">إحصائيات الأسعار</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-heart"></i></div>
+            <span class="more-item-text">المفضلة</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item" onclick="openAddSheet()">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-plus"></i></div>
+            <span class="more-item-text">إضافة عقار</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-search"></i></div>
+            <span class="more-item-text">اطلب عقارك الآن</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+      </div>
+      
+      <div class="more-list">
+        <div class="more-list-title">الإعدادات</div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-globe"></i></div>
+            <span class="more-item-text">دولة البحث</span>
+            <span style="margin-right: auto; color: var(--gold-dark);">العراق 🇮🇶</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-coins"></i></div>
+            <span class="more-item-text">العملة</span>
+            <span style="margin-right: auto; color: var(--gold-dark);">دينار عراقي</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-language"></i></div>
+            <span class="more-item-text">اللغة</span>
+            <span style="margin-right: auto; color: var(--gold-dark);">العربية</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-users"></i></div>
+            <span class="more-item-text">دعوة أصدقائك</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+      </div>
+      
+      <div class="more-list">
+        <div class="more-list-title">معلومات</div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-info-circle"></i></div>
+            <span class="more-item-text">حول بيتي</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+        <div class="more-item">
+          <div class="more-item-content">
+            <div class="more-item-icon"><i class="fas fa-headset"></i></div>
+            <span class="more-item-text">تواصل مع الدعم</span>
+          </div>
+          <i class="fas fa-chevron-left more-item-arrow"></i>
+        </div>
+      </div>
+      
+      <div class="text-center" style="padding: 20px; color: var(--gray-medium); font-size: 12px;">
+        <div>بيتي للتسويق العقاري © 2026</div>
+        <div style="margin-top: 4px;">الإصدار 1.0.0</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       ➕ Bottom Sheet لإضافة عقار
+       ════════════════════════════════════════ -->
+  <div class="overlay" id="overlay"></div>
+  <div class="bottom-sheet" id="addSheet">
+    <div class="sheet-handle"></div>
+    
+    <!-- خيارات الإضافة -->
+    <div class="add-options" id="addOptions">
+      <div class="add-option" onclick="showAddForm('sell')">
+        <div class="add-option-icon"><i class="fas fa-home"></i></div>
+        <div class="add-option-info">
+          <div class="add-option-title">🏠 اعلان عقار</div>
+          <div class="add-option-desc">انشاء اعلان لعرض عقار للبيع أو الايجار</div>
+        </div>
+        <div class="add-option-count">34 ألف إعلان</div>
+      </div>
+      <div class="add-option" onclick="showToast('ميزة طلب عقار قيد التطوير')">
+        <div class="add-option-icon" style="background: var(--blue-link);"><i class="fas fa-search"></i></div>
+        <div class="add-option-info">
+          <div class="add-option-title">🏡 طلب عقار</div>
+          <div class="add-option-desc">انشاء طلب للبحث عن عقار مناسب</div>
+        </div>
+        <div class="add-option-count">118 طلب</div>
+      </div>
+    </div>
+    
+    <!-- فورم إضافة عقار -->
+    <form class="add-form" id="addForm" onsubmit="submitProperty(event)">
+      <div class="form-group">
+        <label class="form-label">نوع العقار *</label>
+        <select class="form-select" name="type" required>
+          <option value="">اختر النوع</option>
+          <option value="للبيع">للبيع</option>
+          <option value="للإيجار">للإيجار الشهري</option>
+          <option value="يومي">للإيجار اليومي</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">فئة العقار *</label>
+        <select class="form-select" name="category" required>
+          <option value="">اختر الفئة</option>
+          <option value="شقة">شقة</option>
+          <option value="منزل">منزل</option>
+          <option value="أرض">أرض</option>
+          <option value="محل">محل تجاري</option>
+          <option value="مزرعة">مزرعة</option>
+          <option value="فيلا">فيلا</option>
+          <option value="مكتب">مكتب</option>
+        </select>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">المحافظة *</label>
+          <select class="form-select" name="governorate" required>
+            <option value="">اختر</option>
+            <option value="بغداد">بغداد</option>
+            <option value="البصرة">البصرة</option>
+            <option value="نينوى">نينوى</option>
+            <option value="أربيل">أربيل</option>
+            <option value="السليمانية">السليمانية</option>
+            <option value="دهوك">دهوك</option>
+            <option value="كركوك">كركوك</option>
+            <option value="الأنبار">الأنبار</option>
+            <option value="صلاح الدين">صلاح الدين</option>
+            <option value="ديالى">ديالى</option>
+            <option value="واسط">واسط</option>
+            <option value="ميسان">ميسان</option>
+            <option value="ذي قار">ذي قار</option>
+            <option value="المثنى">المثنى</option>
+            <option value="القادسية">القادسية</option>
+            <option value="بابل">بابل</option>
+            <option value="كربلاء">كربلاء</option>
+            <option value="النجف">النجف</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المنطقة *</label>
+          <input type="text" class="form-input" name="area" placeholder="مثال: الكرخ" required>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">السعر (دينار) *</label>
+          <input type="number" class="form-input" name="price" placeholder="85000000" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المساحة (م²) *</label>
+          <input type="number" class="form-input" name="space" placeholder="150" required>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">عنوان العقار *</label>
+        <input type="text" class="form-input" name="title" placeholder="شقة فاخرة في الكرخ" required>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">الوصف</label>
+        <textarea class="form-textarea" name="description" placeholder="أضف تفاصيل عن العقار..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">صور العقار</label>
+        <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <div class="file-upload-text">اضغط لرفع الصور</div>
+          <input type="file" id="fileInput" multiple accept="image/*" style="display: none">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">رقم التواصل *</label>
+        <input type="tel" class="form-input" name="phone" placeholder="07XXXXXXXXX" pattern="07[0-9]{9}" required>
+        <span class="form-hint">صيغة الرقم: 07701234567</span>
+      </div>
+      
+      <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 14px;">
+        <i class="fas fa-paper-plane"></i> نشر الإعلان
+      </button>
+      
+      <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="closeAddSheet()">
+        إلغاء
+      </button>
+    </form>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       📱 شريط التنقل السفلي
+       ════════════════════════════════════════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="home" onclick="navigateTo('home')">
+      <i class="fas fa-home"></i>
+      <span>الرئيسية</span>
+    </button>
+    <button class="nav-item" data-page="complexes" onclick="navigateTo('complexes')">
+      <i class="fas fa-building"></i>
+      <span>مجمعات</span>
+    </button>
+    <button class="nav-add" onclick="openAddSheet()" title="إضافة عقار">
+      <i class="fas fa-plus"></i>
+    </button>
+    <button class="nav-item" data-page="news" onclick="navigateTo('news')">
+      <i class="fas fa-newspaper"></i>
+      <span>الأخبار</span>
+    </button>
+    <button class="nav-item" data-page="more" onclick="navigateTo('more')">
+      <i class="fas fa-ellipsis-h"></i>
+      <span>المزيد</span>
+    </button>
+  </nav>
+
+  <!-- ════════════════════════════════════════
+       💬 رسالة التنبيه
+       ════════════════════════════════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ════════════════════════════════════════
+       ⚙️ JavaScript الرئيسي
+       ════════════════════════════════════════ -->
+  <script>
+    // ════════════════════════════════════════
+    // ⚙️ إعدادات التطبيق
+    // ════════════════════════════════════════
+    const CONFIG = {
+      BIN_ID: 'YOUR_BIN_ID_HERE',
+      API_KEY: 'YOUR_API_KEY_HERE',
+      BIN_URL: 'https://api.jsonbin.io/v3/b/'
+    };
+
+    // ════════════════════════════════════════
+    // 🗄️ البيانات التجريبية (Fallback)
+    // ════════════════════════════════════════
+    const mockData = {
+      properties: [
+        {
+          id: 1, type: 'للبيع', category: 'شقة', title: 'شقة فاخرة في الكرخ',
+          governorate: 'بغداد', area: 'الكرخ', price: 85000000, space: 150,
+          description: 'شقة فاخرة طابق ثالث مع إطلالة رائعة', phone: '07701234567',
+          featured: true, views: 234, date: '2026-03-15',
+          image: 'https://via.placeholder.com/400x250/D4A017/ffffff?text=عقار'
+        },
+        {
+          id: 2, type: 'للبيع', category: 'فيلا', title: 'فيلا في المنصور',
+          governorate: 'بغداد', area: 'المنصور', price: 250000000, space: 400,
+          description: 'فيلا مستقلة بحديقة ومسبح', phone: '07712345678',
+          featured: true, views: 567, date: '2026-03-14',
+          image: 'https://via.placeholder.com/400x250/27AE60/ffffff?text=فيلا'
+        },
+        {
+          id: 3, type: 'للإيجار', category: 'شقة', title: 'شقة مفروشة للإيجار',
+          governorate: 'البصرة', area: 'الزبير', price: 500000, space: 120,
+          description: 'شقة مفروشة بالكامل، مكيفة', phone: '07723456789',
+          featured: true, views: 189, date: '2026-03-13',
+          image: 'https://via.placeholder.com/400x250/2980B9/ffffff?text=إيجار'
+        },
+        {
+          id: 4, type: 'للبيع', category: 'أرض', title: 'أرض استثمارية',
+          governorate: 'أربيل', area: 'عنكاوا', price: 120000000, space: 500,
+          description: 'أرض تجارية موقع ممتاز', phone: '07734567890',
+          featured: false, views: 345, date: '2026-03-12',
+          image: 'https://via.placeholder.com/400x250/B8860B/ffffff?text=أرض'
+        },
+        {
+          id: 5, type: 'للإيجار', category: 'محل', title: 'محل تجاري في السوق',
+          governorate: 'كربلاء', area: 'وسط المدينة', price: 750000, space: 80,
+          description: 'محل بواجهة رئيسية', phone: '07745678901',
+          featured: true, views: 123, date: '2026-03-11',
+          image: 'https://via.placeholder.com/400x250/F5A623/ffffff?text=محل'
+        }
+      ],
+      complexes: [
+        { id: 1, name: 'مجمع السخاء السكني', location: 'ديالى - بعقوبة', views: 905 },
+        { id: 2, name: 'DAMAC HILLS BAGHDAD', location: 'بغداد - الكرخ', views: 6521 },
+        { id: 3, name: 'أبراج العاصمة السكني', location: 'بغداد - الرصافة', views: 3200 },
+        { id: 4, name: 'مشروع امباير السكني', location: 'ذي قار - الناصرية', views: 1450 },
+        { id: 5, name: 'مجمع النخيل', location: 'البصرة - الزبير', views: 2100 }
+      ],
+      news: [
+        {
+          id: 1, category: 'baity',
+          title: 'وزير البيئة يبحث مع الجهات المعنية معوقات إطلاق الاراضي',
+          excerpt: 'عقد وزير البيئة الدكتور هه لو العسكري اجتماعاً ضمّ عدداً من المسؤولين المعنيين بملف شؤون الألغام...',
+          publisher: 'بيتي NEWS', time: 'قبل 1 يوم', views: 19
+        },
+        {
+          id: 2, category: 'baity',
+          title: 'فرصة استثمارية معمل اسفلت و كونكريت في البصرة',
+          excerpt: 'رقم القطعة و المقاطعة : 5/34 مقاطعة 43 الاركلي الشمالي المساحة : 25 دونم',
+          publisher: 'بيتي NEWS', time: 'قبل 1 يوم', views: 15
+        },
+        {
+          id: 3, category: 'offices',
+          title: 'عرض مجمع لافيدا | مدينة المستقبل | بروج 🏙️',
+          excerpt: 'شركة مدخل الخير ✨',
+          publisher: 'شركة مدخل الخير', time: 'منذ اشهر', views: 43
+        },
+        {
+          id: 4, category: 'offices',
+          title: 'تعاون مدخل الخير مع مصرف الجنوب',
+          excerpt: 'نعلن رسمياً تعاون مدخل الخير مع مصرف الجنوب على منح عملاءه حصراً قرض عقاري...',
+          publisher: 'شركة مدخل الخير', time: 'منذ اشهر', views: 68
+        },
+        {
+          id: 5, category: 'complexes',
+          title: 'مشروع أبراج العاصمة السكني ضمن مبادرة القرض العقاري',
+          excerpt: 'أعلن مشروع أبراج العاصمة السكني كأحد المشاريع المشمولة بمبادرة القرض العقاري...',
+          publisher: 'أبراج العاصمة', time: 'منذ اشهر', views: 66
+        },
+        {
+          id: 6, category: 'marketer',
+          title: 'عروض حصرية ووحدات سكنية متنوعة داخل مجمعات كربلاء 🏠',
+          excerpt: 'شركة ماس الجنوب للوساطة العقارية أعلنت عن توليها إدارة المبيع...',
+          publisher: 'شركة ماس الجنوب', time: 'منذ 6 اشهر', views: 114
+        }
+      ]
+    };
+
+    // ════════════════════════════════════════
+    // 💾 حالة التطبيق المحلية
+    // ════════════════════════════════════════
+    let appData = { ...mockData };
+    let favorites = JSON.parse(localStorage.getItem('baity_favorites') || '[]');
+    let viewCounts = JSON.parse(localStorage.getItem('baity_views') || '{}');
+
+    // ════════════════════════════════════════
+    // 🔄 دوال الاتصال بـ JSONBin API
+    // ════════════════════════════════════════
+    async function fetchData() {
+      try {
+        // ملاحظة: استبدل YOUR_BIN_ID_HERE و YOUR_API_KEY_HERE بقيمك الحقيقية
+        if (CONFIG.BIN_ID === 'YOUR_BIN_ID_HERE') {
+          console.log('⚠️ باستخدام البيانات التجريبية - لم يتم ضبط مفاتيح API');
+          return mockData;
+        }
+        
+        const response = await fetch(`${CONFIG.BIN_URL}${CONFIG.BIN_ID}`, {
+          headers: { 'X-Master-Key': CONFIG.API_KEY }
+        });
+        if (!response.ok) throw new Error('فشل جلب البيانات');
+        const result = await response.json();
+        return result.record || mockData;
+      } catch (error) {
+        console.error('❌ خطأ في جلب البيانات:', error);
+        showToast('تم استخدام البيانات المحلية', 'error');
+        return mockData;
+      }
+    }
+
+    async function updateData(data) {
+      try {
+        if (CONFIG.BIN_ID === 'YOUR_BIN_ID_HERE') {
+          showToast('تم الحفظ محلياً (ضع مفاتيح API للنشر)', 'success');
+          return;
+        }
+        
+        await fetch(`${CONFIG.BIN_URL}${CONFIG.BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': CONFIG.API_KEY
+          },
+          body: JSON.stringify({ record: data })
+        });
+        showToast('تم نشر الإعلان بنجاح! ✅', 'success');
+      } catch (error) {
+        console.error('❌ خطأ في تحديث البيانات:', error);
+        showToast('حدث خطأ أثناء النشر', 'error');
+      }
+    }
+
+    // ════════════════════════════════════════
+    // 🎨 دوال العرض والتنسيق
+    // ════════════════════════════════════════
+    
+    // تنسيق السعر بالآلاف
+    function formatPrice(price) {
+      return new Intl.NumberFormat('ar-IQ').format(price) + ' د.ع';
+    }
+    
+    // إنشاء بطاقة عقار
+    function createPropertyCard(property) {
+      const isFav = favorites.includes(property.id);
+      const views = viewCounts[property.id] || property.views || 0;
+      
+      return `
+        <div class="property-card" onclick="viewProperty(${property.id})">
+          <div class="property-image">
+            ${property.image ? `<img src="${property.image}" alt="${property.title}">` : '<i class="fas fa-home"></i>'}
+            ${property.featured ? '<span class="property-badge">مميز</span>' : ''}
+            <button class="property-fav ${isFav ? 'active' : ''}" onclick="toggleFavorite(event, ${property.id})">
+              <i class="fas fa-heart"></i>
+            </button>
+          </div>
+          <div class="property-info">
+            <div class="property-title">${property.title}</div>
+            <div class="property-location">
+              <i class="fas fa-map-marker-alt"></i>
+              ${property.governorate} - ${property.area}
+            </div>
+            <div class="property-price">${formatPrice(property.price)}</div>
+            <div class="property-meta">
+              <span><i class="fas fa-ruler-combined"></i> ${property.space} م²</span>
+              <span><i class="fas fa-eye"></i> ${views}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // إنشاء بطاقة مجمع
+    function createComplexCard(complex) {
+      return `
+        <div class="complex-card">
+          <div class="complex-image">
+            <i class="fas fa-building"></i>
+            <span class="complex-views"><i class="fas fa-eye"></i> ${complex.views.toLocaleString('ar-EG')}</span>
+          </div>
+          <div class="complex-info">
+            <div class="complex-name">${complex.name}</div>
+            <div class="complex-location">
+              <i class="fas fa-map-marker-alt"></i> ${complex.location}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // إنشاء بطاقة خبر
+    function createNewsCard(news) {
+      const icons = {
+        'baity': '<i class="fas fa-home"></i>',
+        'offices': '<i class="fas fa-building"></i>',
+        'complexes': '<i class="fas fa-city"></i>',
+        'marketer': '<i class="fas fa-user-tie"></i>'
+      };
+      
+      return `
+        <div class="news-card">
+          <div class="news-image">
+            <i class="fas fa-newspaper"></i>
+            <span class="news-views"><i class="fas fa-eye"></i> ${news.views}</span>
+          </div>
+          <div class="news-info">
+            <div class="news-title">${news.title}</div>
+            <div class="news-excerpt">${news.excerpt}</div>
+            <div class="news-meta">
+              <span>${news.time}</span>
+              <span class="news-publisher">
+                ${icons[news.category] || ''} ${news.publisher}
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ════════════════════════════════════════
+    // 🔄 دوال التنقل بين الأقسام
+    // ════════════════════════════════════════
+    function navigateTo(pageId) {
+      // إخفاء كل الأقسام
+      document.querySelectorAll('.page').forEach(page => {
+        page.classList.add('hidden');
+      });
+      // إظهار القسم المطلوب
+      document.getElementById(pageId).classList.remove('hidden');
+      
+      // تحديث الأزرار النشطة
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.page === pageId);
+      });
+      
+      // تمرير للأعلى
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // تحميل البيانات عند الدخول للأقسام
+      if (pageId === 'complexes') renderComplexes();
+      if (pageId === 'news') renderNews();
+    }
+
+    // ════════════════════════════════════════
+    // 🏠 دوال قسم الرئيسية
+    // ════════════════════════════════════════
+    function renderFeaturedProperties() {
+      const sale = appData.properties.filter(p => p.type === 'للبيع' && p.featured);
+      const rent = appData.properties.filter(p => p.type === 'للإيجار' && p.featured);
+      
+      document.getElementById('featuredSale').innerHTML = 
+        sale.map(createPropertyCard).join('') || '<div class="empty-state"><i class="fas fa-box-open"></i><div class="empty-state-title">لا توجد عقارات مميزة حالياً</div></div>';
+      
+      document.getElementById('featuredRent').innerHTML = 
+        rent.map(createPropertyCard).join('') || '<div class="empty-state"><i class="fas fa-box-open"></i><div class="empty-state-title">لا توجد عقارات مميزة حالياً</div></div>';
+    }
+
+    function filterProperties(type) {
+      // فلترة بسيطة مع عرض رسالة
+      showToast(`عرض عقارات ${type === 'للبيع' ? 'للبيع' : 'للإيجار'}`);
+      navigateTo('home');
+    }
+
+    // ════════════════════════════════════════
+    // 🏢 دوال قسم المجمعات
+    // ════════════════════════════════════════
+    function renderComplexes(filter = '') {
+      const list = document.getElementById('complexesList');
+      let filtered = appData.complexes;
+      
+      if (filter) {
+        filtered = filtered.filter(c => c.name.includes(filter) || c.location.includes(filter));
+      }
+      
+      list.innerHTML = filtered.map(createComplexCard).join('') || 
+        '<div class="empty-state"><i class="fas fa-building"></i><div class="empty-state-title">لا توجد مجمعات متطابقة</div></div>';
+      
+      document.getElementById('complexesCount').textContent = filtered.length;
+    }
+
+    // ════════════════════════════════════════
+    // 📰 دوال قسم الأخبار
+    // ════════════════════════════════════════
+    function renderNews(category = 'all') {
+      const list = document.getElementById('newsList');
+      let filtered = appData.news;
+      
+      if (category !== 'all') {
+        filtered = filtered.filter(n => n.category === category);
+      }
+      
+      list.innerHTML = filtered.map(createNewsCard).join('') || 
+        '<div class="empty-state"><i class="fas fa-newspaper"></i><div class="empty-state-title">لا توجد أخبار في هذا القسم</div></div>';
+      
+      // تحديث التبويبات النشطة
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === category);
+      });
+    }
+
+    // ════════════════════════════════════════
+    // ➕ دوال Bottom Sheet
+    // ════════════════════════════════════════
+    function openAddSheet() {
+      document.getElementById('overlay').classList.add('active');
+      document.getElementById('addSheet').classList.add('active');
+      document.getElementById('addOptions').style.display = 'flex';
+      document.getElementById('addForm').classList.remove('active');
+    }
+    
+    function closeAddSheet() {
+      document.getElementById('overlay').classList.remove('active');
+      document.getElementById('addSheet').classList.remove('active');
+    }
+    
+    function showAddForm(type) {
+      document.getElementById('addOptions').style.display = 'none';
+      document.getElementById('addForm').classList.add('active');
+      document.querySelector('#addForm [name="type"]').value = type === 'sell' ? 'للبيع' : 'للإيجار';
+    }
+    
+    async function submitProperty(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      
+      const newProperty = {
+        id: Date.now(),
+        type: formData.get('type'),
+        category: formData.get('category'),
+        title: formData.get('title'),
+        governorate: formData.get('governorate'),
+        area: formData.get('area'),
+        price: parseInt(formData.get('price')),
+        space: parseInt(formData.get('space')),
+        description: formData.get('description'),
+        phone: formData.get('phone'),
+        featured: false,
+        views: 0,
+        date: new Date().toISOString().split('T')[0],
+        image: 'https://via.placeholder.com/400x250/B8860B/ffffff?text=جديد'
+      };
+      
+      // إضافة للبيانات المحلية
+      appData.properties.unshift(newProperty);
+      
+      // تحديث العرض
+      renderFeaturedProperties();
+      
+      // محاولة الحفظ في API
+      await updateData(appData);
+      
+      // إغلاق الفورم
+      form.reset();
+      closeAddSheet();
+    }
+
+    // ════════════════════════════════════════
+    // ❤️ دوال المفضلة والمشاهدات
+    // ════════════════════════════════════════
+    function toggleFavorite(e, propertyId) {
+      e.stopPropagation();
+      const index = favorites.indexOf(propertyId);
+      
+      if (index === -1) {
+        favorites.push(propertyId);
+        showToast('تمت الإضافة للمفضلة ❤️', 'success');
+      } else {
+        favorites.splice(index, 1);
+        showToast('تمت الإزالة من المفضلة', 'success');
+      }
+      
+      localStorage.setItem('baity_favorites', JSON.stringify(favorites));
+      renderFeaturedProperties();
+    }
+    
+    function viewProperty(propertyId) {
+      // زيادة عداد المشاهدات
+      viewCounts[propertyId] = (viewCounts[propertyId] || 0) + 1;
+      localStorage.setItem('baity_views', JSON.stringify(viewCounts));
+      
+      // عرض تفاصيل (محاكاة)
+      const property = appData.properties.find(p => p.id === propertyId);
+      if (property) {
+        showToast(`📍 ${property.title}\n💰 ${formatPrice(property.price)}`);
+      }
+    }
+
+    // ════════════════════════════════════════
+    // 🔍 دوال البحث
+    // ════════════════════════════════════════
+    function toggleSearch() {
+      const searchBar = document.getElementById('searchBar');
+      const searchBtn = document.getElementById('searchBtn');
+      
+      searchBar.classList.toggle('active');
+      searchBtn.classList.toggle('active', searchBar.classList.contains('active'));
+      
+      if (searchBar.classList.contains('active')) {
+        document.getElementById('searchInput').focus();
+      }
+    }
+    
+    function setupSearch() {
+      const input = document.getElementById('searchInput');
+      input.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        
+        // بحث في العقارات
+        const filtered = appData.properties.filter(p => 
+          p.title.toLowerCase().includes(query) ||
+          p.area.toLowerCase().includes(query) ||
+          p.governorate.toLowerCase().includes(query)
+        );
+        
+        // عرض النتائج (محاكاة)
+        if (query.length > 2) {
+          document.getElementById('featuredSale').innerHTML = 
+            filtered.filter(p => p.type === 'للبيع').map(createPropertyCard).join('') ||
+            '<div class="empty-state"><i class="fas fa-search"></i><div class="empty-state-title">لا توجد نتائج</div></div>';
+        }
+      });
+      
+      document.getElementById('searchClose').addEventListener('click', () => {
+        document.getElementById('searchBar').classList.remove('active');
+        document.getElementById('searchBtn').classList.remove('active');
+        document.getElementById('searchInput').value = '';
+        renderFeaturedProperties();
+      });
+    }
+
+    // ════════════════════════════════════════
+    // 🎠 دوال البانر
+    // ════════════════════════════════════════
+    function setupBanner() {
+      let currentSlide = 0;
+      const slides = document.querySelectorAll('.banner-slide');
+      const dots = document.querySelectorAll('.banner-dot');
+      
+      function goToSlide(index) {
+        slides.forEach(s => s.classList.remove('active'));
+        dots.forEach(d => d.classList.remove('active'));
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+        currentSlide = index;
+      }
+      
+      // التنقل التلقائي
+      setInterval(() => {
+        goToSlide((currentSlide + 1) % slides.length);
+      }, 4000);
+      
+      // النقر على النقاط
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => goToSlide(index));
+      });
+    }
+
+    // ════════════════════════════════════════
+    // 💬 دوال التنبيهات
+    // ════════════════════════════════════════
+    function showToast(message, type = '') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // ════════════════════════════════════════
+    // 🎯 تهيئة التطبيق
+    // ════════════════════════════════════════
+    async function init() {
+      // تحميل البيانات
+      appData = await fetchData();
+      
+      // إخفاء شاشة التحميل
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }, 800);
+      
+      // عرض العقارات المميزة
+      renderFeaturedProperties();
+      
+      // عرض المجمعات
+      renderComplexes();
+      
+      // عرض الأخبار
+      renderNews();
+      
+      // إعداد البانر
+      setupBanner();
+      
+      // إعداد البحث
+      setupSearch();
+      
+      // إعداد أحداث التبويبات
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          renderNews(e.target.dataset.category);
+        });
+      });
+      
+      // إعداد أحداث البحث في الأخبار
+      document.getElementById('newsSearchBtn')?.addEventListener('click', toggleSearch);
+      
+      // إعداد زر الموقع
+      document.getElementById('locationBtn')?.addEventListener('click', () => {
+        showToast('📍 بغداد - تم تحديد موقعك');
+      });
+      
+      // إغلاق الـ Sheet عند النقر على الخلفية
+      document.getElementById('overlay').addEventListener('click', closeAddSheet);
+      
+      // إعداد زر البحث في الهيدر الرئيسي
+      document.getElementById('searchBtn')?.addEventListener('click', toggleSearch);
+      
+      console.log('✅ تطبيق بيتي للتسويق العقاري جاهز!');
+    }
+
+    // تشغيل التطبيق عند التحميل
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

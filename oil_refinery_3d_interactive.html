@@ -1,0 +1,526 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; }
+#canvas-wrap { width: 100%; position: relative; }
+canvas { display: block; width: 100%; cursor: grab; }
+canvas:active { cursor: grabbing; }
+#info-panel {
+  position: absolute; top: 10px; right: 10px;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: 12px 16px; max-width: 220px; min-width: 180px;
+  font-size: 12px; color: var(--color-text-primary);
+  pointer-events: none; opacity: 0; transition: opacity 0.2s;
+}
+#info-panel.show { opacity: 1; }
+#info-panel h3 { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+#info-panel p { color: var(--color-text-secondary); line-height: 1.5; }
+#controls {
+  display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; align-items: center;
+  font-size: 12px; color: var(--color-text-secondary);
+}
+#controls button {
+  font-size: 11px; padding: 4px 10px; border-radius: 6px;
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary); cursor: pointer;
+}
+#controls button:hover { background: var(--color-background-tertiary); }
+#controls button.active { border-color: var(--color-border-primary); }
+#legend {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  padding: 6px 0; font-size: 11px; color: var(--color-text-secondary);
+}
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+</style>
+<div id="canvas-wrap">
+  <canvas id="c" height="560"></canvas>
+  <div id="info-panel">
+    <h3 id="ip-title">-</h3>
+    <p id="ip-desc">-</p>
+  </div>
+</div>
+<div id="controls">
+  <button onclick="rotate(-30)">↺ دوران يسار</button>
+  <button onclick="rotate(30)">↻ دوران يمين</button>
+  <button onclick="tilt(-15)">▲ إمالة أعلى</button>
+  <button onclick="tilt(15)">▼ إمالة أسفل</button>
+  <button onclick="resetView()">⟳ إعادة ضبط</button>
+  <button onclick="toggleAnim()" id="anim-btn">⏸ إيقاف المشعل</button>
+  <span style="margin-left:auto">اسحب للتدوير • عجلة الماوس للتكبير</span>
+</div>
+<div id="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>وحدة التقطير CDU</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div>FCC التكسير</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>خزانات التخزين</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>المرافق</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8e44ad"></div>الكبريت/الأمين</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>المشاعل</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.offsetWidth || 680;
+canvas.width = W * devicePixelRatio || 680;
+canvas.height = 560 * devicePixelRatio || 560;
+ctx.scale(devicePixelRatio, devicePixelRatio);
+const CW = W, CH = 560;
+
+let camAngle = -25, camTilt = 55, camZoom = 1.0;
+let isDragging = false, lastX = 0, lastY = 0;
+let animFrame = 0, animRunning = true;
+let hoveredUnit = null;
+
+// Color helper
+const isDark = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+const C = {
+  ground:   '#c8b896',
+  groundD:  '#5a4e3c',
+  road:     '#9e9589',
+  roadD:    '#3a3530',
+  concrete: '#b0a898',
+  concreteD:'#4a4540',
+  steel:    '#7a8a9a',
+  steelD:   '#5a6a7a',
+  pipe:     '#888',
+  pipeD:    '#666',
+  cdu:      '#c0392b',
+  fcc:      '#e67e22',
+  ccr:      '#d35400',
+  tanks:    '#2980b9',
+  util:     '#27ae60',
+  sulfur:   '#8e44ad',
+  flare:    '#f39c12',
+  heater:   '#e74c3c',
+  admin:    '#95a5a6',
+  fire:     '#e74c3c',
+  lab:      '#3498db',
+  sky1:     '#daeaf5',
+  sky2:     '#f0f5fa',
+  flame1:   '#ff6b00',
+  flame2:   '#ffcc00',
+};
+
+function gc(light, dark) { return isDark() ? dark : light; }
+
+// 3D projection
+function project(x, y, z) {
+  const rad = camAngle * Math.PI / 180;
+  const trad = camTilt * Math.PI / 180;
+  const rx = x * Math.cos(rad) - y * Math.sin(rad);
+  const ry = x * Math.sin(rad) + y * Math.cos(rad);
+  const rz = z;
+  const px = rx;
+  const py = ry * Math.sin(trad) - rz * Math.cos(trad);
+  const pz = ry * Math.cos(trad) + rz * Math.sin(trad);
+  const scale = (800 / (pz + 800)) * camZoom;
+  return {
+    sx: CW/2 + px * scale * 1.4,
+    sy: CH/2 + py * scale * 1.4 - 30,
+    scale, pz
+  };
+}
+
+function p(x,y,z) { return project(x-150, y-150, z); }
+
+// Unit info database
+const UNITS = {
+  'CDU-100': { title: 'UNIT 100 — وحدة التقطير الخام', desc: 'تقطير النفط الخام إلى مقطرات: بنزين، كيروسين، ديزل، وزيوت ثقيلة. تعمل على درجات حرارة 350-370°C.' },
+  'FCC-200': { title: 'UNIT 200 — FCC التكسير الحفزي', desc: 'تحويل الزيوت الثقيلة إلى بنزين ومواد خفيفة بواسطة حفاز عند 500°C.' },
+  'CCR-400': { title: 'UNIT 400 — CCR الإصلاح المستمر', desc: 'رفع أوكتان البنزين وإنتاج الهيدروجين. يعمل بضغط منخفض وحرارة عالية.' },
+  'Heaters': { title: 'UNIT 400 — سخانات التغذية', desc: 'تسخين مغذيات الوحدات قبل الدخول للمعالجة. أفران أنبوبية بكفاءة عالية.' },
+  'Tanks-700': { title: 'UNIT 700 — خزانات التخزين', desc: '9 خزانات لتخزين المنتجات النهائية: بنزين، ديزل، كيروسين وزيوت. سعة إجمالية كبيرة.' },
+  'Amine-800': { title: 'UNIT 800 — معالجة الأمين واسترداد الكبريت', desc: 'إزالة H₂S من الغازات بمحلول الأمين. استرداد الكبريت بعملية كلاوس.' },
+  'Util-900': { title: 'UNIT 900 — المرافق', desc: 'توليد البخار، الهواء المضغوط، مياه التبريد، الكهرباء. خزانات عمودية للتبريد.' },
+  'Flare-HP': { title: 'مشعل الضغط العالي', desc: 'حرق الغازات الزائدة بأمان. يصل ارتفاعه إلى 90 متر.' },
+  'Flare-LP': { title: 'مشعل الضغط المنخفض', desc: 'حرق غازات الضغط المنخفض. يعمل عند الطوارئ والتشغيل العادي.' },
+  'Admin': { title: 'مبنى الإدارة', desc: 'مراقبة العمليات، غرف التحكم، المختبر، الإدارة.' },
+  'Fire': { title: 'محطة الإطفاء', desc: 'مضخات الحريق، شبكة المياه، مركبات الإنقاذ.' },
+};
+
+// Building primitives
+function box3D(x, y, z, w, d, h, faceColor, topColor, sideColor, label, unitKey, mouseX, mouseY) {
+  const verts = [
+    p(x,   y,   z),   p(x+w, y,   z),   p(x+w, y+d, z),   p(x,   y+d, z),
+    p(x,   y,   z+h), p(x+w, y,   z+h), p(x+w, y+d, z+h), p(x,   y+d, z+h),
+  ];
+  const faces = [
+    [4,5,6,7], // top
+    [0,1,5,4], // front
+    [1,2,6,5], // right
+    [3,7,6,2], // back
+    [0,4,7,3], // left
+    [0,3,2,1], // bottom
+  ];
+  const faceColors = [topColor, faceColor, sideColor, sideColor, sideColor, '#555'];
+
+  // Sort faces by average z for painter's algorithm
+  let sorted = faces.map((f, i) => {
+    const avgZ = f.reduce((s, vi) => s + verts[vi].pz, 0) / f.length;
+    return {f, i, avgZ};
+  }).sort((a,b) => b.avgZ - a.avgZ);
+
+  let hovered = false;
+  if (unitKey && mouseX !== undefined) {
+    // Check if mouse inside projected bbox
+    const xs = verts.map(v => v.sx), ys = verts.map(v => v.sy);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    hovered = mouseX >= minX && mouseX <= maxX && mouseY >= minY && mouseY <= maxY;
+    if (hovered) hoveredUnit = unitKey;
+  }
+
+  sorted.forEach(({f, i}) => {
+    ctx.beginPath();
+    f.forEach((vi, k) => {
+      if (k === 0) ctx.moveTo(verts[vi].sx, verts[vi].sy);
+      else ctx.lineTo(verts[vi].sx, verts[vi].sy);
+    });
+    ctx.closePath();
+    let fc = faceColors[i];
+    if (hovered) fc = lighten(fc, 0.3);
+    ctx.fillStyle = fc;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  });
+
+  if (label) {
+    const top = verts[4];
+    ctx.save();
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = isDark() ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.7)';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, top.sx, top.sy - 4);
+    ctx.restore();
+  }
+}
+
+function lighten(hex, amt) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, ((n>>16)&255) + amt*255|0);
+  const g = Math.min(255, ((n>>8)&255) + amt*255|0);
+  const b = Math.min(255, (n&255) + amt*255|0);
+  return `rgb(${r},${g},${b})`;
+}
+
+function cylinder3D(cx, cy, z, r, h, col, topCol, mx, my, unitKey) {
+  const segments = 16;
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    pts.push({ bx: cx + Math.cos(a)*r, by: cy + Math.sin(a)*r });
+  }
+  // Draw sides
+  for (let i = 0; i < segments; i++) {
+    const b0 = p(pts[i].bx, pts[i].by, z);
+    const b1 = p(pts[i+1].bx, pts[i+1].by, z);
+    const t0 = p(pts[i].bx, pts[i].by, z+h);
+    const t1 = p(pts[i+1].bx, pts[i+1].by, z+h);
+    const shade = 0.5 + 0.5 * Math.cos((i/segments)*Math.PI*2 + camAngle*Math.PI/180);
+    const rgb = hexToRgb(col);
+    ctx.beginPath();
+    ctx.moveTo(b0.sx, b0.sy);
+    ctx.lineTo(b1.sx, b1.sy);
+    ctx.lineTo(t1.sx, t1.sy);
+    ctx.lineTo(t0.sx, t0.sy);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(${Math.round(rgb.r*shade)},${Math.round(rgb.g*shade)},${Math.round(rgb.b*shade)},1)`;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 0.3;
+    ctx.stroke();
+  }
+  // Draw top ellipse
+  const topPts = pts.map(pt => p(pt.bx, pt.by, z+h));
+  ctx.beginPath();
+  topPts.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.sx, pt.sy) : ctx.lineTo(pt.sx, pt.sy));
+  ctx.closePath();
+  ctx.fillStyle = topCol || lighten(col, 0.2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.replace('#',''), 16);
+  return { r: (n>>16)&255, g: (n>>8)&255, b: n&255 };
+}
+
+function tower(cx, cy, z, r, h, col, mx, my, unitKey) {
+  cylinder3D(cx, cy, z, r, h, col, lighten(col, 0.15), mx, my, unitKey);
+}
+
+function pipe(x1, y1, x2, y2, z, r, col) {
+  const len = Math.sqrt((x2-x1)**2+(y2-y1)**2);
+  const steps = Math.max(4, len/5|0);
+  for (let i = 0; i < steps-1; i++) {
+    const t0 = i/steps, t1 = (i+1)/steps;
+    const px0 = x1+(x2-x1)*t0, py0 = y1+(y2-y1)*t0;
+    const px1 = x1+(x2-x1)*t1, py1 = y1+(y2-y1)*t1;
+    const a = p(px0,py0,z), b = p(px1,py1,z);
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.strokeStyle = col || C.pipe;
+    ctx.lineWidth = Math.max(1, r*2);
+    ctx.stroke();
+  }
+}
+
+function drawFlame(px, py, size, t) {
+  const flicker = 1 + 0.3*Math.sin(t * 0.18);
+  const flicker2 = 1 + 0.2*Math.sin(t * 0.23 + 1);
+  ctx.save();
+  ctx.translate(px, py);
+  // Outer flame
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(-size*flicker, -size*1.5, -size*flicker2*0.5, -size*2.5, 0, -size*3*flicker);
+  ctx.bezierCurveTo(size*flicker2*0.5, -size*2.5, size*flicker, -size*1.5, 0, 0);
+  ctx.fillStyle = `rgba(255,${Math.round(80+60*Math.sin(t*0.1))},0,0.85)`;
+  ctx.fill();
+  // Inner flame
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(-size*0.5, -size, -size*0.3, -size*2, 0, -size*2.2*flicker);
+  ctx.bezierCurveTo(size*0.3, -size*2, size*0.5, -size, 0, 0);
+  ctx.fillStyle = `rgba(255,${Math.round(180+40*Math.sin(t*0.15))},30,0.9)`;
+  ctx.fill();
+  ctx.restore();
+}
+
+let mouseX = -999, mouseY = -999;
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (canvas.width / rect.width) / devicePixelRatio;
+  mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) / devicePixelRatio;
+});
+canvas.addEventListener('mouseleave', () => { mouseX = -999; mouseY = -999; });
+
+canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  camAngle += (e.clientX - lastX) * 0.4;
+  camTilt = Math.max(20, Math.min(80, camTilt + (e.clientY - lastY) * 0.3));
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  camZoom = Math.max(0.4, Math.min(2.2, camZoom - e.deltaY * 0.001));
+}, {passive: false});
+
+// Touch support
+let t0x, t0y, lastPinchDist;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { isDragging = true; t0x = e.touches[0].clientX; t0y = e.touches[0].clientY; }
+  if (e.touches.length === 2) {
+    lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  }
+});
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    camAngle += (e.touches[0].clientX - t0x) * 0.4;
+    camTilt = Math.max(20, Math.min(80, camTilt + (e.touches[0].clientY - t0y) * 0.3));
+    t0x = e.touches[0].clientX; t0y = e.touches[0].clientY;
+  }
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    camZoom = Math.max(0.4, Math.min(2.2, camZoom * (d / lastPinchDist)));
+    lastPinchDist = d;
+  }
+}, {passive: false});
+canvas.addEventListener('touchend', () => isDragging = false);
+
+function rotate(deg) { camAngle += deg; }
+function tilt(deg) { camTilt = Math.max(20, Math.min(80, camTilt + deg)); }
+function resetView() { camAngle = -25; camTilt = 55; camZoom = 1.0; }
+function toggleAnim() {
+  animRunning = !animRunning;
+  document.getElementById('anim-btn').textContent = animRunning ? '⏸ إيقاف المشعل' : '▶ تشغيل المشعل';
+}
+
+function drawScene(t) {
+  ctx.clearRect(0, 0, CW, CH);
+  hoveredUnit = null;
+
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, CH*0.5);
+  sky.addColorStop(0, isDark() ? '#1a2a3a' : '#b8d4ea');
+  sky.addColorStop(1, isDark() ? '#2a3a4a' : '#e8f0f8');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, CW, CH*0.6);
+
+  // Ground plane — draw as large flat quad
+  const groundPts = [p(-30,-30,0), p(330,-30,0), p(330,330,0), p(-30,330,0)];
+  ctx.beginPath();
+  groundPts.forEach((gp, i) => i===0 ? ctx.moveTo(gp.sx, gp.sy) : ctx.lineTo(gp.sx, gp.sy));
+  ctx.closePath();
+  ctx.fillStyle = isDark() ? C.groundD : C.ground;
+  ctx.fill();
+
+  // Roads / perimeter lines
+  const roads = [
+    // main horizontal
+    [[-30,148,0],[330,148,0]],
+    // main vertical  
+    [[148,-30,0],[148,330,0]],
+    // perimeter
+    [[-30,-30,0],[330,-30,0]],
+    [[-30,330,0],[330,330,0]],
+    [[-30,-30,0],[-30,330,0]],
+    [[330,-30,0],[330,330,0]],
+  ];
+  roads.forEach(road => {
+    const [a, b] = road.map(pp => p(pp[0],pp[1],pp[2]));
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.strokeStyle = isDark() ? '#3a3530' : '#9e9589';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+  });
+
+  // === UNIT 700 — Storage Tanks (bottom-left) ===
+  // Big float tanks
+  const bigTanks = [
+    [20,190],[60,190],[100,190],
+    [20,230],[60,230],[100,230],
+  ];
+  bigTanks.forEach(([tx,ty],i) => {
+    cylinder3D(tx,ty,0,14,8+i%2*2,'#2471a3','#3498db', mouseX,mouseY);
+    const lbl = ['TR-701','TR-702','TR-703','TR-705','TR-706','TR-706'][i];
+    const top = p(tx,ty,10);
+    ctx.font='8px sans-serif'; ctx.fillStyle='rgba(100,150,200,0.9)'; ctx.textAlign='center';
+    ctx.fillText(lbl,top.sx,top.sy-3);
+  });
+  // Small tanks (condensate, etc.)
+  [[135,195],[155,195],[135,215],[155,215]].forEach(([tx,ty]) => {
+    cylinder3D(tx,ty,0,8,12,'#1a5276','#2471a3',mouseX,mouseY);
+  });
+  // Label UNIT 700
+  const u7 = p(80,235,15);
+  ctx.font='bold 11px sans-serif'; ctx.fillStyle=isDark()?'#85c1e9':'#1a5276'; ctx.textAlign='center';
+  ctx.fillText('UNIT 700',u7.sx,u7.sy);
+
+  // === UNIT 100 — CDU (top-left) ===
+  box3D(10,50,0, 80,60,6, isDark()?'#7b241c':'#c0392b', isDark()?'#922b21':'#e74c3c', isDark()?'#6e2020':'#a93226', null, 'CDU-100', mouseX, mouseY);
+  // Main distillation column
+  tower(30, 70, 0, 6, 55, '#c0392b', mouseX, mouseY, 'CDU-100');
+  tower(50, 80, 0, 5, 45, '#a93226', mouseX, mouseY, 'CDU-100');
+  tower(65, 65, 0, 4, 38, '#922b21', mouseX, mouseY, 'CDU-100');
+  // CDU-T-101 pipe
+  pipe(70, 80, 148, 80, 4, 2, '#888');
+  const u1 = p(40,80,60);
+  ctx.font='bold 11px sans-serif'; ctx.fillStyle=isDark()?'#e74c3c':'#7b241c'; ctx.textAlign='center';
+  ctx.fillText('CDU',u1.sx,u1.sy);
+
+  // === UNIT 200 — FCC (center-left) ===
+  box3D(50,85,0, 70,50,5, isDark()?'#935116':'#e67e22', isDark()?'#a04000':'#d35400', isDark()?'#784212':'#ca6f1e', null, 'FCC-200', mouseX, mouseY);
+  tower(65, 95, 0, 7, 50, '#e67e22', mouseX, mouseY, 'FCC-200');  // Main reactor
+  tower(80,100, 0, 8, 40, '#d35400', mouseX, mouseY, 'FCC-200');  // Regenerator
+  tower(95, 90, 0, 4, 30, '#ca6f1e', mouseX, mouseY, 'FCC-200');
+  const u2 = p(75,110,55);
+  ctx.font='bold 11px sans-serif'; ctx.fillStyle=isDark()?'#f0a30a':'#935116'; ctx.textAlign='center';
+  ctx.fillText('FCC',u2.sx,u2.sy);
+
+  // === UNIT 400 — Feed Heaters ===
+  box3D(10,10,0, 100,35,5, isDark()?'#6e2f2f':'#c0392b', isDark()?'#7b2424':'#e74c3c', isDark()?'#5c2626':'#a93226', null, 'Heaters', mouseX, mouseY);
+  // Heater furnaces (box-shaped)
+  [[15,15],[35,15],[55,15],[75,15]].forEach(([hx,hy]) => {
+    box3D(hx,hy,0,12,18,14,'#c0392b','#e74c3c','#a93226',null,'Heaters',mouseX,mouseY);
+  });
+  const uh = p(55,28,18);
+  ctx.font='bold 10px sans-serif'; ctx.fillStyle=isDark()?'#f1948a':'#6e2f2f'; ctx.textAlign='center';
+  ctx.fillText('Feed Heaters',uh.sx,uh.sy);
+
+  // === UNIT 400 — CCR ===
+  box3D(115,10,0, 55,60,5, isDark()?'#a04000':'#d35400', isDark()?'#ba4a00':'#e67e22', isDark()?'#935116':'#ca6f1e', null, 'CCR-400', mouseX, mouseY);
+  tower(125,20,0,5,55,'#d35400',mouseX,mouseY,'CCR-400');  // Platformer
+  tower(135,35,0,4,45,'#e67e22',mouseX,mouseY,'CCR-400');  // Separator
+  tower(145,50,0,4,38,'#d35400',mouseX,mouseY,'CCR-400');
+  tower(155,25,0,6,48,'#ca6f1e',mouseX,mouseY,'CCR-400');
+  const u4 = p(140,45,58);
+  ctx.font='bold 10px sans-serif'; ctx.fillStyle=isDark()?'#f0b27a':'#935116'; ctx.textAlign='center';
+  ctx.fillText('CCR',u4.sx,u4.sy);
+
+  // === UNIT 900 — Utilities (top-right) ===
+  box3D(175,10,0, 70,60,5, isDark()?'#1e8449':'#27ae60', isDark()?'#1a7a3e':'#2ecc71', isDark()?'#196f3d':'#239b56', null, 'Util-900', mouseX, mouseY);
+  // Cooling towers (box with shadow)
+  [[180,15],[200,15],[220,15],[240,15]].forEach(([ux,uy]) => {
+    box3D(ux,uy,0,14,20,15,'#1e8449','#27ae60','#196f3d',null,'Util-900',mouseX,mouseY);
+  });
+  const u9 = p(215,45,18);
+  ctx.font='bold 10px sans-serif'; ctx.fillStyle=isDark()?'#58d68d':'#1a5c31'; ctx.textAlign='center';
+  ctx.fillText('Utilities',u9.sx,u9.sy);
+
+  // === UNIT 800 — Amine & Sulfur ===
+  box3D(175,80,0, 60,65,5, isDark()?'#6c3483':'#8e44ad', isDark()?'#7d3c98':'#9b59b6', isDark()?'#5b2c6f':'#7d3c98', null, 'Amine-800', mouseX, mouseY);
+  tower(185,90,0,5,40,'#8e44ad',mouseX,mouseY,'Amine-800');
+  tower(200,100,0,4,35,'#9b59b6',mouseX,mouseY,'Amine-800');
+  // Sulfur recovery (yellow box)
+  box3D(195,115,0,30,20,10,'#d4ac0d','#f1c40f','#b7950b',null,'Amine-800',mouseX,mouseY);
+  const u8 = p(205,120,14);
+  ctx.font='bold 10px sans-serif'; ctx.fillStyle=isDark()?'#f0b27a':'#4a235a'; ctx.textAlign='center';
+  ctx.fillText('Amine/Sulfur',u8.sx,u8.sy);
+
+  // === Flare Stacks ===
+  // High Pressure Flare (top-right area)
+  tower(255,25,0,2,80,'#7f8c8d',mouseX,mouseY,'Flare-HP');
+  const fhp = p(255,25,82);
+  if (animRunning) drawFlame(fhp.sx, fhp.sy, 5*fhp.scale, t);
+  const fhl = p(255,25,90);
+  ctx.font='9px sans-serif'; ctx.fillStyle=isDark()?'#f39c12':'#7f6000'; ctx.textAlign='center';
+  ctx.fillText('HP Flare',fhl.sx,fhl.sy-12);
+
+  // Low Pressure Flare
+  tower(275,25,0,1.5,60,'#95a5a6',mouseX,mouseY,'Flare-LP');
+  const flp = p(275,25,62);
+  if (animRunning) drawFlame(flp.sx, flp.sy, 3.5*flp.scale, t);
+  const fll = p(275,25,70);
+  ctx.font='9px sans-serif'; ctx.fillStyle=isDark()?'#f39c12':'#7f6000'; ctx.textAlign='center';
+  ctx.fillText('LP Flare',fll.sx,fll.sy-10);
+
+  // === Admin & Support Buildings ===
+  box3D(220,80,0,35,25,10,'#7f8c8d','#95a5a6','#6d7f8d','Admin',null,mouseX,mouseY);
+  box3D(220,108,0,35,15,8,'#626567','#717d7e','#515a5a','Hangar',null,mouseX,mouseY);
+  // Fire Station
+  box3D(255,80,0,20,20,12,'#c0392b','#e74c3c','#a93226','Fire',null,mouseX,mouseY);
+  // Lab
+  box3D(255,103,0,20,15,10,'#2e86c1','#3498db','#2874a6','Lab',null,mouseX,mouseY);
+
+  // === Main pipes / pipelines ===
+  // CDU-T-101 main trunk
+  pipe(148,155,148,280,3,2,'#e74c3c');
+  // Horizontal pipe rack
+  pipe(70,148,250,148,5,1.5,'#888');
+  // Various connecting pipes
+  pipe(40,135,40,148,3,1.5,'#c0392b');
+  pipe(75,115,75,148,4,1.5,'#e67e22');
+  pipe(135,65,148,65,3,1.5,'#d35400');
+  pipe(175,70,175,148,4,1.5,'#9b59b6');
+
+  // === Info panel ===
+  const panel = document.getElementById('info-panel');
+  const ipTitle = document.getElementById('ip-title');
+  const ipDesc = document.getElementById('ip-desc');
+  if (hoveredUnit && UNITS[hoveredUnit]) {
+    panel.classList.add('show');
+    ipTitle.textContent = UNITS[hoveredUnit].title;
+    ipDesc.textContent = UNITS[hoveredUnit].desc;
+  } else {
+    panel.classList.remove('show');
+  }
+
+  animFrame++;
+  requestAnimationFrame(() => drawScene(animRunning ? t+1 : t));
+}
+
+drawScene(0);
+</script>

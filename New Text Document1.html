@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated Oil Refinery 3D Model</title>
+    <style>
+        :root {
+            --bg-color: #0c1020;
+            --panel-bg: rgba(8,12,22,0.93);
+            --border: rgba(50,110,200,0.25);
+            --accent: #2e7fd0;
+            --text-main: #c0d4e8;
+            --text-sec: #506070;
+        }
+        body { margin: 0; overflow: hidden; background: var(--bg-color); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text-main); user-select: none; }
+        canvas { display: block; outline: none; }
+        
+        /* UI Elements */
+        .ui-panel {
+            position: absolute; background: var(--panel-bg); border: 1px solid var(--border);
+            padding: 10px; border-radius: 4px; pointer-events: auto; backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: opacity 0.3s;
+        }
+        
+        /* Toolbar */
+        #toolbar {
+            top: 0; left: 0; width: 100%; height: 50px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; box-sizing: border-box; z-index: 100; border-bottom: 1px solid var(--border);
+            background: rgba(8,12,22,0.97);
+        }
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 24px; height: 24px; background: var(--accent); border-radius: 50%; }
+        .title-text h1 { margin: 0; font-size: 16px; font-weight: 600; color: #fff; }
+        .title-text p { margin: 0; font-size: 11px; color: var(--text-sec); }
+        
+        .btn-group { display: flex; gap: 5px; }
+        button {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main);
+            padding: 5px 10px; font-size: 12px; cursor: pointer; border-radius: 3px; transition: all 0.2s;
+        }
+        button:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+        button.active { background: var(--accent); color: #fff; border-color: #fff; }
+
+        /* Legend */
+        #legend { top: 60px; left: 10px; width: 180px; z-index: 90; max-height: 80vh; overflow-y: auto; }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+        .swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.2); }
+
+        /* Info Panel */
+        #info-panel { top: 60px; right: 10px; width: 250px; z-index: 90; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #info-panel.visible { transform: translateX(0); }
+        #info-panel h2 { margin: 0 0 10px 0; font-size: 16px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .info-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+        .info-label { color: var(--text-sec); }
+        .info-val { font-weight: 600; color: #fff; }
+
+        /* Mini-map */
+        #minimap-container { bottom: 40px; right: 10px; width: 150px; height: 120px; z-index: 90; overflow: hidden; background: #000; border: 1px solid var(--border); }
+        #minimap-canvas { width: 100%; height: 100%; display: block; }
+        #view-cone { position: absolute; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 8px solid rgba(255, 50, 50, 0.7); transform-origin: bottom center; }
+
+        /* Stats */
+        #stats { bottom: 10px; left: 10px; font-size: 11px; z-index: 90; pointer-events: none; }
+        
+        /* Hint */
+        #hint-bar { bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; font-size: 11px; color: rgba(255,255,255,0.7); z-index: 90; pointer-events: none; }
+
+        /* Loading */
+        #loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color);
+            z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 1s ease-out;
+        }
+        .loader-bar { width: 300px; height: 4px; background: #333; margin-top: 20px; border-radius: 2px; overflow: hidden; }
+        .loader-progress { width: 0%; height: 100%; background: var(--accent); transition: width 0.2s; }
+
+        /* Labels */
+        .label-marker { pointer-events: none; transition: opacity 0.2s; }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <h1 style="color:white; margin-bottom: 5px;">INTEGRATED OIL REFINERY</h1>
+        <p style="color:var(--text-sec); font-size: 14px;">3D Interactive Model · 200,000 BPD</p>
+        <div class="loader-bar"><div class="loader-progress" id="progress"></div></div>
+        <div id="load-status" style="margin-top: 10px; font-size: 12px; color: var(--accent);">Initializing...</div>
+    </div>
+
+    <!-- UI Overlay -->
+    <div id="toolbar">
+        <div class="logo-area">
+            <div class="logo-icon"></div>
+            <div class="title-text">
+                <h1>Integrated Refinery 3D Model</h1>
+                <p>200,000 BPD · Capacity · Full Process</p>
+            </div>
+        </div>
+        <div class="btn-group" id="view-presets">
+            <button data-view="persp">Perspective</button>
+            <button data-view="top">Top</button>
+            <button data-view="iso">Isometric</button>
+            <button data-view="north">North</button>
+            <button data-view="east">East</button>
+            <button data-view="fcc">FCC</button>
+            <button data-view="tanks">Tanks</button>
+        </div>
+        <div class="btn-group">
+            <button id="btn-wireframe">Wireframe</button>
+            <button id="btn-shadows">Shadows</button>
+            <button id="btn-labels">Labels</button>
+            <button id="btn-night">Night Mode</button>
+            <button id="btn-rotate">Auto Rotate</button>
+        </div>
+    </div>
+
+    <div id="legend" class="ui-panel">
+        <h3 style="margin-top:0; font-size:13px; border-bottom:1px solid var(--border); padding-bottom:5px;">Legend</h3>
+        <div id="legend-content"></div>
+    </div>
+
+    <div id="info-panel" class="ui-panel">
+        <h2 id="info-title">Equipment Details</h2>
+        <div id="info-content"></div>
+    </div>
+
+    <div id="minimap-container" class="ui-panel" style="padding:0;">
+        <canvas id="minimap-canvas"></canvas>
+        <div id="view-cone"></div>
+    </div>
+
+    <div id="stats" class="ui-panel" style="background:transparent; border:none; box-shadow:none;">
+        <div>Refinery: Integrated Complex</div>
+        <div>Capacity: 200,000 BPD</div>
+        <div id="eq-count">Equipment: Loading...</div>
+    </div>
+
+    <div id="hint-bar">Left: Rotate | Right: Pan | Scroll: Zoom | Click: Details</div>
+
+    <!-- Three.js Container -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // ======================================================================
+        // SECTION 0: GLOBAL VARIABLES DECLARATION
+        // ======================================================================
+        
+        // Core Three.js Components
+        let scene, camera, renderer, clock;
+        let sunLight, hemiLight, fillLight;
+        
+        // Scene State
+        let isNight = false;
+        let isWireframe = false;
+        let showLabels = true;
+        let autoRotate = false;
+        
+        // Camera State
+        let camTarget = new THREE.Vector3(0, 20, 0);
+        let camRadius = 900;
+        let camTheta = 0.7; // Azimuth
+        let camPhi = 0.8;   // Polar
+        let minPhi = 0.05;
+        let maxPhi = Math.PI / 2 - 0.02;
+        let isDragging = false;
+        let isPanning = false;
+        let lastMouse = new THREE.Vector2();
+        let panSpeed = 2;
+        let rotateSpeed = 0.005;
+        
+        // Interaction
+        let raycaster, mouse;
+        let selectedObject = null;
+        let EQ = []; // Equipment Array
+        let labels = []; // Labels Array
+        let animObjects = []; // Objects needing animation updates
+        
+        // Geometry Helpers Cache
+        let geoCache = {};
+        
+        // Materials Library
+        let matLib = {};
+        
+        // Groups for Organization
+        let groupSite, groupUnits, groupPipes, groupStructures, groupUtilities, groupFlare, groupLabels;
+        
+        // Minimap
+        let minimapCanvas, minimapCtx;
+        
+        // Loading
+        let loadProgress = 0;
+        let loadStep = 0;
+
+        // ======================================================================
+        // SECTION 1: HELPER FUNCTIONS & MATERIALS
+        // ======================================================================
+
+        // Update Loading UI
+        function updateLoadStatus(msg, progress) {
+            const el = document.getElementById('progress');
+            const txt = document.getElementById('load-status');
+            if(el) el.style.width = (progress * 100) + '%';
+            if(txt) txt.innerText = msg;
+        }
+
+        // Basic Geometries
+        function B(w, h, d) { return new THREE.BoxGeometry(w, h, d); }
+        function CYL(rt, rb, h, seg) { return new THREE.CylinderGeometry(rt, rb, h, seg || 16); }
+        function CONE(rt, rb, h, seg) { return new THREE.CylinderGeometry(rt, rb, h, seg || 16, 1, true); }
+        function TORUS(r, t, seg) { return new THREE.TorusGeometry(r, t, seg || 8, seg || 24); }
+        function PLANE(w, h) { return new THREE.PlaneGeometry(w, h); }
+
+        // Pipe Generator between two points
+        function PIPE(p1, p2, r, mat) {
+            const distance = p1.distanceTo(p2);
+            const cylinder = new THREE.Mesh(CYL(r, r, distance, 8), mat);
+            
+            // Position at midpoint
+            cylinder.position.copy(p1).add(p2).multiplyScalar(0.5);
+            
+            // Orient using LookAt and rotate 90 deg because Cylinder is Y-up
+            cylinder.lookAt(p2);
+            cylinder.rotateX(Math.PI / 2);
+            
+            return cylinder;
+        }
+
+        // Materials Initialization
+        function initMaterials() {
+            const p = {
+                g: new THREE.MeshStandardMaterial({ color: 0x8a7550, metalness: 0, roughness: 1.0 }), // ground_desert
+                c: new THREE.MeshStandardMaterial({ color: 0xb0a890, metalness: 0, roughness: 0.95 }), // site_concrete
+                r: new THREE.MeshStandardMaterial({ color: 0x484840, metalness: 0, roughness: 1.0 }), // road_asphalt
+                y: new THREE.MeshStandardMaterial({ color: 0xe8d820, metalness: 0, roughness: 0.9 }), // road_marking
+                vi: new THREE.MeshStandardMaterial({ color: 0xddd8c8, metalness: 0.05, roughness: 0.88 }), // vessel_insul
+                vss: new THREE.MeshStandardMaterial({ color: 0xc4c8d0, metalness: 0.9, roughness: 0.15 }), // vessel_ss
+                vcs: new THREE.MeshStandardMaterial({ color: 0xa0a8b0, metalness: 0.7, roughness: 0.35 }), // vessel_cs
+                ts: new THREE.MeshStandardMaterial({ color: 0xd8d0a8, metalness: 0.25, roughness: 0.65 }), // tank_shell
+                tr: new THREE.MeshStandardMaterial({ color: 0xc0b060, metalness: 0.3, roughness: 0.55 }), // tank_roof
+                pcs: new THREE.MeshStandardMaterial({ color: 0x8890a0, metalness: 0.75, roughness: 0.3 }), // pipe_cs
+                pi: new THREE.MeshStandardMaterial({ color: 0xe0d8c0, metalness: 0.05, roughness: 0.85 }), // pipe_insul
+                pss: new THREE.MeshStandardMaterial({ color: 0xb8bcc8, metalness: 0.85, roughness: 0.2 }), // pipe_ss
+                pf: new THREE.MeshStandardMaterial({ color: 0xcc2200, metalness: 0.6, roughness: 0.4 }), // pipe_fire
+                pfg: new THREE.MeshStandardMaterial({ color: 0xd4c020, metalness: 0.5, roughness: 0.5 }), // pipe_fuelgas
+                ss: new THREE.MeshStandardMaterial({ color: 0xa0a8b4, metalness: 0.8, roughness: 0.25 }), // structural_stl
+                gr: new THREE.MeshStandardMaterial({ color: 0x606870, metalness: 0.7, roughness: 0.4, transparent: true, opacity: 0.8 }), // grating
+                cf: new THREE.MeshStandardMaterial({ color: 0x989080, metalness: 0, roughness: 1.0 }), // concrete_found
+                bw: new THREE.MeshStandardMaterial({ color: 0xccc4b4, metalness: 0, roughness: 0.92 }), // building_wall
+                br: new THREE.MeshStandardMaterial({ color: 0x5a6878, metalness: 0.3, roughness: 0.75 }), // building_roof
+                bg: new THREE.MeshStandardMaterial({ color: 0x88c8e8, metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.3, side: THREE.DoubleSide }), // building_glass
+                pm: new THREE.MeshStandardMaterial({ color: 0x2a5040, metalness: 0.65, roughness: 0.4 }), // pump_motor
+                cmp: new THREE.MeshStandardMaterial({ color: 0x3a5060, metalness: 0.5, roughness: 0.5 }), // compressor
+                hc: new THREE.MeshStandardMaterial({ color: 0x706860, metalness: 0.3, roughness: 0.7 }), // heater_casing
+                hs: new THREE.MeshStandardMaterial({ color: 0x484848, metalness: 0.6, roughness: 0.5 }), // heater_stack
+                fs: new THREE.MeshStandardMaterial({ color: 0x787880, metalness: 0.8, roughness: 0.3 }), // flare_steel
+                spt: new THREE.MeshStandardMaterial({ color: 0xd0c8a8, metalness: 0.3, roughness: 0.6 }), // sphere_tank
+                ls: new THREE.MeshStandardMaterial({ color: 0x606878, metalness: 0.85, roughness: 0.25 }), // ladder_steel
+                yg: new THREE.MeshStandardMaterial({ color: 0xe0b800, metalness: 0.3, roughness: 0.5 }), // yellow_guard
+                ft: new THREE.MeshStandardMaterial({ color: 0xcc1100, metalness: 0.4, roughness: 0.5 }), // fire_truck
+                ct: new THREE.MeshStandardMaterial({ color: 0xa8a090, metalness: 0, roughness: 0.9 }), // cooling_tower
+                ref: new THREE.MeshStandardMaterial({ color: 0xb09070, metalness: 0, roughness: 1.0 }), // refractory
+                flameMat: new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8 }),
+                steamMat: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15, depthWrite: false })
+            };
+            matLib = p;
+        }
+
+        // Label Generator
+        function createLabel(text, position, color = '#ffffff') {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const fontSize = 24;
+            const padding = 8;
+            const font = `bold ${fontSize}px Segoe UI`;
+            
+            ctx.font = font;
+            const textWidth = ctx.measureText(text).width;
+            canvas.width = textWidth + padding * 2;
+            canvas.height = fontSize + padding * 2;
+            
+            // Redraw with correct size
+            ctx.font = font;
+            ctx.fillStyle = 'rgba(6,10,22,0.88)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = 'rgba(46,127,208,0.6)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            
+            // Scale relative to distance hack (initial scale)
+            sprite.scale.set(15, 7.5, 1);
+            sprite.position.copy(position);
+            sprite.position.y += 2; // Offset
+            
+            groupLabels.add(sprite);
+            labels.push(sprite);
+            return sprite;
+        }
+
+        // Create generic platform
+        function createPlatform(r, y, heightOffset = 0) {
+            const grp = new THREE.Group();
+            // Floor
+            const floor = new THREE.Mesh(CYL(r, r, 0.2, 32), matLib.gr);
+            floor.position.y = heightOffset;
+            grp.add(floor);
+            
+            // Railing
+            const rail = new THREE.Mesh(CYL(r + 0.5, r + 0.5, 1.1, 32), matLib.yg);
+            rail.position.y = heightOffset + 0.6;
+            grp.add(rail);
+            
+            grp.position.y = y;
+            return grp;
+        }
+
+        // Add Equipment to Scene and Array
+        function addEQ(mesh, data) {
+            mesh.userData = data;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            groupUnits.add(mesh);
+            EQ.push(mesh);
+            return mesh;
+        }
+
+        // ======================================================================
+        // SECTION 2: SCENE INITIALIZATION
+        // ======================================================================
+
+        function init() {
+            updateLoadStatus("Initializing Engine...", 0.05);
+
+            // Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c1020);
+            scene.fog = new THREE.FogExp2(0x0c1020, 0.0008);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 5000);
+            updateCameraPosition();
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.body.appendChild(renderer.domElement);
+
+            // Clock
+            clock = new THREE.Clock();
+
+            // Input
+            mouse = new THREE.Vector2();
+            raycaster = new THREE.Raycaster();
+
+            // Groups
+            groupSite = new THREE.Group();
+            groupUnits = new THREE.Group();
+            groupPipes = new THREE.Group();
+            groupStructures = new THREE.Group();
+            groupUtilities = new THREE.Group();
+            groupFlare = new THREE.Group();
+            groupLabels = new THREE.Group();
+            scene.add(groupSite, groupUnits, groupPipes, groupStructures, groupUtilities, groupFlare, groupLabels);
+
+            // Build Content
+            initMaterials();
+            createLights();
+            updateLoadStatus("Building Terrain...", 0.1);
+            buildEnvironment();
+            
+            updateLoadStatus("Constructing Process Units...", 0.2);
+            buildUnits();
+            
+            updateLoadStatus("Piping & Structure...", 0.5);
+            buildPipesAndStructures();
+            
+            updateLoadStatus("Utilities & Flare...", 0.7);
+            buildUtilities();
+            buildFlare();
+            
+            updateLoadStatus("Finalizing UI...", 0.9);
+            setupUI();
+            setupInputs();
+            
+            updateLoadStatus("Complete", 1.0);
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.opacity = 0;
+                setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 1000);
+            }, 500);
+
+            // Update Stats
+            document.getElementById('eq-count').innerText = `Equipment: ${EQ.length} items`;
+
+            // Start Loop
+            animate();
+        }
+
+        function createLights() {
+            // Sun
+            sunLight = new THREE.DirectionalLight(0xfff8e8, 2.8);
+            sunLight.position.set(200, 300, 150);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 8192;
+            sunLight.shadow.mapSize.height = 8192;
+            sunLight.shadow.camera.near = 10;
+            sunLight.shadow.camera.far = 1000;
+            sunLight.shadow.camera.left = -400;
+            sunLight.shadow.camera.right = 400;
+            sunLight.shadow.camera.top = 400;
+            sunLight.shadow.camera.bottom = -400;
+            sunLight.shadow.bias = -0.0006;
+            sunLight.shadow.normalBias = 0.05;
+            scene.add(sunLight);
+
+            // Hemisphere
+            hemiLight = new THREE.HemisphereLight(0xa0c0e0, 0x604830, 0.9);
+            scene.add(hemiLight);
+
+            // Fill
+            fillLight = new THREE.DirectionalLight(0x5090c0, 0.4);
+            fillLight.position.set(-150, 80, -100);
+            scene.add(fillLight);
+        }
+
+        // ======================================================================
+        // SECTION 3: ENVIRONMENT & ROADS
+        // ======================================================================
+        
+        function buildEnvironment() {
+            // Ground
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), matLib.g);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            groupSite.add(ground);
+
+            // Site Boundary (Fence)
+            const fenceGeo = new THREE.BoxGeometry(800, 2.5, 0.2);
+            // North
+            let f1 = new THREE.Mesh(fenceGeo, matLib.vss); f1.position.set(0, 1.25, -300); groupSite.add(f1);
+            // South
+            let f2 = new THREE.Mesh(fenceGeo, matLib.vss); f2.position.set(0, 1.25, 300); groupSite.add(f2);
+            // East
+            let f3 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 600), matLib.vss); f3.position.set(400, 1.25, 0); groupSite.add(f3);
+            // West
+            let f4 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 600), matLib.vss); f4.position.set(-400, 1.25, 0); groupSite.add(f4);
+
+            // Roads
+            const roadMat = matLib.r;
+            // Spine E-W
+            let rw1 = new THREE.Mesh(new THREE.BoxGeometry(800, 0.1, 8), roadMat);
+            rw1.position.set(0, 0.05, 0); groupSite.add(rw1);
+            // Center Line
+            let cl1 = new THREE.Mesh(new THREE.BoxGeometry(800, 0.11, 0.5), matLib.y);
+            cl1.position.set(0, 0.06, 0); groupSite.add(cl1);
+
+            // Spine N-S
+            let rw2 = new THREE.Mesh(new THREE.BoxGeometry(8, 0.1, 600), roadMat);
+            rw2.position.set(0, 0.05, 0); groupSite.add(rw2);
+            let cl2 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.11, 600), matLib.y);
+            cl2.position.set(0, 0.06, 0); groupSite.add(cl2);
+        }
+
+        // ======================================================================
+        // SECTION 4: PROCESS UNITS
+        // ======================================================================
+
+        function buildUnits() {
+            buildCDU();
+            buildFCC();
+            buildHCU();
+            buildCCR();
+            buildHydrotreaters();
+            buildHeaters();
+            buildStorage();
+            buildAmine();
+        }
+
+        // --- UNIT 100 CDU ---
+        function buildCDU() {
+            const cx = -150, cz = -150;
+            
+            // CDU-T-101 Atmospheric Column
+            const t101 = new THREE.Group();
+            const col = new THREE.Mesh(CYL(4.5, 4.5, 55, 32), matLib.vi);
+            col.position.y = 27.5 + 4; // +4 skirt
+            t101.add(col);
+            
+            // Skirt
+            const skirt = new THREE.Mesh(CYL(4, 4, 4, 16), matLib.cf);
+            skirt.position.y = 2;
+            t101.add(skirt);
+
+            // Flanges
+            for(let i=5; i<55; i+=3) {
+                const f = new THREE.Mesh(TORUS(4.52, 0.2, 8), matLib.vcs);
+                f.position.y = i + 4;
+                f.rotation.x = Math.PI/2;
+                t101.add(f);
+            }
+
+            // Top Condenser
+            const cond = new THREE.Mesh(CYL(1.2, 1.2, 5, 16), matLib.vss);
+            cond.position.set(3, 58+2.5, 0);
+            t101.add(cond);
+            // Pipe
+            t101.add(PIPE(new THREE.Vector3(0,59,0), new THREE.Vector3(3,58,0), 0.3, matLib.pi));
+
+            // Platforms
+            for(let i=6; i<55; i+=6) {
+                t101.add(createPlatform(5.5, i + 4));
+            }
+
+            t101.position.set(cx, 0, cz);
+            addEQ(t101, {name: "Atm. Distillation Column", tag: "CDU-T-101", type: "Column"});
+            createLabel("CDU-T-101", new THREE.Vector3(cx, 60, cz));
+
+            // CDU-T-102 Vacuum
+            const t102 = new THREE.Group();
+            const col2 = new THREE.Mesh(CYL(3.8, 3.8, 42, 32), matLib.vi);
+            col2.position.y = 21 + 3;
+            t102.add(col2);
+            t102.position.set(cx + 20, 0, cz);
+            addEQ(t102, {name: "Vacuum Distillation Column", tag: "CDU-T-102", type: "Column"});
+            createLabel("CDU-T-102", new THREE.Vector3(cx+20, 45, cz));
+
+            // Heat Exchangers
+            for(let i=0; i<6; i++) {
+                const row = Math.floor(i/3);
+                const ex = new THREE.Mesh(CYL(0.6, 0.6, 6, 12), matLib.vss);
+                ex.rotation.z = Math.PI/2;
+                ex.position.set(cx - 30 + (i%3)*7, 1.2+0.6, cz - 20 + row*5);
+                addEQ(ex, {name: "Shell & Tube Exchanger", tag: "CDU-E-10"+(i+1), type: "Exchanger"});
+            }
+        }
+
+        // --- UNIT 200 FCC ---
+        function buildFCC() {
+            const cx = 150, cz = -150;
+
+            // Reactor R-201
+            const r201 = new THREE.Group();
+            const rBody = new THREE.Mesh(CYL(5, 5, 35, 32), matLib.vi);
+            rBody.position.y = 17.5;
+            r201.add(rBody);
+            // Cyclones
+            const cyc = new THREE.Mesh(CYL(0.8, 0.8, 4, 8), matLib.vss);
+            cyc.position.y = 37;
+            r201.add(cyc);
+            
+            r201.position.set(cx, 0, cz);
+            addEQ(r201, {name: "FCC Reactor", tag: "FCC-R-201", type: "Reactor"});
+            createLabel("FCC-R-201", new THREE.Vector3(cx, 40, cz));
+
+            // Regenerator R-202
+            const r202 = new THREE.Group();
+            const rgBody = new THREE.Mesh(CYL(6, 6, 38, 32), matLib.ref); // Refractory look
+            rgBody.position.y = 19;
+            r202.add(rgBody);
+            // Stack
+            const stack = new THREE.Mesh(CYL(0.6, 0.6, 20, 16), matLib.hs);
+            stack.position.y = 38 + 10;
+            r202.add(stack);
+            
+            // Glow
+            const glow = new THREE.PointLight(0xff6600, 1.0, 40);
+            glow.position.y = 35;
+            r202.add(glow);
+            r202.userData = {light: glow}; // For animation
+
+            r202.position.set(cx + 18, 0, cz);
+            addEQ(r202, {name: "FCC Regenerator", tag: "FCC-R-202", type: "Reactor"});
+            createLabel("FCC-R-202", new THREE.Vector3(cx+18, 45, cz));
+
+            // Main Fractionator T-201
+            const t201 = new THREE.Mesh(CYL(3.5, 3.5, 45, 32), matLib.vi);
+            t201.position.set(cx - 25, 22.5, 0);
+            addEQ(t201, {name: "Main Fractionator", tag: "FCC-T-201", type: "Column"});
+
+            // Compressor C-201
+            const comp = new THREE.Group();
+            const casing = new THREE.Mesh(CYL(1.5, 1.5, 8, 16), matLib.cmp);
+            casing.rotation.z = Math.PI/2;
+            casing.position.y = 2;
+            comp.add(casing);
+            const driver = new THREE.Mesh(B(6,3,3), matLib.pcs);
+            driver.position.set(-6, 1.5, 0);
+            comp.add(driver);
+            comp.position.set(cx, 0, cz + 40);
+            addEQ(comp, {name: "Wet Gas Compressor", tag: "FCC-C-201", type: "Compressor"});
+        }
+
+        // --- UNIT 300 HCU ---
+        function buildHCU() {
+            const cx = -150, cz = 100;
+            
+            // Reactors R-301/302
+            for(let i=0; i<2; i++) {
+                const r = new THREE.Group();
+                const body = new THREE.Mesh(CYL(2.8, 2.8, 20, 32), matLib.vcs); // Thick wall
+                body.position.y = 10;
+                r.add(body);
+                // Flanges
+                for(let j=4; j<20; j+=4) {
+                    const f = new THREE.Mesh(TORUS(2.85, 0.15, 8), matLib.vcs);
+                    f.position.y = j; f.rotation.x = Math.PI/2;
+                    r.add(f);
+                }
+                r.position.set(cx + i*8, 0, cz);
+                addEQ(r, {name: "Hydrocracker Reactor", tag: `HCU-R-30${i+1}`, type: "Reactor"});
+                createLabel(`HCU-R-30${i+1}`, new THREE.Vector3(cx+i*8, 22, cz));
+            }
+        }
+
+        // --- UNIT 400 CCR ---
+        function buildCCR() {
+            const cx = 150, cz = 100;
+            
+            // Stacked Reactors
+            const stack = new THREE.Group();
+            for(let i=0; i<4; i++) {
+                const r = new THREE.Mesh(CYL(2, 2, 5, 32), matLib.vi);
+                r.position.y = i*6 + 2.5;
+                stack.add(r);
+            }
+            // Transfer pipes
+            for(let i=0; i<3; i++) {
+                const tp = new THREE.Mesh(CYL(0.2, 0.2, 3, 8), matLib.pss);
+                tp.position.set(1.5, i*6 + 5, 0);
+                tp.rotation.z = Math.PI/3;
+                stack.add(tp);
+            }
+
+            stack.position.set(cx, 0, cz);
+            addEQ(stack, {name: "CCR Reactors", tag: "CCR-R-401:404", type: "Reactor"});
+            createLabel("CCR Stack", new THREE.Vector3(cx, 25, cz));
+
+            // Heater H-401
+            const heater = new THREE.Mesh(B(15, 12, 8), matLib.hc);
+            heater.position.set(cx + 30, 6, cz);
+            addEQ(heater, {name: "Platformer Charge Heater", tag: "CCR-H-401", type: "Heater"});
+            // Stack
+            const hStack = new THREE.Mesh(CYL(0.6, 0.6, 25, 16), matLib.hs);
+            hStack.position.set(cx + 30, 12 + 12.5, cz);
+            groupUnits.add(hStack);
+            // Flame Portals
+            const port = new THREE.Mesh(CYL(0.4, 0.4, 0.5, 8), new THREE.MeshBasicMaterial({color:0xff4400}));
+            port.position.set(cx + 23, 2, cz);
+            port.rotation.z = Math.PI/2;
+            groupUnits.add(port);
+            animObjects.push({type:'pulse', mesh: port});
+        }
+
+        // --- UNIT 500 Hydrotreaters ---
+        function buildHydrotreaters() {
+            // NHT
+            const nht = new THREE.Mesh(CYL(2, 2, 14, 32), matLib.vi);
+            nht.position.set(-50, 7, -200);
+            addEQ(nht, {name: "Naphtha Hydrotreater", tag: "NHT-R-501", type: "Reactor"});
+
+            // DHT
+            const dht = new THREE.Mesh(CYL(2.5, 2.5, 18, 32), matLib.vi);
+            dht.position.set(50, 9, -200);
+            addEQ(dht, {name: "Diesel Hydrotreater", tag: "DHT-R-502", type: "Reactor"});
+        }
+
+        // --- UNIT 600 Heaters ---
+        function buildHeaters() {
+            const zPos = -280;
+            const tags = ["H-601", "H-602", "H-603"];
+            for(let i=0; i<3; i++) {
+                const h = new THREE.Group();
+                const box = new THREE.Mesh(B(20, 14, 10), matLib.hc);
+                box.position.y = 7;
+                h.add(box);
+                // Stack
+                const st = new THREE.Mesh(CYL(0.75, 0.75, 30, 16), matLib.hs);
+                st.position.y = 14 + 15;
+                h.add(st);
+                
+                h.position.set(-30 + i*30, 0, zPos);
+                addEQ(h, {name: "Fired Heater", tag: tags[i], type: "Heater"});
+                createLabel(tags[i], new THREE.Vector3(h.position.x, 45, h.position.z));
+            }
+        }
+
+        // --- UNIT 700 Storage ---
+        function buildStorage() {
+            // Floating Roof Tanks
+            for(let i=0; i<4; i++) {
+                for(let j=0; j<2; j++) {
+                    const t = new THREE.Group();
+                    const shell = new THREE.Mesh(CYL(25, 25, 14, 64), matLib.ts);
+                    shell.position.y = 7;
+                    t.add(shell);
+                    // Roof
+                    const roof = new THREE.Mesh(CYL(24.5, 24.5, 0.5, 64), matLib.tr);
+                    roof.position.y = 12;
+                    t.add(roof);
+
+                    t.position.set(-150 + i*60, 0, 200 + j*60);
+                    addEQ(t, {name: "Floating Roof Tank", tag: `TK-70${i*2+j+1}`, type: "Tank"});
+                }
+            }
+            // Spheres
+            const sph1 = new THREE.Mesh(new THREE.SphereGeometry(8, 32, 32), matLib.spt);
+            sph1.position.set(150, 6, 250);
+            addEQ(sph1, {name: "LPG Sphere", tag: "SPH-721", type: "Sphere"});
+            
+            const sph2 = new THREE.Mesh(new THREE.SphereGeometry(8, 32, 32), matLib.spt);
+            sph2.position.set(180, 6, 250);
+            addEQ(sph2, {name: "LPG Sphere", tag: "SPH-722", type: "Sphere"});
+            
+            createLabel("LPG Spheres", new THREE.Vector3(165, 20, 250));
+        }
+
+        // --- UNIT 800 Amine ---
+        function buildAmine() {
+            const cx = 0, cz = 180;
+            // Absorber
+            const abs = new THREE.Mesh(CYL(1.8, 1.8, 30, 32), matLib.vss);
+            abs.position.set(cx - 10, 15, cz);
+            addEQ(abs, {name: "Amine Absorber", tag: "AGU-T-801", type: "Column"});
+            
+            // Regenerator
+            const reg = new THREE.Mesh(CYL(1.5, 1.5, 24, 32), matLib.vss);
+            reg.position.set(cx + 10, 12, cz);
+            addEQ(reg, {name: "Amine Regenerator", tag: "AGU-T-802", type: "Column"});
+            
+            // Sulfur Pit
+            const pit = new THREE.Mesh(B(6, 1, 4), new THREE.MeshStandardMaterial({color: 0xffcc00}));
+            pit.position.set(cx, 0.5, cz + 15);
+            groupUnits.add(pit);
+        }
+
+        // --- UNIT 900 Utilities ---
+        function buildUtilities() {
+            const cx = 300, cz = 0;
+            
+            // Cooling Tower
+            const ct = new THREE.Group();
+            const base = new THREE.Mesh(B(40, 12, 20), matLib.ct);
+            base.position.y = 6;
+            ct.add(base);
+            // Fans
+            for(let i=0; i<4; i++) {
+                const fan = new THREE.Mesh(CYL(4, 4, 0.5, 8), matLib.yg);
+                fan.position.set(-15 + i*10, 12.5, 0);
+                ct.add(fan);
+                animObjects.push({type:'rotate', mesh: fan, speed: 0.05});
+                
+                // Steam
+                const steam = new THREE.Mesh(CONE(2, 4, 8, 8), matLib.steamMat);
+                steam.position.set(-15 + i*10, 16, 0);
+                ct.add(steam);
+                animObjects.push({type:'steam', mesh: steam, speed: 0.02, offset: i});
+            }
+            ct.position.set(cx, 0, cz - 50);
+            groupUtilities.add(ct);
+            createLabel("Cooling Tower", new THREE.Vector3(cx, 20, cz-50));
+
+            // Admin Building
+            const b1 = new THREE.Group();
+            b1.add(new THREE.Mesh(B(40, 6, 20), matLib.bw));
+            // Windows (Emissive)
+            const glass = new THREE.Mesh(B(38, 4, 18), new THREE.MeshBasicMaterial({color:0x88c8e8}));
+            glass.position.y = 2; glass.position.z = 1;
+            b1.add(glass);
+            b1.position.set(cx + 50, 0, cz + 60);
+            groupUtilities.add(b1);
+            createLabel("Admin Block", new THREE.Vector3(cx+50, 10, cz+60));
+        }
+
+        // --- UNIT 1000 Flare ---
+        function buildFlare() {
+            const fPos = new THREE.Vector3(0, 0, 260);
+            const flare = new THREE.Group();
+
+            // Foundation
+            const found = new THREE.Mesh(CYL(5, 5, 1, 8), matLib.cf);
+            flare.add(found);
+
+            // Stack
+            const stackGeo = new THREE.CylinderGeometry(0.5, 1.5, 120, 16);
+            const stack = new THREE.Mesh(stackGeo, matLib.fs);
+            stack.position.y = 60;
+            flare.add(stack);
+
+            // Flame
+            const flameCone = new THREE.Mesh(CONE(1.5, 0.5, 8, 16), matLib.flameMat);
+            flameCone.position.y = 120;
+            flare.add(flameCone);
+            animObjects.push({type:'flare', mesh: flameCone});
+
+            // Light
+            const fLight = new THREE.PointLight(0xff4400, 8, 100);
+            fLight.position.y = 122;
+            flare.add(fLight);
+            animObjects.push({type:'flareLight', light: fLight});
+
+            // Knockout Drum
+            const drum = new THREE.Mesh(CYL(2, 2, 10, 16), matLib.vcs);
+            drum.rotation.z = Math.PI/2;
+            drum.position.set(10, 5, 0);
+            flare.add(drum);
+
+            flare.position.copy(fPos);
+            groupFlare.add(flare);
+            createLabel("HP Flare", new THREE.Vector3(0, 60, 260));
+        }
+
+        // ======================================================================
+        // SECTION 5: PIPES & STRUCTURES
+        // ======================================================================
+        
+        function buildPipesAndStructures() {
+            // Main Pipe Rack (X=0)
+            const rackX = new THREE.Group();
+            // Columns
+            for(let z=-280; z<=280; z+=8) {
+                const col = new THREE.Mesh(B(0.5, 8, 0.5), matLib.ss);
+                col.position.set(0, 4, z);
+                rackX.add(col);
+            }
+            // Beams
+            const beam = new THREE.Mesh(B(560, 0.5, 6), matLib.ss);
+            beam.position.set(0, 4, 0); rackX.add(beam);
+            const beam2 = beam.clone(); beam2.position.y = 8; rackX.add(beam2);
+
+            // Pipes
+            const pipeConfigs = [
+                {r:0.3, mat:matLib.pi, x: -2}, {r:0.3, mat:matLib.pi, x: -1.5},
+                {r:0.2, mat:matLib.pi, x: -1}, {r:0.2, mat:matLib.pi, x: -0.5},
+                {r:0.15, mat:matLib.pcs, x: 0}, {r:0.15, mat:matLib.pcs, x: 0.5},
+                {r:0.15, mat:matLib.pss, x: 1}, {r:0.1, mat:matLib.pf, x: 1.5},
+                {r:0.1, mat:matLib.pss, x: 2}, {r:0.05, mat:matLib.pfg, x: 2.5}
+            ];
+
+            pipeConfigs.forEach(cfg => {
+                const p = new THREE.Mesh(CYL(cfg.r, cfg.r, 560, 8), cfg.mat);
+                p.rotation.z = Math.PI/2;
+                p.position.set(cfg.x, 5, 0); // Mid level
+                rackX.add(p);
+            });
+
+            groupPipes.add(rackX);
+
+            // Cross Rack (Z=0)
+            const rackZ = rackX.clone();
+            rackZ.rotation.y = Math.PI/2;
+            groupPipes.add(rackZ);
+        }
+
+        // ======================================================================
+        // SECTION 6: CAMERA CONTROLS & INPUT
+        // ======================================================================
+
+        function updateCameraPosition() {
+            // Spherical to Cartesian
+            const x = camRadius * Math.sin(camPhi) * Math.sin(camTheta);
+            const y = camRadius * Math.cos(camPhi);
+            const z = camRadius * Math.sin(camPhi) * Math.cos(camTheta);
+            
+            camera.position.set(x, y, z);
+            camera.lookAt(camTarget);
+        }
+
+        function setupInputs() {
+            const canvas = renderer.domElement;
+
+            canvas.addEventListener('mousedown', (e) => {
+                if(e.button === 0) isDragging = true;
+                if(e.button === 2) isPanning = true;
+                lastMouse.set(e.clientX, e.clientY);
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                const dx = e.clientX - lastMouse.x;
+                const dy = e.clientY - lastMouse.y;
+
+                if(isDragging) {
+                    camTheta -= dx * rotateSpeed;
+                    camPhi -= dy * rotateSpeed;
+                    camPhi = Math.max(minPhi, Math.min(maxPhi, camPhi));
+                    updateCameraPosition();
+                } else if (isPanning) {
+                    const panX = dx * panSpeed * (camRadius / 1000);
+                    const panZ = dy * panSpeed * (camRadius / 1000);
+                    
+                    // Calculate right and forward vectors relative to camera
+                    const v = new THREE.Vector3();
+                    camera.getWorldDirection(v);
+                    const right = new THREE.Vector3();
+                    right.crossVectors(v, camera.up).normalize();
+                    const forward = new THREE.Vector3();
+                    forward.crossVectors(camera.up, right).normalize(); // Actually 'up' on screen
+                    forward.y = 0; forward.normalize();
+
+                    camTarget.addScaledVector(right, panX);
+                    camTarget.addScaledVector(forward, panZ); // Inverted usually, depends on coord sys
+                    updateCameraPosition();
+                }
+
+                lastMouse.set(e.clientX, e.clientY);
+                
+                // Raycasting for cursor
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                if(isDragging) {
+                    // Click logic could go here if we distinguish drag vs click
+                }
+                isDragging = false;
+                isPanning = false;
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                camRadius += e.deltaY * 0.5;
+                camRadius = Math.max(50, Math.min(2000, camRadius));
+                updateCameraPosition();
+            });
+
+            canvas.addEventListener('click', (e) => {
+                // Select Object
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(EQ, true);
+                
+                const panel = document.getElementById('info-panel');
+                
+                if(intersects.length > 0) {
+                    // Find root object with userData
+                    let obj = intersects[0].object;
+                    while(obj.parent && !obj.userData.name) {
+                        obj = obj.parent;
+                    }
+                    
+                    if(obj.userData.name) {
+                        selectedObject = obj;
+                        showInfo(obj.userData);
+                        panel.classList.add('visible');
+                    }
+                } else {
+                    panel.classList.remove('visible');
+                    selectedObject = null;
+                }
+            });
+
+            // Prevent context menu
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // ======================================================================
+        // SECTION 7: UI & LOGIC
+        // ======================================================================
+
+        function setupUI() {
+            // Legend Generation
+            const legendData = [
+                {c: '#ddd8c8', l: 'Distillation Columns'},
+                {c: '#a0a8b0', l: 'Reactors (Hydrocracker)'},
+                {c: '#c4c8d0', l: 'Heat Exchangers (SS)'},
+                {c: '#d8d0a8', l: 'Storage Tanks'},
+                {c: '#3a5060', l: 'Pumps & Compressors'},
+                {c: '#706860', l: 'Fired Heaters'},
+                {c: '#8890a0', l: 'Pipe Racks'},
+                {c: '#a8a090', l: 'Utilities'},
+                {c: '#787880', l: 'Flare System'}
+            ];
+            
+            const legCont = document.getElementById('legend-content');
+            legendData.forEach(d => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `<div class="swatch" style="background:${d.c}"></div><span>${d.l}</span>`;
+                legCont.appendChild(item);
+            });
+
+            // View Buttons
+            document.getElementById('view-presets').addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON') {
+                    const v = e.target.dataset.view;
+                    applyView(v);
+                }
+            });
+
+            // Toggles
+            document.getElementById('btn-wireframe').onclick = () => {
+                isWireframe = !isWireframe;
+                scene.traverse(o => { if(o.isMesh && o.material) o.material.wireframe = isWireframe; });
+            };
+            
+            document.getElementById('btn-shadows').onclick = () => {
+                renderer.shadowMap.enabled = !renderer.shadowMap.enabled;
+                scene.traverse(o => { if(o.isMesh) o.needsUpdate = true; });
+            };
+
+            document.getElementById('btn-labels').onclick = () => {
+                showLabels = !showLabels;
+                groupLabels.visible = showLabels;
+            };
+
+            document.getElementById('btn-night').onclick = toggleNight;
+            document.getElementById('btn-rotate').onclick = () => { autoRotate = !autoRotate; };
+
+            // Minimap
+            minimapCanvas = document.getElementById('minimap-canvas');
+            minimapCanvas.width = 150;
+            minimapCanvas.height = 120;
+            minimapCtx = minimapCanvas.getContext('2d');
+            drawMinimap();
+        }
+
+        function applyView(view) {
+            switch(view) {
+                case 'persp': camTheta=0.7; camPhi=0.8; camRadius=900; camTarget.set(0,20,0); break;
+                case 'top': camTheta=0; camPhi=0.02; camRadius=1000; camTarget.set(0,0,0); break;
+                case 'iso': camTheta=Math.PI/4; camPhi=Math.PI/4; camRadius=800; break;
+                case 'north': camTheta=0; camPhi=0.6; camRadius=700; break;
+                case 'east': camTheta=Math.PI/2; camPhi=0.6; camRadius=700; break;
+                case 'fcc': camTheta=0.5; camPhi=0.7; camRadius=250; camTarget.set(150,20,-150); break;
+                case 'tanks': camTheta=0.3; camPhi=0.8; camRadius=400; camTarget.set(0,0,200); break;
+            }
+            updateCameraPosition();
+        }
+
+        function showInfo(data) {
+            const c = document.getElementById('info-content');
+            c.innerHTML = `
+                <div class="info-row"><span class="info-label">Name:</span> <span class="info-val">${data.name}</span></div>
+                <div class="info-row"><span class="info-label">Tag:</span> <span class="info-val">${data.tag}</span></div>
+                <div class="info-row"><span class="info-label">Type:</span> <span class="info-val">${data.type}</span></div>
+                <div class="info-row"><span class="info-label">Status:</span> <span class="info-val" style="color:#0f0">EXISTING</span></div>
+                <div class="info-row" style="margin-top:10px; font-size:10px; color:#666;">
+                    Process data unavailable in viewer mode.
+                </div>
+            `;
+        }
+
+        function toggleNight() {
+            isNight = !isNight;
+            const btn = document.getElementById('btn-night');
+            if(isNight) {
+                btn.classList.add('active');
+                scene.background.setHex(0x020408);
+                scene.fog.color.setHex(0x020408);
+                sunLight.intensity = 0.05;
+                hemiLight.intensity = 0.1;
+                hemiLight.color.setHex(0x001030);
+                // Add more lights if needed or boost emissives
+            } else {
+                btn.classList.remove('active');
+                scene.background.setHex(0x0c1020);
+                scene.fog.color.setHex(0x0c1020);
+                sunLight.intensity = 2.8;
+                hemiLight.intensity = 0.9;
+                hemiLight.color.setHex(0xa0c0e0);
+            }
+        }
+
+        function drawMinimap() {
+            if(!minimapCtx) return;
+            const w = minimapCanvas.width;
+            const h = minimapCanvas.height;
+            
+            // Clear
+            minimapCtx.fillStyle = '#000';
+            minimapCtx.fillRect(0, 0, w, h);
+            
+            // Draw Units (Simplified Rects based on centers)
+            minimapCtx.fillStyle = '#2e7fd0';
+            const drawRect = (x, z, width, depth, color) => {
+                minimapCtx.fillStyle = color;
+                // Map 800x600 site to 150x120
+                const mx = (x + 400) * (w/800);
+                const my = (z + 300) * (h/600);
+                const mw = width * (w/800);
+                const mh = depth * (h/600);
+                minimapCtx.fillRect(mx - mw/2, my - mh/2, mw, mh);
+            };
+
+            // Draw approximate locations
+            drawRect(-150, -150, 120, 80, '#4488ff'); // CDU
+            drawRect(150, -150, 100, 90, '#ff8844'); // FCC
+            drawRect(-150, 100, 80, 70, '#44ff88'); // HCU
+            drawRect(150, 100, 70, 60, '#ffff44'); // CCR
+            drawRect(0, 200, 300, 120, '#aaaaaa'); // Tanks
+            drawRect(300, 0, 100, 100, '#ff4444'); // Admin
+
+            // Draw View Cone
+            const cx = w/2 + (camTarget.x/800)*w;
+            const cy = h/2 + (camTarget.z/600)*h;
+            const angle = -camTheta + Math.PI/2;
+            
+            const cone = document.getElementById('view-cone');
+            cone.style.left = cx + 'px';
+            cone.style.top = cy + 'px';
+            cone.style.transform = `translate(-50%, -100%) rotate(${angle}rad)`;
+        }
+
+        // ======================================================================
+        // SECTION 8: ANIMATION LOOP
+        // ======================================================================
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = clock.getElapsedTime();
+            const delta = clock.getDelta();
+
+            // Auto Rotate
+            if(autoRotate) {
+                camTheta += 0.001;
+                updateCameraPosition();
+            }
+
+            // Animate Objects
+            animObjects.forEach(obj => {
+                if(obj.type === 'rotate') {
+                    obj.mesh.rotation.y += obj.speed;
+                }
+                else if(obj.type === 'pulse') {
+                    obj.mesh.material.opacity = 0.5 + Math.sin(time * 10) * 0.3;
+                }
+                else if(obj.type === 'steam') {
+                    const s = 1 + (time * 0.5 + obj.offset) % 1; // 1 to 2
+                    obj.mesh.scale.set(s, s*2, s);
+                    obj.mesh.position.y = 16 + (s-1)*5;
+                    obj.mesh.material.opacity = 0.3 * (1 - (s-1));
+                }
+                else if(obj.type === 'flare') {
+                    const s = 1 + Math.sin(time * 15) * 0.1 + Math.random()*0.2;
+                    obj.mesh.scale.set(s, s*1.2, s);
+                    // flicker color
+                    obj.mesh.material.color.setHSL(0.08 + Math.random()*0.05, 1, 0.5);
+                }
+                else if(obj.type === 'flareLight') {
+                    obj.light.intensity = 8 + Math.sin(time * 20) * 3 + Math.random() * 5;
+                }
+            });
+
+            // Labels billboarding
+            labels.forEach(l => {
+                l.lookAt(camera.position);
+            });
+
+            // Update Minimap
+            drawMinimap();
+
+            renderer.render(scene, camera);
+        }
+
+        // Boot
+        init();
+
+    </script>
+</body>
+</html>

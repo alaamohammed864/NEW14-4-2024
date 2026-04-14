@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zubair Field - HAM Degassing Station 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0b0f1a;overflow:hidden;font-family:'Segoe UI',sans-serif;color:#cdd}
+#c{display:block;width:100vw;height:100vh}
+
+#toolbar{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  background:rgba(8,12,24,0.96);
+  border-bottom:1px solid rgba(60,120,200,0.25);
+  padding:8px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  backdrop-filter:blur(12px);
+}
+.logo{display:flex;align-items:center;gap:10px;padding-right:14px;border-right:1px solid rgba(60,120,200,0.2)}
+.logo-sq{width:34px;height:34px;background:linear-gradient(135deg,#1565c0,#0d47a1);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo h2{font-size:12px;color:#90b8e0;font-weight:600;line-height:1.3}
+.logo p{font-size:9px;color:#456;margin-top:1px}
+.grp{display:flex;gap:5px;padding-right:12px;border-right:1px solid rgba(60,120,200,0.15)}
+.grp:last-child{border-right:none}
+.btn{background:rgba(30,70,140,0.15);border:1px solid rgba(60,120,200,0.25);color:#7aabdf;
+  padding:5px 11px;border-radius:4px;cursor:pointer;font-size:11px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:rgba(30,70,140,0.35);color:#c0d8f0;border-color:rgba(60,120,200,0.6)}
+.btn.on{background:rgba(30,70,140,0.5);color:#fff;border-color:#3a80d0}
+
+#panel-left{
+  position:fixed;top:56px;left:10px;z-index:15;
+  background:rgba(8,12,24,0.93);border:1px solid rgba(60,120,200,0.2);border-radius:8px;
+  padding:12px;width:210px;backdrop-filter:blur(8px);
+}
+#panel-left h3{color:#3a80d0;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  border-bottom:1px solid rgba(60,120,200,0.2);padding-bottom:7px;margin-bottom:10px}
+.si{display:flex;align-items:center;gap:8px;margin:5px 0;cursor:pointer;padding:4px 6px;border-radius:4px;transition:.15s}
+.si:hover{background:rgba(60,120,200,0.1)}
+.si-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.si-label{font-size:10px;color:#7a9ab8;line-height:1.3}
+
+#panel-right{
+  position:fixed;top:56px;right:10px;z-index:15;
+  background:rgba(8,12,24,0.93);border:1px solid rgba(60,120,200,0.2);border-radius:8px;
+  padding:12px;width:240px;backdrop-filter:blur(8px);display:none;
+}
+#panel-right.show{display:block}
+#panel-right .tag{display:inline-block;background:rgba(30,70,140,0.4);color:#4a90d0;
+  font-size:9px;padding:2px 8px;border-radius:3px;margin-bottom:8px;letter-spacing:.5px}
+#panel-right h3{color:#90c0e8;font-size:13px;margin-bottom:5px}
+#panel-right p{color:#5a7a9a;font-size:10px;line-height:1.7}
+.prop-row{display:flex;justify-content:space-between;font-size:10px;
+  color:#456070;margin:3px 0;border-bottom:1px solid rgba(60,120,200,0.08);padding-bottom:3px}
+.prop-val{color:#7ab0d0}
+
+#stats{
+  position:fixed;bottom:12px;left:10px;z-index:15;
+  background:rgba(8,12,24,0.93);border:1px solid rgba(60,120,200,0.2);border-radius:8px;
+  padding:10px 14px;min-width:200px;backdrop-filter:blur(8px);
+}
+#stats h3{color:#3a80d0;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
+  margin-bottom:8px;border-bottom:1px solid rgba(60,120,200,0.15);padding-bottom:5px}
+.st{display:flex;justify-content:space-between;font-size:10px;color:#456;margin:3px 0}
+.st span:last-child{color:#7ab0c8}
+
+#hint{
+  position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:15;
+  background:rgba(8,12,24,0.8);border:1px solid rgba(60,120,200,0.15);border-radius:20px;
+  padding:5px 16px;font-size:10px;color:#3a5060;pointer-events:none;letter-spacing:.3px;
+}
+
+#loading{
+  position:fixed;inset:0;background:#07090f;z-index:999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  transition:opacity .6s;
+}
+#loading h2{color:#3a80d0;font-size:16px;font-weight:400;letter-spacing:3px;text-transform:uppercase}
+#loading p{color:#2a4060;font-size:11px;letter-spacing:1px}
+.lb{width:220px;height:2px;background:rgba(60,120,200,0.15);border-radius:2px;overflow:hidden}
+.lf{height:100%;background:linear-gradient(90deg,#1565c0,#42a5f5);animation:ld 2s ease forwards}
+@keyframes ld{from{width:0}to{width:100%}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-size:36px;margin-bottom:8px">⛽</div>
+  <h2>Zubair Field — HAM Station</h2>
+  <p>Loading 3D Model from Drawing Data...</p>
+  <div class="lb"><div class="lf"></div></div>
+  <p style="font-size:9px;margin-top:8px;color:#1a2a40">ENI Iraq B.V. · ONSHORE · Drawing No. ZFT-JV-4-RS203</p>
+</div>
+
+<canvas id="c"></canvas>
+
+<div id="toolbar">
+  <div class="logo">
+    <div class="logo-sq">⛽</div>
+    <div><h2>Zubair Field — HAM Degassing Station</h2><p>HAC Drawing · Scale 1:500 · Class 1 Div.1 Area</p></div>
+  </div>
+  <div class="grp">
+    <button class="btn on" id="bv-p" onclick="sv('p')">منظور</button>
+    <button class="btn" id="bv-t" onclick="sv('t')">أعلى ↓</button>
+    <button class="btn" id="bv-i" onclick="sv('i')">آيزومتري</button>
+    <button class="btn" id="bv-n" onclick="sv('n')">شمال ↑</button>
+    <button class="btn" id="bv-e" onclick="sv('e')">شرق</button>
+  </div>
+  <div class="grp">
+    <button class="btn" onclick="twire()">Wireframe</button>
+    <button class="btn on" onclick="tshad()">ظلال</button>
+    <button class="btn on" onclick="tlbl()">تسميات</button>
+  </div>
+  <div class="grp">
+    <button class="btn" onclick="trot()">⟳ دوران</button>
+    <button class="btn" onclick="fitall()">⊡ ضبط الكل</button>
+  </div>
+</div>
+
+<!-- Legend -->
+<div id="panel-left">
+  <h3>دليل المنشآت</h3>
+  <div class="si"><div class="si-dot" style="background:#c8c8c8"></div><div class="si-label">فواصل ضغط أفقية (Separators)</div></div>
+  <div class="si"><div class="si-dot" style="background:#e8e0c0"></div><div class="si-label">خزانات التخزين الكبيرة (API 650)</div></div>
+  <div class="si"><div class="si-dot" style="background:#e0a830"></div><div class="si-label">أوعية رأسية (Scrubbers / Drums)</div></div>
+  <div class="si"><div class="si-dot" style="background:#3a7a5a"></div><div class="si-label">مضخات ووحدات ضخ</div></div>
+  <div class="si"><div class="si-dot" style="background:#4a6a8a"></div><div class="si-label">محطة الكهرباء والضاغط</div></div>
+  <div class="si"><div class="si-dot" style="background:#c8c0b0"></div><div class="si-label">مباني ومرافق</div></div>
+  <div class="si"><div class="si-dot" style="background:#2050a0"></div><div class="si-label">منظومة مياه الإطفاء</div></div>
+  <div class="si"><div class="si-dot" style="background:#e03020"></div><div class="si-label">برج الشعلة (Flare)</div></div>
+  <div class="si"><div class="si-dot" style="background:#707880"></div><div class="si-label">شبكة أنابيب (Pipe Rack)</div></div>
+  <div class="si"><div class="si-dot" style="background:#604020"></div><div class="si-label">سياج وطرق داخلية</div></div>
+</div>
+
+<!-- Info panel -->
+<div id="panel-right">
+  <div class="tag" id="itag">—</div>
+  <h3 id="iname">—</h3>
+  <p id="idesc">—</p>
+  <div style="margin-top:8px;border-top:1px solid rgba(60,120,200,0.15);padding-top:8px">
+    <div class="prop-row"><span>Tag No.</span><span class="prop-val" id="itag2">—</span></div>
+    <div class="prop-row"><span>الحالة</span><span class="prop-val" id="istatus">—</span></div>
+    <div class="prop-row"><span>منطقة HAC</span><span class="prop-val" id="ihac">—</span></div>
+    <div class="prop-row"><span>المشغّل</span><span class="prop-val" id="ioper">ENI Iraq B.V.</span></div>
+  </div>
+</div>
+
+<div id="stats">
+  <h3>إحصائيات الموقع</h3>
+  <div class="st"><span>اسم الموقع</span><span>HAM Degassing Station</span></div>
+  <div class="st"><span>الموقع</span><span>Basra · Iraq</span></div>
+  <div class="st"><span>الإحداثيات</span><span>30.42°N 47.61°E</span></div>
+  <div class="st"><span>الطاقة الإنتاجية</span><span>80,000 BPD</span></div>
+  <div class="st"><span>المنشآت المرئية</span><span id="eqc">0</span></div>
+  <div class="st"><span>مقياس الرسم</span><span>1:500</span></div>
+</div>
+
+<div id="hint">زر أيسر: دوران | زر أيمن: تحريك | عجلة: تكبير | انقر: تفاصيل المعدة</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══════════════════════════════════════════
+// SCENE
+// ══════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0f1a);
+scene.fog = new THREE.FogExp2(0x0b0f1a, 0.0012);
+
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.5, 3000);
+camera.position.set(220, 160, 260);
+camera.lookAt(0,10,0);
+
+window.addEventListener('resize',()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// ══════════════════════════════════════════
+// LIGHTING — sunny Iraq desert
+// ══════════════════════════════════════════
+const sun = new THREE.DirectionalLight(0xfffaea, 2.6);
+sun.position.set(150, 250, 120);
+sun.castShadow = true;
+sun.shadow.mapSize.set(8192, 8192);
+const sc = sun.shadow.camera;
+sc.left=-250;sc.right=250;sc.top=250;sc.bottom=-250;
+sc.near=1;sc.far=700;
+sun.shadow.bias=-0.0008;
+sun.shadow.normalBias=0.04;
+scene.add(sun);
+
+scene.add(new THREE.HemisphereLight(0x90b8e0, 0x5a4a30, 0.85));
+
+const fill = new THREE.DirectionalLight(0x4a80c0, 0.35);
+fill.position.set(-100,60,-80);
+scene.add(fill);
+
+// ══════════════════════════════════════════
+// MATERIALS
+// ══════════════════════════════════════════
+function M(c, metal=0, rough=0.85, emit=0){
+  return new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough,emissive:emit});
+}
+const MAT = {
+  ground:    M(0x8f7a52),
+  gravel:    M(0xb8a870),
+  concrete:  M(0xa09880,0,1),
+  steel:     M(0xa8adb8,0.85,0.22),
+  stainless: M(0xc8ccd4,0.9,0.15),
+  insul:     M(0xe0d8c8,0.05,0.88),     // insulated vessels - cream/silver
+  vessel_ss: M(0xd0d4da,0.8,0.2),       // stainless steel vessels
+  tank_body: M(0xddd5b0,0.2,0.65),      // crude tank body
+  tank_roof: M(0xc8b870,0.25,0.55),     // floating/cone roof
+  pipe_cs:   M(0x909aa8,0.75,0.3),      // carbon steel pipe
+  pipe_red:  M(0xcc3322,0.55,0.4),      // fire/emergency pipe
+  pipe_ins:  M(0xe8e0c0,0.05,0.85),     // insulated pipe
+  pump_body: M(0x3a7050,0.65,0.38),
+  gen_body:  M(0x3c5468,0.45,0.55),
+  bldg_wall: M(0xd0c8b8,0,0.92),
+  bldg_roof: M(0x607080,0.3,0.72),
+  bldg_sand: M(0xc8b890,0,0.95),        // precast walls
+  ladder:    M(0x606878,0.88,0.2),
+  grating:   M(0x5a6070,0.7,0.35),
+  hazard:    M(0xdd4422,0.35,0.55,0x180500),
+  fw:        M(0x1a4080,0.55,0.5),
+  road:      M(0x585850,0,0.98),
+  flare_stl: M(0x7a8090,0.8,0.25),
+  yellow:    M(0xe8c020,0.3,0.5),
+  black:     M(0x1a1a20,0.6,0.5),
+  glass:     new THREE.MeshStandardMaterial({color:0x87ceeb,metalness:0.1,roughness:0.05,transparent:true,opacity:0.35}),
+};
+
+// ══════════════════════════════════════════
+// GEOMETRY HELPERS
+// ══════════════════════════════════════════
+const EQ = []; // clickables
+
+function B(w,h,d, mat, x,y,z, ry=0, cast=true){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z); m.rotation.y=ry;
+  if(cast){m.castShadow=true;m.receiveShadow=true;}
+  scene.add(m); return m;
+}
+
+function CYL(rt,rb,h,seg, mat, x,y,z, cast=true){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);
+  m.position.set(x,y,z);
+  if(cast){m.castShadow=true;m.receiveShadow=true;}
+  scene.add(m); return m;
+}
+
+function CONE(r,h,seg, mat, x,y,z){
+  const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat);
+  m.position.set(x,y,z); m.castShadow=true; scene.add(m); return m;
+}
+
+function PIPE(from,to, r, mat){
+  const dir=new THREE.Vector3().subVectors(to,from);
+  const len=dir.length();
+  const mid=new THREE.Vector3().addVectors(from,to).multiplyScalar(0.5);
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,8),mat);
+  m.position.copy(mid);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
+  m.castShadow=true; scene.add(m); return m;
+}
+
+function TORUS(r,tube,seg,tseg, mat, x,y,z, rx=Math.PI/2){
+  const m=new THREE.Mesh(new THREE.TorusGeometry(r,tube,seg,tseg),mat);
+  m.rotation.x=rx; m.position.set(x,y,z);
+  m.castShadow=true; scene.add(m); return m;
+}
+
+// Slab helper
+function SLAB(w,d, mat, x,z, thick=0.4){
+  B(w,thick,d, mat, x,thick/2,z);
+}
+
+// ══════════════════════════════════════════
+// GROUND + SITE BASE
+// ══════════════════════════════════════════
+// Desert ground
+{
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(800,800,40,40),MAT.ground);
+  g.rotation.x=-Math.PI/2; g.receiveShadow=true; scene.add(g);
+}
+// Site gravel pad
+{
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(270,260),MAT.gravel);
+  g.rotation.x=-Math.PI/2; g.position.y=0.02; g.receiveShadow=true; scene.add(g);
+}
+// Grid
+{
+  const gh=new THREE.GridHelper(300,30,0x1a3050,0x111a28);
+  gh.position.y=0.04; scene.add(gh);
+}
+
+// ══════════════════════════════════════════
+// FENCE WITH POSTS (from drawing boundary)
+// ══════════════════════════════════════════
+function FENCE(x1,z1,x2,z2){
+  const len=Math.hypot(x2-x1,z2-z1);
+  const ang=Math.atan2(z2-z1,x2-x1);
+  const posts=Math.ceil(len/4)+1;
+  for(let i=0;i<posts;i++){
+    const t=i/(posts-1);
+    const px=x1+(x2-x1)*t, pz=z1+(z2-z1)*t;
+    B(0.12,2.8,0.12,MAT.steel,px,1.4,pz,0,false);
+  }
+  const mid=[(x1+x2)/2,(z1+z2)/2];
+  const rb=new THREE.Mesh(new THREE.BoxGeometry(len,0.07,0.07),MAT.steel);
+  rb.position.set(mid[0],2.5,mid[1]); rb.rotation.y=ang; scene.add(rb);
+  const rb2=rb.clone(); rb2.position.y=1.5; scene.add(rb2);
+}
+FENCE(-118,-112, 118,-112);
+FENCE(118,-112, 118, 112);
+FENCE(118, 112,-118, 112);
+FENCE(-118,112,-118,-112);
+
+// GATE
+B(0.15,3.5,6, MAT.steel, -118,1.75,-5, 0, false);
+
+// ══════════════════════════════════════════
+// ROADS (from drawing - internal access roads)
+// ══════════════════════════════════════════
+// Main access road N-S
+B(7,0.06,240, MAT.road, 0,0.03,0);
+// E-W cross roads
+B(240,0.06,6, MAT.road, 0,0.03,-32);
+B(240,0.06,6, MAT.road, 0,0.03,18);
+// Road markings
+for(let z=-100;z<100;z+=8){
+  B(0.2,0.07,3,MAT.yellow,0,0.05,z);
+}
+
+// ══════════════════════════════════════════
+// PROCESS AREA - MAIN SEPARATORS
+// Drawing: 60-V-100, 200, 250, 320 (1st-4th stage separators)
+// PLUS finger separators 60-SK-1001 to 1006
+// ══════════════════════════════════════════
+
+// Foundation slabs for process area
+SLAB(110,35,MAT.concrete,  0,-65); // main process slab
+SLAB(40,16,MAT.concrete,  60,-75); // finger sep slab
+
+function HORIZ_VESSEL(x,z,len,r,name,tag,hac){
+  const g=new THREE.Group(); scene.add(g);
+  // Saddle foundations
+  B(1.2,r+0.8,4, MAT.concrete, x+len/3-0.6,(r+0.8)/2,z);
+  B(1.2,r+0.8,4, MAT.concrete, x-len/3+0.6,(r+0.8)/2,z);
+  // Main vessel body (insulated)
+  const body=CYL(r,r,len,32, MAT.insul, x,r+1.0,z);
+  body.rotation.z=Math.PI/2;
+  // SS internal band (visible at ends)
+  const band=CYL(r+0.01,r+0.01,len*0.04,32,MAT.stainless,x,r+1.0,z);
+  band.rotation.z=Math.PI/2;
+  // Elliptical end caps
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(r,24,16,0,Math.PI*2,0,Math.PI/2), MAT.vessel_ss);
+  cap.position.set(x+len/2,r+1.0,z); cap.rotation.z=-Math.PI/2; scene.add(cap);
+  const cap2=cap.clone(); cap2.position.set(x-len/2,r+1.0,z); cap2.rotation.z=Math.PI/2; scene.add(cap2);
+  // Insulation jacket seam rings
+  for(let ir=-1;ir<=1;ir+=2){
+    TORUS(r+0.02,0.06,8,24, MAT.steel, x+ir*len/4, r+1.0, z);
+  }
+  // Process nozzles
+  CYL(0.18,0.18,0.9,8,MAT.pipe_cs, x,r*2+1.8,z);  // vent
+  CYL(0.25,0.25,0.7,8,MAT.pipe_cs, x+len/2-0.5,r+1.0+r,z); // outlet
+  CYL(0.22,0.22,0.7,8,MAT.pipe_cs, x-len/2+0.5,r+1.0+r,z); // inlet
+  // Level gauge
+  B(0.08,r,0.08, MAT.steel, x+r+0.1,r+1.0+r/2,z);
+  // Tag plate
+  B(0.5,0.3,0.08, MAT.yellow, x,r*2+1.0,z-r-0.1);
+  // Pipe supports under body
+  B(0.5,0.2,len*0.9, MAT.steel, x,0.65+0.1,z);
+
+  body.userData={name,tag,type:'PRESSURE VESSEL',status:'EXISTING',hac};
+  EQ.push(body);
+  return body;
+}
+
+// 1st stage separators - from drawing 60-V-100 area
+HORIZ_VESSEL(-35,-70, 14, 2.2,'1st Stage Separator','60-V-100','Class 1 Div.1');
+HORIZ_VESSEL(-15,-70, 14, 2.2,'2nd Stage Separator','60-V-200','Class 1 Div.1');
+HORIZ_VESSEL( 8, -70, 13, 2.0,'3rd Stage Separator','60-V-250','Class 1 Div.1');
+HORIZ_VESSEL( 28, -70, 11, 1.8,'4th Stage Separator','60-V-320','Class 1 Div.1');
+
+// Ground vessels 60-V-280, 60-V-290 (from drawing - ground mounted)
+function GROUND_VESSEL(x,z,len,w,h,name,tag){
+  SLAB(len+2,w+2,MAT.concrete,x,z);
+  const bdy=B(len,h,w, MAT.ground_eq||MAT.insul, x,h/2+0.4,z);
+  bdy.userData={name,tag,type:'GROUND VESSEL',status:'EXISTING',hac:'Class 1 Div.1'};
+  EQ.push(bdy);
+  // access way
+  B(len,0.08,0.3, MAT.grating, x,h+0.44,z+w/2-0.15);
+  CYL(0.25,0.25,h+0.5,8,MAT.pipe_cs, x-len/2+1,h/2+0.4,z+w/2+0.3);
+  CYL(0.25,0.25,h+0.5,8,MAT.pipe_cs, x+len/2-1,h/2+0.4,z+w/2+0.3);
+}
+GROUND_VESSEL(10,-56, 20,10,3,'Ground Vessel (Production)','60-V-280');
+GROUND_VESSEL(10,-46, 20,10,3,'Ground Vessel (Production)','60-V-290');
+
+// ══════════════════════════════════════════
+// SCRUBBERS - 60-X-550, 60-X-560
+// Vertical cylindrical vessels with platforms
+// ══════════════════════════════════════════
+function VERT_VESSEL(x,z,h,r,name,tag,hac){
+  // Skirt foundation
+  CYL(r+0.2,r+0.2,1.0,24,MAT.concrete, x,0.5,z);
+  // Vessel body
+  const body=CYL(r,r,h,32, MAT.insul, x,h/2+1.0,z);
+  body.userData={name,tag,type:'VERTICAL VESSEL',status:'EXISTING',hac};
+  EQ.push(body);
+  // Hemispherical heads
+  const topH=new THREE.Mesh(new THREE.SphereGeometry(r,24,12,0,Math.PI*2,0,Math.PI/2),MAT.vessel_ss);
+  topH.position.set(x,h+1.0,z); scene.add(topH);
+  const botH=new THREE.Mesh(new THREE.SphereGeometry(r,24,12,0,Math.PI*2,Math.PI/2,Math.PI/2),MAT.vessel_ss);
+  botH.position.set(x,1.0,z); scene.add(botH);
+  // Platforms every ~3m
+  const numLevels=Math.floor(h/3);
+  for(let lv=1;lv<=numLevels;lv++){
+    const py=lv*3+1.0;
+    const pMesh=new THREE.Mesh(new THREE.CylinderGeometry(r+0.5,r+0.5,0.06,24,1,true),MAT.grating);
+    pMesh.position.set(x,py,z); scene.add(pMesh);
+    // Handrail
+    TORUS(r+0.5,0.04,6,24,MAT.steel,x,py+0.9,z);
+  }
+  // Ladder (one side)
+  B(0.06,h,0.06,MAT.ladder, x+r+0.12,h/2+1.0,z);
+  // Caged ladder rings
+  for(let rg=0;rg<Math.floor(h/1.2);rg++){
+    TORUS(0.35,0.025,6,16,MAT.ladder, x+r+0.12, 1.0+rg*1.2, z);
+  }
+  // Process connections
+  CYL(0.2,0.2,1.0,8,MAT.pipe_cs,x+r,h*0.7+1.0,z);
+  CYL(0.2,0.2,1.0,8,MAT.pipe_cs,x+r,h*0.35+1.0,z);
+  CYL(0.15,0.15,0.8,8,MAT.pipe_cs,x,h+1.0+r*0.5,z); // top vent
+  // Insulation color band
+  const band=new THREE.Mesh(new THREE.CylinderGeometry(r+0.02,r+0.02,0.6,32),M(0xe8a020,0.2,0.6));
+  band.position.set(x,h*0.55+1.0,z); scene.add(band);
+  return body;
+}
+
+VERT_VESSEL(-52,-68, 12,1.8,'HP Gas Scrubber','60-X-550','Class 1 Div.1');
+VERT_VESSEL(-52,-60, 10,1.5,'LP Gas Scrubber','60-X-560','Class 1 Div.1');
+
+// ══════════════════════════════════════════
+// FINGER SEPARATORS - 60-SK-1001 to 1006
+// (from drawing - service gas separator / finger type)
+// ══════════════════════════════════════════
+for(let i=0;i<6;i++){
+  const vx=45+i*5.5, vz=-77;
+  CYL(1.1,1.1,0.4,16,MAT.concrete, vx,0.2,vz);
+  const vs=CYL(1.0,1.0,7,24,MAT.insul, vx,4.5,vz);
+  vs.userData={name:`Finger Separator ${i+1}`,tag:`60-SK-${1001+i}`,type:'FINGER SEPARATOR',status:'EXISTING',hac:'Class 1 Div.1'};
+  EQ.push(vs);
+  CYL(1.0,0.2,1.2,24,MAT.vessel_ss, vx,8.5,vz); // top cone head
+  CYL(0.15,0.15,0.8,8,MAT.pipe_cs, vx,9.3,vz); // vent
+  B(0.06,7,0.06,MAT.ladder, vx+1.1,4.5,vz);
+  TORUS(1.05,0.04,6,24,MAT.grating,vx,6.0,vz);
+}
+// Finger sep manifold header pipes
+PIPE(new THREE.Vector3(43,-78,0),new THREE.Vector3(78,-78,0), 0.3,MAT.pipe_red); // inlet
+PIPE(new THREE.Vector3(43,-76,0),new THREE.Vector3(78,-76,0), 0.2,MAT.pipe_cs);  // gas outlet
+
+// ══════════════════════════════════════════
+// STORAGE TANKS - 60-TK-1 and 60-TK-2
+// API 650 — 6 tanks 58,000m³ each per redevelopment
+// Drawing shows TK-1 and TK-2
+// ══════════════════════════════════════════
+function STORAGE_TANK(cx,cz,r,h,name,tag){
+  // Earth berm (containment dike)
+  const dike=new THREE.Mesh(new THREE.TorusGeometry(r+9, 2.2,6,56),MAT.concrete);
+  dike.rotation.x=Math.PI/2; dike.position.set(cx,1.1,cz); dike.receiveShadow=true; scene.add(dike);
+  // Dike floor (gravel inside)
+  const dikeFloor=new THREE.Mesh(new THREE.CircleGeometry(r+7.5,48),MAT.gravel);
+  dikeFloor.rotation.x=-Math.PI/2; dikeFloor.position.set(cx,0.05,cz); scene.add(dikeFloor);
+  // Annular plate / ring wall
+  CYL(r+0.3,r+0.3,0.6,48,MAT.concrete, cx,0.3,cz);
+  // Tank shell
+  const shell=CYL(r,r,h,48, MAT.tank_body, cx,h/2+0.6,cz);
+  shell.userData={name,tag,type:'CRUDE OIL STORAGE TANK',status:'EXISTING',hac:'Class 1 Div.1'};
+  EQ.push(shell);
+  // Cone roof
+  CONE(r+0.15,h*0.22,48,MAT.tank_roof, cx,h+0.6+h*0.11,cz);
+  // Wind girder (structural ring)
+  TORUS(r+0.12,0.3,8,48,MAT.steel, cx,h*0.72+0.6,cz);
+  TORUS(r+0.12,0.2,8,48,MAT.steel, cx,h*0.45+0.6,cz);
+  // Shell course welds (visible horizontal seams)
+  for(let wld=1;wld<4;wld++){
+    TORUS(r+0.01,0.04,8,48,MAT.stainless, cx,wld*(h/4)+0.6,cz);
+  }
+  // Fixed roof nozzle
+  CYL(0.35,0.35,1.2,8,MAT.pipe_cs, cx,h+0.6+h*0.22+0.6,cz); // vent
+  CYL(0.5,0.5,0.3,8,MAT.pipe_cs, cx,h+0.6+h*0.22+1.3,cz); // breather
+  // Spiral staircase
+  const stepsN=36;
+  for(let s=0;s<stepsN;s++){
+    const ang=s*(Math.PI*2/stepsN)*3; // 3 full revolutions
+    const sr=r+0.6;
+    const sx=cx+sr*Math.cos(ang), sz=cz+sr*Math.sin(ang);
+    const sy=(s/stepsN)*h+0.6;
+    B(0.5,0.12,0.5, MAT.grating, sx,sy,sz, ang);
+  }
+  // Staircase vertical stringers
+  for(let str=0;str<2;str++){
+    const a=str*Math.PI;
+    PIPE(new THREE.Vector3(cx+(r+0.6)*Math.cos(a),0.6,cz+(r+0.6)*Math.sin(a)),
+         new THREE.Vector3(cx+(r+0.6)*Math.cos(a),h+1,cz+(r+0.6)*Math.sin(a)),0.06,MAT.ladder);
+  }
+  // Inlet/outlet nozzles at base
+  CYL(0.4,0.4,1.5,8,MAT.pipe_cs, cx+r,h*0.12+0.6,cz);
+  CYL(0.4,0.4,1.5,8,MAT.pipe_cs, cx-r,h*0.08+0.6,cz);
+  // Tank number placard
+  const pln=new THREE.Mesh(new THREE.BoxGeometry(r*0.6,1,0.1),M(0xffffff,0,0.8));
+  pln.position.set(cx,h*0.5+0.6,cz+r+0.05); scene.add(pln);
+  return shell;
+}
+
+STORAGE_TANK(-62, 42, 22, 16,'Crude Oil Storage Tank 1','60-TK-1');
+STORAGE_TANK( 42, 65, 18, 14,'Crude Oil Storage Tank 2','60-TK-2');
+
+// ══════════════════════════════════════════
+// PUMP AREA (from drawing: 60-P-100, 60-P-1100, 60-PT-680, 60-P-680)
+// ══════════════════════════════════════════
+SLAB(35,25,MAT.concrete, -65,-25);
+
+function PUMP(x,z,name,tag,hac='Class 1 Div.1'){
+  // Baseplate
+  B(3,0.15,2, MAT.concrete, x,0.475,z);
+  // Motor
+  B(1.4,1.4,1.3, M(0x2a5040,0.6,0.4), x-0.8,1.15,z);
+  // Pump body
+  B(1.6,1.2,1.2, MAT.pump_body, x+0.5,1.1,z);
+  // Coupling guard
+  CYL(0.4,0.4,0.5,12,M(0xffbb00,0.3,0.5), x-0.1,1.2,z);
+  // Suction / discharge
+  CYL(0.15,0.15,1.8,8,MAT.pipe_cs, x-1.5,0.9,z); // suction
+  CYL(0.12,0.12,1.2,8,MAT.pipe_cs, x+1.2,1.4,z); // discharge
+  // Nameplate
+  B(0.5,0.25,0.05,MAT.yellow, x+1.3,1.1,z+0.65);
+  const p=B(3,0.15,2,MAT.concrete, x,0.475,z);
+  p.userData={name,tag,type:'CENTRIFUGAL PUMP',status:'EXISTING',hac};
+  EQ.push(p);
+  return p;
+}
+
+PUMP(-72,-22,'Test Pump (Duty)','60-P-100');
+PUMP(-72,-27,'Test Pump (Spare)','60-P-1100');
+PUMP(-62,-30,'Crude Transfer Pump','60-PT-680');
+PUMP(-62,-24,'Crude Transfer Pump (Spare)','60-P-680');
+PUMP(-62,-18,'Water Pump','60-P-620');
+
+// ══════════════════════════════════════════
+// PIPE RACKS (from drawing - main header rack)
+// ══════════════════════════════════════════
+function PIPE_RACK(x,z,len,dir,levels=2){
+  const n=Math.floor(len/6)+1;
+  for(let i=0;i<n;i++){
+    const px=dir==='x'?x+i*6:x;
+    const pz=dir==='z'?z+i*6:z;
+    // Columns
+    B(0.5,7,0.5,MAT.steel,px,3.5,pz);
+    // X-brace
+    if(i<n-1){
+      const nx=dir==='x'?px+6:px;
+      const nz=dir==='z'?pz+6:pz;
+      PIPE(new THREE.Vector3(px,0.5,pz),new THREE.Vector3(nx,7,nz),0.06,MAT.steel);
+    }
+    // Cross beams
+    for(let lv=0;lv<levels;lv++){
+      if(dir==='z') B(3,0.3,0.3,MAT.steel,px,6.5-lv*1.5,pz);
+      else B(0.3,0.3,3,MAT.steel,px,6.5-lv*1.5,pz);
+    }
+  }
+  // Pipes on rack
+  const pipeColors=[MAT.pipe_cs,MAT.pipe_ins,MAT.pipe_red];
+  for(let p=0;p<3;p++){
+    const py=7.0+p*0.45;
+    if(dir==='z'){
+      PIPE(new THREE.Vector3(x-0.6,py,z),new THREE.Vector3(x-0.6,py,z+len),0.14,pipeColors[p]);
+      PIPE(new THREE.Vector3(x+0.6,py,z),new THREE.Vector3(x+0.6,py,z+len),0.10,MAT.pipe_cs);
+    } else {
+      PIPE(new THREE.Vector3(x,py,z-0.6),new THREE.Vector3(x+len,py,z-0.6),0.14,pipeColors[p]);
+      PIPE(new THREE.Vector3(x,py,z+0.6),new THREE.Vector3(x+len,py,z+0.6),0.10,MAT.pipe_cs);
+    }
+  }
+}
+PIPE_RACK(-5,-10,80,'z',2);
+PIPE_RACK(-22,-10,80,'z',2);
+PIPE_RACK(50,-100,55,'x',2);
+
+// ══════════════════════════════════════════
+// POWER GENERATION BUILDINGS
+// From drawing: 60-G-700 (Emergency diesel), 60-G-600 (Main power)
+// Real project: 700MW gas turbine plant
+// ══════════════════════════════════════════
+function GEN_BLDG(x,z,w,d,h,name,tag){
+  SLAB(w+3,d+3,MAT.concrete,x,z);
+  // Walls (precast concrete panels)
+  const walls=B(w,h,d,MAT.bldg_sand,x,h/2+0.4,z);
+  walls.userData={name,tag,type:'GENERATOR BUILDING',status:'EXISTING',hac:'Non-Hazardous'};
+  EQ.push(walls);
+  // Roof
+  B(w+0.3,0.4,d+0.3,MAT.bldg_roof,x,h+0.6,z);
+  // Louvers (ventilation)
+  for(let lv=0;lv<3;lv++){
+    B(w+0.05,0.2,d/5,M(0x3a5060,0.4,0.7), x,h*0.5+lv*1.0+0.4,z+d/2);
+    B(w+0.05,0.2,d/5,M(0x3a5060,0.4,0.7), x,h*0.5+lv*1.0+0.4,z-d/2);
+  }
+  // Exhaust stacks
+  CYL(0.55,0.55,9,12,MAT.steel,x+w/2-2,h+5.0,z);
+  CYL(0.65,0.35,0.6,12,MAT.black,x+w/2-2,h+9.5,z);
+  // Another stack
+  CYL(0.55,0.55,9,12,MAT.steel,x+w/2-4.5,h+5.0,z);
+  CYL(0.65,0.35,0.6,12,MAT.black,x+w/2-4.5,h+9.5,z);
+  // Windows
+  for(let wi=-1;wi<=1;wi+=2){
+    B(1.6,1.1,0.06,MAT.glass,x+wi*w/3.5,h*0.55+0.4,z+d/2+0.06);
+  }
+  // Double door
+  B(2.4,2.5,0.08,M(0x5a4a30,0,0.8),x,1.65+0.4,z+d/2+0.05);
+}
+
+GEN_BLDG(82,-88,28,18,8,'Emergency Diesel Generator','60-G-700');
+GEN_BLDG(82,-65,24,16,8,'Main Power Station (Gas Turbine)','60-G-600');
+
+// ══════════════════════════════════════════
+// COMPRESSOR UNIT 40-S-600 + Air Compressors
+// ══════════════════════════════════════════
+function COMPRESSOR_UNIT(x,z,name,tag){
+  SLAB(22,16,MAT.concrete,x,z);
+  const enc=B(16,6,12,MAT.gen_body,x,3.4,z);
+  enc.userData={name,tag,type:'COMPRESSOR UNIT',status:'EXISTING',hac:'Class 1 Div.1'};
+  EQ.push(enc);
+  B(16.4,0.5,12.4,MAT.bldg_roof,x,6.65,z);
+  // Suction drum (vertical)
+  CYL(1.2,1.2,5,24,MAT.insul,x+9,3.0,z);
+  CYL(1.2,0.3,0.8,24,MAT.vessel_ss,x+9,5.6,z);
+  // Cooler (air fin)
+  B(6,1.5,4,M(0x4a5a6a,0.5,0.5),x-4,7.5,z);
+  // Discharge piping
+  CYL(0.2,0.2,4,8,MAT.pipe_cs,x+4,5.5,z+6);
+  CYL(0.55,0.55,8,12,MAT.steel,x+7,4,z-4); // stack
+}
+COMPRESSOR_UNIT(82,-12,'Gas Compressor Unit','40-S-600');
+
+// Air compressors
+for(let ac=0;ac<2;ac++){
+  const ax=82,az=14+ac*10;
+  SLAB(12,8,MAT.concrete,ax,az);
+  const acb=B(8,4,5,MAT.gen_body,ax,2.4,az);
+  acb.userData={name:`Air Compressor & Dryer Unit ${ac+1}`,tag:`60-K-${100+ac}`,type:'COMPRESSOR',status:'EXISTING',hac:'Non-Hazardous'};
+  EQ.push(acb);
+  CYL(0.8,0.8,3.5,12,MAT.insul,ax+5,1.75,az); // receiver
+}
+
+// ══════════════════════════════════════════
+// CONTROL ROOM + ADMIN + OPERATIONS BLDG
+// ══════════════════════════════════════════
+function ADMIN_BLDG(x,z,w,d,h,name,tag){
+  SLAB(w+2,d+2,MAT.concrete,x,z);
+  const bld=B(w,h,d,MAT.bldg_wall,x,h/2+0.4,z);
+  bld.userData={name,tag,type:'BUILDING',status:'EXISTING',hac:'Non-Hazardous'};
+  EQ.push(bld);
+  B(w+0.2,0.35,d+0.2,MAT.bldg_roof,x,h+0.575,z);
+  // Fascia / overhang
+  B(w+0.8,0.2,d+0.8,M(0xb8b0a0,0,0.9),x,h+0.4,z);
+  // Windows
+  for(let wi=0;wi<Math.floor(w/3);wi++){
+    B(1.4,1.2,0.06,MAT.glass,x-w/2+2+wi*3,h*0.55+0.4,z+d/2+0.05);
+    B(1.4,1.2,0.06,MAT.glass,x-w/2+2+wi*3,h*0.55+0.4,z-d/2-0.05);
+  }
+  B(1.6,2.4,0.08,M(0x3a4050,0.3,0.6),x,1.6+0.4,z+d/2+0.05);
+  // AC units on roof
+  for(let ac=0;ac<Math.floor(w/5);ac++){
+    B(1.2,0.7,1.0,M(0x9aaab8,0.4,0.5),x-w/2+2+ac*5,h+0.75,z-1);
+  }
+  return bld;
+}
+
+ADMIN_BLDG(82, 36,22,14,5,'Control Room / CCR','CTRL-ROOM');
+ADMIN_BLDG(82, 56,20,12,4.5,'Administration Building','ADMIN-BLDG');
+ADMIN_BLDG(82, 74,16,10,4,'Operations / Maintenance Bldg','OPS-BLDG');
+
+// Substation
+SLAB(14,10,MAT.concrete,-90,-83);
+const ssb=B(12,5,8,M(0x3a5060,0.3,0.7),-90,2.9,-83);
+ssb.userData={name:'Electrical Substation',tag:'60-S-100',type:'SUBSTATION',status:'EXISTING',hac:'Non-Hazardous'};
+EQ.push(ssb);
+B(12.3,0.3,8.3,MAT.bldg_roof,-90,5.55,-83);
+
+// ══════════════════════════════════════════
+// FIRE WATER SYSTEM
+// 60-TK-FW + Jockey + Diesel Fire pump
+// ══════════════════════════════════════════
+SLAB(25,18,MAT.concrete,-80,15);
+const fwtk=CYL(5.5,5.5,10,32,MAT.fw,-80,5.6,12);
+fwtk.userData={name:'Fire Water Storage Tank',tag:'60-TK-FW',type:'FIRE WATER TANK',status:'EXISTING',hac:'Non-Hazardous'};
+EQ.push(fwtk);
+CONE(5.6,1.5,32,M(0x1a3870,0.3,0.5),-80,11.35,12);
+// Fire water ring main pipes (red)
+PIPE(new THREE.Vector3(-118,0.8,-112),new THREE.Vector3(118,0.8,-112),0.18,MAT.pipe_red);
+PIPE(new THREE.Vector3(118,0.8,-112),new THREE.Vector3(118,0.8,112),0.18,MAT.pipe_red);
+PIPE(new THREE.Vector3(118,0.8,112),new THREE.Vector3(-118,0.8,112),0.18,MAT.pipe_red);
+PIPE(new THREE.Vector3(-118,0.8,112),new THREE.Vector3(-118,0.8,-112),0.18,MAT.pipe_red);
+
+// Fire pumps
+PUMP(-90,15,'Fire Water Diesel Pump','60-P-FW1','Non-Hazardous');
+PUMP(-90,20,'Fire Water Jockey Pump','40-P-770','Non-Hazardous');
+
+// Hydrants
+const hydrantPos=[[-50,-112],[0,-112],[50,-112],[118,-50],[118,50],[-118,-50],[-118,50],[-50,112],[50,112]];
+for(const [hx,hz] of hydrantPos){
+  CYL(0.15,0.15,0.9,8,MAT.pipe_red,hx,0.5,hz);
+  B(0.4,0.3,0.4,MAT.pipe_red,hx,1.0,hz);
+}
+
+// ══════════════════════════════════════════
+// FLARE STACK
+// ══════════════════════════════════════════
+let flameObjs=[], flameLight;
+{
+  // Concrete foundation pad
+  CYL(4,4,0.6,24,MAT.concrete,0,0.3,108);
+  // Base section (wider)
+  CYL(1.0,1.2,5,16,MAT.flare_stl,0,3.1,108);
+  // Main stack sections (tapered)
+  CYL(0.75,1.0,12,16,MAT.flare_stl,0,11.6,108);
+  CYL(0.55,0.75,12,16,MAT.flare_stl,0,23.6,108);
+  CYL(0.40,0.55,10,16,MAT.flare_stl,0,34.6,108);
+  // Top tip
+  CYL(0.42,0.35,1.5,12,MAT.stainless,0,40.35,108);
+  // Pilot burners
+  for(let pb=0;pb<3;pb++){
+    const pa=pb*(Math.PI*2/3);
+    CYL(0.06,0.06,1.2,8,MAT.pipe_cs, Math.cos(pa)*0.5, 39.5, 108+Math.sin(pa)*0.5);
+  }
+  // Guy wires (3 directions)
+  for(let g=0;g<3;g++){
+    const ga=g*(Math.PI*2/3);
+    PIPE(new THREE.Vector3(0,40,108),new THREE.Vector3(Math.cos(ga)*28,1,108+Math.sin(ga)*28),0.04,MAT.ladder);
+    // Anchors
+    CYL(0.3,0.3,1.5,8,MAT.concrete,Math.cos(ga)*28,0.75,108+Math.sin(ga)*28);
+  }
+  // Platforms
+  for(let pp=0;pp<3;pp++){
+    TORUS(1.1,0.05,8,24,MAT.grating,0,10+pp*12,108);
+  }
+  // Ladder
+  B(0.06,40,0.06,MAT.ladder,0.9,20,108);
+  // Aviation lights
+  CYL(0.15,0.15,0.2,8,M(0xff2222,0,0.3,0xff0000),0,41,108);
+
+  // Flame
+  flameObjs=[];
+  for(let fi=0;fi<3;fi++){
+    const fl=new THREE.Mesh(new THREE.ConeGeometry(0.6-fi*0.15,2.5+fi*1.5,12),
+      new THREE.MeshStandardMaterial({color:0xff6600,metalness:0,roughness:0.3,emissive:0xff3300,emissiveIntensity:1.5,transparent:true,opacity:0.7-fi*0.15}));
+    fl.position.set(0,41+fi*1.2,108);
+    scene.add(fl);
+    flameObjs.push(fl);
+  }
+  flameLight=new THREE.PointLight(0xff6600,4,60);
+  flameLight.position.set(0,43,108);
+  scene.add(flameLight);
+}
+
+// ══════════════════════════════════════════
+// WORKERS CAMP / LIFE SUPPORT (from research - Dorce prefab)
+// South-East of site
+// ══════════════════════════════════════════
+SLAB(60,40,MAT.concrete,90,85);
+// Camp buildings
+for(let cb=0;cb<3;cb++){
+  for(let rb=0;rb<4;rb++){
+    B(10,3,4,MAT.bldg_wall,70+cb*16,1.9,72+rb*8);
+    B(10.2,0.2,4.2,MAT.bldg_roof,70+cb*16,3.5,72+rb*8);
+  }
+}
+// Camp fence (inner)
+FENCE(60,65,125,65); FENCE(125,65,125,105); FENCE(125,105,60,105); FENCE(60,105,60,65);
+
+// ══════════════════════════════════════════
+// INSTRUMENT / TELECOM BUILDING + KROEHNE METER
+// ══════════════════════════════════════════
+SLAB(8,6,MAT.concrete,-57,-52);
+const instr=B(6,3,4,MAT.bldg_wall,-57,1.9,-52);
+instr.userData={name:'Instrument / Telecom Building + Kroehne Meter System',tag:'INST-BLDG',type:'INSTRUMENT BUILDING',status:'EXISTING',hac:'Non-Hazardous'};
+EQ.push(instr);
+// Kroehne flowmeter
+B(1.5,1,1.5,MAT.yellow,-57,1.0,-58);
+
+// ══════════════════════════════════════════
+// DESALTER / DEHYDRATOR DRUM
+// From equipment list in drawing 2
+// ══════════════════════════════════════════
+HORIZ_VESSEL(-50,-46,12,2.0,'Desalter','40-V-220','Class 1 Div.1');
+HORIZ_VESSEL(-50,-38,10,1.8,'Dehydrator','40-V-230','Class 1 Div.1');
+
+// ══════════════════════════════════════════
+// TEST SEPARATOR + TEST TANK
+// 60-V-120 from drawing
+// ══════════════════════════════════════════
+SLAB(20,15,MAT.concrete,-65,-38);
+HORIZ_VESSEL(-65,-42, 10, 1.5,'Test Separator','60-V-120','Class 1 Div.1');
+// Test tank
+CYL(3,3,4,24,MAT.tank_body,-65,2.6,-35);
+CONE(3.1,0.8,24,MAT.tank_roof,-65,4.6+0.4,-35);
+
+// ══════════════════════════════════════════
+// CHEMICAL INJECTION SKIDS (from equip list)
+// ══════════════════════════════════════════
+function CHEM_SKID(x,z,name,tag){
+  SLAB(5,3,MAT.concrete,x,z);
+  const sk=B(3,2,1.8,M(0x4a6040,0.4,0.6),x,1.4,z);
+  sk.userData={name,tag,type:'CHEMICAL INJECTION SKID',status:'EXISTING',hac:'Class 1 Div.1'};
+  EQ.push(sk);
+  CYL(0.3,0.3,2,8,MAT.pipe_cs,x+1.2,1.5,z); // tote drum
+  CYL(0.3,0.3,2,8,MAT.pipe_cs,x-1.2,1.5,z);
+}
+CHEM_SKID(-15,-46,'Antifoam Injection Unit','40-V-840');
+CHEM_SKID(-15,-40,'Corrosion Inhibitor Injection','40-V-845');
+CHEM_SKID(-15,-34,'Demulsifier Injection Unit','40-V-850');
+
+// ══════════════════════════════════════════
+// CONDENSATE KNOCK-OUT / RELIVER HEADER DRUMS
+// From equipment list drawing 2
+// ══════════════════════════════════════════
+VERT_VESSEL(-68,-70, 6,1.2,'HP Relief Header K.O. Drum','40-V-550','Class 1 Div.1');
+VERT_VESSEL(-68,-62, 5,1.0,'LP Relief Header K.O. Drum','40-V-560','Class 1 Div.1');
+
+// ══════════════════════════════════════════
+// MT BANK SEPARATORS (from equip list: 1st-4th stage)
+// ══════════════════════════════════════════
+for(let mt=0;mt<4;mt++){
+  HORIZ_VESSEL(45+mt*8,-58, 8,1.4,`MT Bank ${mt+1}st Stage Sep`,`40-V-${210+mt*10}`,'Class 1 Div.1');
+}
+
+// ══════════════════════════════════════════
+// FLOW TANK + CONDENSATE TRAP (equip list)
+// ══════════════════════════════════════════
+CYL(1.8,1.8,3.5,24,MAT.tank_body, 30,-40,2.5);
+CYL(1.8,0.4,0.8,24,MAT.tank_roof, 30,-40+0.2,4.25);
+
+// ══════════════════════════════════════════
+// SERVICE GAS SYSTEM + FUEL GAS
+// ══════════════════════════════════════════
+VERT_VESSEL(38,-68, 5,1.0,'Service Gas Vessel','60-V-500A','Class 1 Div.1');
+VERT_VESSEL(44,-68, 5,1.0,'Service Gas Vessel','60-V-500B','Class 1 Div.1');
+VERT_VESSEL(50,-68, 5,1.0,'Service Gas Vessel','60-V-500C','Class 1 Div.1');
+
+// ══════════════════════════════════════════
+// ORBIT CONTROLS (custom)
+// ══════════════════════════════════════════
+const sph={theta:0.75, phi:0.85, r:350};
+const tgt=new THREE.Vector3(0,12,0);
+let drag=false, rDrag=false, pMouse={x:0,y:0};
+let autoRot=false, wireMode=false, showLbl=true, shadOn=true;
+
+function updCam(){
+  const x=tgt.x+sph.r*Math.sin(sph.phi)*Math.sin(sph.theta);
+  const y=tgt.y+sph.r*Math.cos(sph.phi);
+  const z=tgt.z+sph.r*Math.sin(sph.phi)*Math.cos(sph.theta);
+  camera.position.set(x,y,z); camera.lookAt(tgt);
+}
+updCam();
+
+renderer.domElement.addEventListener('mousedown',e=>{drag=true;rDrag=e.button===2;pMouse={x:e.clientX,y:e.clientY};e.preventDefault();});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('mouseup',()=>drag=false);
+renderer.domElement.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-pMouse.x,dy=e.clientY-pMouse.y;
+  if(rDrag){
+    const right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),
+      new THREE.Vector3().subVectors(camera.position,tgt).normalize()).normalize();
+    tgt.addScaledVector(right,dx*0.12);
+    tgt.addScaledVector(new THREE.Vector3(0,1,0),dy*0.12);
+  } else {
+    sph.theta-=dx*0.005;
+    sph.phi=Math.max(0.05,Math.min(Math.PI/2-0.02,sph.phi+dy*0.005));
+  }
+  pMouse={x:e.clientX,y:e.clientY}; updCam();
+});
+renderer.domElement.addEventListener('wheel',e=>{
+  sph.r*=e.deltaY>0?1.07:0.94;
+  sph.r=Math.max(20,Math.min(700,sph.r));
+  updCam(); e.preventDefault();
+},{passive:false});
+
+// Touch
+let ltch=[],lpinch=0;
+renderer.domElement.addEventListener('touchstart',e=>{
+  ltch=Array.from(e.touches);
+  if(ltch.length===1){drag=true;pMouse={x:ltch[0].clientX,y:ltch[0].clientY};}
+  if(ltch.length===2)lpinch=Math.hypot(ltch[0].clientX-ltch[1].clientX,ltch[0].clientY-ltch[1].clientY);
+  e.preventDefault();},{passive:false});
+renderer.domElement.addEventListener('touchend',()=>drag=false,{passive:false});
+renderer.domElement.addEventListener('touchmove',e=>{
+  ltch=Array.from(e.touches);
+  if(ltch.length===1&&drag){
+    const dx=ltch[0].clientX-pMouse.x,dy=ltch[0].clientY-pMouse.y;
+    sph.theta-=dx*0.007;sph.phi=Math.max(0.05,Math.min(Math.PI/2-0.02,sph.phi+dy*0.007));
+    pMouse={x:ltch[0].clientX,y:ltch[0].clientY};updCam();
+  }
+  if(ltch.length===2){
+    const d=Math.hypot(ltch[0].clientX-ltch[1].clientX,ltch[0].clientY-ltch[1].clientY);
+    sph.r*=lpinch/d;sph.r=Math.max(20,Math.min(700,sph.r));lpinch=d;updCam();
+  }
+  e.preventDefault();},{passive:false});
+
+// ══════════════════════════════════════════
+// LABELS
+// ══════════════════════════════════════════
+const lblGroup=new THREE.Group(); scene.add(lblGroup);
+function LBL(text,x,y,z){
+  const cv=document.createElement('canvas');
+  cv.width=280;cv.height=52;
+  const c=cv.getContext('2d');
+  c.fillStyle='rgba(6,10,20,0.88)'; c.fillRect(0,0,280,52);
+  c.strokeStyle='rgba(50,100,180,0.55)'; c.lineWidth=1; c.strokeRect(0.5,0.5,279,51);
+  c.font='bold 17px Segoe UI'; c.fillStyle='#90c0e8'; c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(text,140,26);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthTest:false}));
+  sp.scale.set(14,2.6,1); sp.position.set(x,y,z);
+  lblGroup.add(sp);
+}
+LBL('60-TK-1 Crude Storage',-62,19,42);
+LBL('60-TK-2 Crude Storage',42,16,65);
+LBL('1st–4th Stage Separators',-8,9,-70);
+LBL('60-X-550/560 Scrubbers',-52,16,-64);
+LBL('Finger Separators (60-SK)',60,10,-77);
+LBL('Power Station 700MW',82,12,-76);
+LBL('Control Room / CCR',82,8,36);
+LBL('Flare Stack',0,45,108);
+LBL('Fire Water Tank',-80,13,12);
+LBL('Test Separator',-65,7,-42);
+LBL('Pipe Rack — Main Header',0,10,-5);
+LBL('Desalter / Dehydrator',-50,8,-42);
+LBL('Chemical Injection',-15,5,-40);
+LBL('MT Bank Separators',65,7,-58);
+LBL('Workers Camp / LSC',90,7,86);
+
+document.getElementById('eqc').textContent=EQ.length;
+
+// ══════════════════════════════════════════
+// RAYCASTER
+// ══════════════════════════════════════════
+const rc=new THREE.Raycaster();
+const mse=new THREE.Vector2();
+renderer.domElement.addEventListener('click',e=>{
+  mse.x=(e.clientX/innerWidth)*2-1;
+  mse.y=-(e.clientY/innerHeight)*2+1;
+  rc.setFromCamera(mse,camera);
+  const hits=rc.intersectObjects(EQ,false);
+  const pr=document.getElementById('panel-right');
+  if(hits.length){
+    const d=hits[0].object.userData;
+    document.getElementById('itag').textContent=d.type||'EQUIPMENT';
+    document.getElementById('iname').textContent=d.name||'—';
+    document.getElementById('idesc').textContent=d.name||'—';
+    document.getElementById('itag2').textContent=d.tag||'—';
+    document.getElementById('istatus').textContent=d.status||'—';
+    document.getElementById('ihac').textContent=d.hac||'—';
+    pr.classList.add('show');
+    const em=hits[0].object.material.emissive;
+    if(em){em.set(0x1a3a6a);setTimeout(()=>em.set(0x000000),600);}
+  } else pr.classList.remove('show');
+});
+
+// ══════════════════════════════════════════
+// CONTROLS
+// ══════════════════════════════════════════
+function sv(v){
+  ['p','t','i','n','e'].forEach(x=>document.getElementById('bv-'+x)?.classList.remove('on'));
+  document.getElementById('bv-'+v)?.classList.add('on');
+  if(v==='p'){sph.theta=0.75;sph.phi=0.85;sph.r=350;tgt.set(0,12,0);}
+  else if(v==='t'){sph.phi=0.02;sph.r=380;tgt.set(0,0,0);}
+  else if(v==='i'){sph.theta=Math.PI/4;sph.phi=Math.PI/4;sph.r=320;tgt.set(0,10,0);}
+  else if(v==='n'){sph.theta=0;sph.phi=0.65;sph.r=300;tgt.set(0,10,0);}
+  else if(v==='e'){sph.theta=Math.PI/2;sph.phi=0.65;sph.r=300;tgt.set(0,10,0);}
+  updCam();
+}
+function twire(){wireMode=!wireMode;scene.traverse(o=>{if(o.isMesh&&o.material)o.material.wireframe=wireMode;});}
+function tshad(){shadOn=!shadOn;renderer.shadowMap.enabled=shadOn;sun.castShadow=shadOn;}
+function tlbl(){showLbl=!showLbl;lblGroup.visible=showLbl;}
+function trot(){autoRot=!autoRot;document.getElementById('bv-p').classList.toggle('on',!autoRot);}
+function fitall(){sv('p');}
+
+// ══════════════════════════════════════════
+// ANIMATE
+// ══════════════════════════════════════════
+let t=0;
+(function loop(){
+  requestAnimationFrame(loop);
+  t+=0.016;
+  if(autoRot){sph.theta+=0.003;updCam();}
+  // Flame animation
+  if(flameObjs.length){
+    flameObjs.forEach((fl,i)=>{
+      fl.scale.y=0.8+Math.sin(t*(6+i*2))*0.2+Math.random()*0.15;
+      fl.scale.x=0.85+Math.cos(t*(7+i))*0.15;
+      fl.rotation.y+=0.05;
+    });
+    if(flameLight)flameLight.intensity=3+Math.sin(t*9)*0.8+Math.random()*0.4;
+  }
+  // Labels face camera
+  lblGroup.children.forEach(s=>s.quaternion.copy(camera.quaternion));
+  renderer.render(scene,camera);
+})();
+
+// Hide loader
+setTimeout(()=>{
+  const ld=document.getElementById('loading');
+  ld.style.opacity='0';
+  setTimeout(()=>ld.style.display='none',600);
+},2200);
+</script>
+</body>
+</html>

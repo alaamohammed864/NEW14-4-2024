@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مخطط PID تفاعلي</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --border: #2a3347;
+    --border2: #3a4a66;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --blue: #3b82f6;
+    --blue2: #1d4ed8;
+    --blue-light: #93c5fd;
+    --cyan: #06b6d4;
+    --cyan2: #0891b2;
+    --green: #22c55e;
+    --green2: #16a34a;
+    --yellow: #eab308;
+    --orange: #f97316;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --teal: #14b8a6;
+    --pipe-hot: #ef4444;
+    --pipe-cold: #3b82f6;
+    --pipe-gas: #eab308;
+    --pipe-process: #22c55e;
+    --pipe-steam: #94a3b8;
+    --pipe-inst: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  #header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  #header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--blue-light);
+    letter-spacing: 0.5px;
+  }
+  #header .subtitle {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  #toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn:hover { background: var(--border); border-color: var(--blue); color: var(--blue-light); }
+  .btn.active { background: var(--blue2); border-color: var(--blue); color: #fff; }
+  #main-container {
+    display: flex;
+    height: calc(100vh - 57px);
+  }
+  #sidebar {
+    width: 260px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  #sidebar h3 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .legend-line {
+    width: 32px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-rect {
+    width: 18px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    margin: 16px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  #info-panel {
+    margin-top: 20px;
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text2);
+    min-height: 120px;
+    border: 1px solid var(--border);
+  }
+  #info-panel .info-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue-light);
+    margin-bottom: 8px;
+  }
+  #info-panel .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+  #info-panel .info-label { color: var(--text3); flex-shrink: 0; }
+  #info-panel .info-val { color: var(--text); text-align: left; font-family: monospace; font-size: 11px; }
+  #canvas-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+    background-size: 28px 28px;
+  }
+  #pid-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  #pid-canvas:active { cursor: grabbing; }
+  #zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .zoom-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .zoom-btn:hover { background: var(--border); color: var(--blue-light); }
+  #mini-map {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 8px;
+    opacity: 0.9;
+  }
+  #mini-map canvas { display: block; }
+  #status-bar {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 11px;
+    color: var(--text3);
+    pointer-events: none;
+  }
+  .tooltip {
+    position: absolute;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 200;
+    min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: none;
+  }
+  .tooltip .tt-title { font-weight: 600; color: var(--blue-light); margin-bottom: 6px; font-size: 13px; }
+  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; color: var(--text2); padding: 2px 0; }
+  .tooltip .tt-val { color: var(--text); font-family: monospace; }
+
+  /* Animated pipes */
+  .pipe-flow {
+    stroke-dasharray: 8 4;
+    animation: flow 1.5s linear infinite;
+  }
+  .pipe-flow-rev {
+    stroke-dasharray: 8 4;
+    animation: flow-rev 1.5s linear infinite;
+  }
+  @keyframes flow { to { stroke-dashoffset: -36; } }
+  @keyframes flow-rev { to { stroke-dashoffset: 36; } }
+  .pulse-circle {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; r: 8; }
+    50% { opacity: 0.5; r: 11; }
+  }
+
+  /* SVG element styles */
+  .vessel { fill: var(--bg3); stroke: #4a5568; stroke-width: 1.5; }
+  .vessel:hover { stroke: var(--blue); stroke-width: 2; filter: drop-shadow(0 0 6px rgba(59,130,246,0.3)); cursor: pointer; }
+  .pump { fill: var(--bg3); stroke: #4a5568; stroke-width: 1.5; }
+  .pump:hover { stroke: var(--cyan); stroke-width: 2; filter: drop-shadow(0 0 6px rgba(6,182,212,0.3)); cursor: pointer; }
+  .valve { fill: #1a2035; stroke: var(--orange); stroke-width: 1.5; }
+  .valve:hover { stroke: #fb923c; stroke-width: 2; filter: drop-shadow(0 0 6px rgba(249,115,22,0.3)); cursor: pointer; }
+  .instrument { fill: #1a2035; stroke: var(--purple); stroke-width: 1.5; }
+  .instrument:hover { stroke: #c084fc; stroke-width: 2; cursor: pointer; }
+  .heat-exchanger { fill: var(--bg3); stroke: #e11d48; stroke-width: 1.5; }
+  .heat-exchanger:hover { stroke: #f43f5e; cursor: pointer; }
+  .label-text { fill: var(--text); font-size: 10px; font-family: monospace; pointer-events: none; }
+  .tag-text { fill: var(--text2); font-size: 9px; font-family: monospace; pointer-events: none; }
+  .unit-label { fill: var(--text3); font-size: 8px; pointer-events: none; }
+  .section-bg { fill: var(--bg2); stroke: var(--border); stroke-width: 1; stroke-dasharray: 4 3; }
+  .section-label { fill: var(--text2); font-size: 11px; font-weight: 600; pointer-events: none; }
+  .active-elem { animation: glow-active 2s ease-in-out infinite; }
+  @keyframes glow-active {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(34,197,94,0.5)); }
+    50% { filter: drop-shadow(0 0 8px rgba(34,197,94,0.8)); }
+  }
+  .alarm { animation: alarm-flash 0.8s ease-in-out infinite; }
+  @keyframes alarm-flash {
+    0%, 100% { fill: #1a2035; stroke: var(--red); }
+    50% { fill: rgba(239,68,68,0.2); stroke: #ff6b6b; }
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <div>
+    <h1>🏭 مخطط P&ID — منشأة معالجة الغاز الطبيعي</h1>
+    <div class="subtitle">Piping & Instrumentation Diagram — Natural Gas Processing Facility | Rev. A2 | 2025</div>
+  </div>
+  <div id="toolbar">
+    <button class="btn active" id="btn-flow" onclick="toggleFlow()">⚡ تدفق حي</button>
+    <button class="btn" id="btn-labels" onclick="toggleLabels()">🏷️ التسميات</button>
+    <button class="btn" id="btn-alarms" onclick="toggleAlarms()">🚨 تنبيهات</button>
+    <button class="btn" onclick="resetZoom()">🔄 إعادة ضبط</button>
+    <button class="btn" onclick="exportSVG()">⬇️ تصدير SVG</button>
+  </div>
+</div>
+<div id="main-container">
+  <div id="canvas-container">
+    <svg id="pid-canvas"></svg>
+    <div id="status-bar">انقر على أي عنصر لعرض التفاصيل • اسحب للتنقل • عجلة الماوس للتكبير</div>
+    <div class="tooltip" id="tooltip"></div>
+    <div id="zoom-controls">
+      <div class="zoom-btn" onclick="zoomIn()">+</div>
+      <div class="zoom-btn" onclick="resetZoom()">⊙</div>
+      <div class="zoom-btn" onclick="zoomOut()">−</div>
+    </div>
+  </div>
+  <div id="sidebar">
+    <h3>🗺️ مفتاح الرموز</h3>
+    <div class="section-title">الأنابيب</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--pipe-hot)"></div> خط عملية ساخن</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--pipe-cold)"></div> خط عملية بارد</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--pipe-gas)"></div> خط غاز</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--pipe-process)"></div> خط سائل عملية</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--pipe-steam);height:2px;border-top:2px dashed var(--pipe-steam);background:none"></div> بخار</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--pipe-inst);height:1px;border-top:1px dashed var(--pipe-inst);background:none"></div> إشارة أدوات</div>
+    <div class="section-title">المعدات</div>
+    <div class="legend-item"><div class="legend-rect" style="border-color:#4a5568;background:var(--bg3)"></div> وعاء / خزان</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--bg3);border:2px solid #4a5568"></div> مضخة / ضاغط</div>
+    <div class="legend-item"><div class="legend-rect" style="border-color:var(--orange);background:#1a2035;transform:rotate(45deg)"></div> صمام تحكم</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1a2035;border:2px solid var(--purple)"></div> أداة قياس</div>
+    <div class="legend-item"><div class="legend-rect" style="border-color:#e11d48;background:var(--bg3)"></div> مبادل حراري</div>
+    <div class="section-title">الأجهزة</div>
+    <div class="legend-item"><span style="font-size:10px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px;border:1px solid var(--border2)">PT</span> مقياس ضغط</div>
+    <div class="legend-item"><span style="font-size:10px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px;border:1px solid var(--border2)">TT</span> مقياس درجة حرارة</div>
+    <div class="legend-item"><span style="font-size:10px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px;border:1px solid var(--border2)">FT</span> مقياس تدفق</div>
+    <div class="legend-item"><span style="font-size:10px;color:var(--text3);font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px;border:1px solid var(--border2)">LT</span> مقياس مستوى</div>
+    <div class="section-title">المناطق</div>
+    <div class="legend-item"><span style="display:inline-block;width:14px;height:10px;border:1px dashed var(--border2);border-radius:2px;background:rgba(59,130,246,0.05)"></span> فصل الغاز</div>
+    <div class="legend-item"><span style="display:inline-block;width:14px;height:10px;border:1px dashed var(--border2);border-radius:2px;background:rgba(239,68,68,0.05)"></span> المعالجة الحرارية</div>
+    <div class="legend-item"><span style="display:inline-block;width:14px;height:10px;border:1px dashed var(--border2);border-radius:2px;background:rgba(34,197,94,0.05)"></span> الضخ والتوزيع</div>
+    <h3 style="margin-top:20px">📋 معلومات العنصر</h3>
+    <div id="info-panel">
+      <div style="color:var(--text3);font-size:11px;text-align:center;padding-top:30px">
+        انقر على أي عنصر في المخطط لعرض تفاصيله هنا
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const W = 3200, H = 2000;
+let flowActive = true, labelsVisible = true, alarmsActive = false;
+let transform = d3.zoomIdentity;
+
+const svg = d3.select('#pid-canvas')
+  .attr('viewBox', `0 0 ${W} ${H}`);
+
+const zoom = d3.zoom()
+  .scaleExtent([0.15, 4])
+  .on('zoom', (event) => {
+    transform = event.transform;
+    mainGroup.attr('transform', event.transform);
+  });
+
+svg.call(zoom);
+
+const mainGroup = svg.append('g');
+
+// ─────────────────────────────────────────────
+// Background sections
+// ─────────────────────────────────────────────
+const sections = [
+  { x: 40, y: 40, w: 700, h: 900, label: 'وحدة فصل الغاز', color: 'rgba(59,130,246,0.04)' },
+  { x: 800, y: 40, w: 800, h: 900, label: 'وحدة المعالجة الحرارية', color: 'rgba(239,68,68,0.04)' },
+  { x: 1700, y: 40, w: 700, h: 900, label: 'وحدة الضغط العالي', color: 'rgba(234,179,8,0.04)' },
+  { x: 2500, y: 40, w: 660, h: 900, label: 'وحدة التوزيع', color: 'rgba(34,197,94,0.04)' },
+  { x: 40, y: 1000, w: 1200, h: 960, label: 'وحدة الأدوات والتحكم', color: 'rgba(168,85,247,0.04)' },
+  { x: 1300, y: 1000, w: 1860, h: 960, label: 'وحدة المعالجة الثانوية', color: 'rgba(20,184,166,0.04)' },
+];
+
+mainGroup.selectAll('.section')
+  .data(sections)
+  .enter().append('rect')
+  .attr('class', 'section-bg')
+  .attr('x', d => d.x)
+  .attr('y', d => d.y)
+  .attr('width', d => d.w)
+  .attr('height', d => d.h)
+  .attr('rx', 12)
+  .style('fill', d => d.color);
+
+mainGroup.selectAll('.section-lbl')
+  .data(sections)
+  .enter().append('text')
+  .attr('class', 'section-label')
+  .attr('x', d => d.x + 16)
+  .attr('y', d => d.y + 22)
+  .text(d => d.label);
+
+// ─────────────────────────────────────────────
+// Equipment Data
+// ─────────────────────────────────────────────
+const vessels = [
+  { id: 'V-101', x: 120, y: 200, w: 160, h: 240, label: 'V-101', name: 'فاصل الغاز الرئيسي', desc: 'High-Pressure Gas Separator', temp: '45°C', press: '85 bar', level: '62%', flow: '12,400 Nm³/h', type: 'separator' },
+  { id: 'V-102', x: 380, y: 200, w: 140, h: 200, label: 'V-102', name: 'فاصل السائل', desc: 'Liquid Knockout Drum', temp: '38°C', press: '80 bar', level: '41%', flow: '850 m³/h', type: 'drum' },
+  { id: 'V-103', x: 540, y: 450, w: 120, h: 160, label: 'V-103', name: 'وعاء التهدئة', desc: 'Surge Vessel', temp: '35°C', press: '5 bar', level: '55%', flow: '320 m³/h', type: 'vessel' },
+  { id: 'T-201', x: 900, y: 150, w: 200, h: 280, label: 'T-201', name: 'برج التقطير', desc: 'Distillation Column', temp: '185°C', press: '12 bar', level: '48%', flow: '8,200 kg/h', type: 'column' },
+  { id: 'T-202', x: 1100, y: 300, w: 180, h: 240, label: 'T-202', name: 'برج الامتصاص', desc: 'Absorption Tower', temp: '55°C', press: '18 bar', level: '33%', flow: '5,400 kg/h', type: 'column' },
+  { id: 'V-301', x: 1760, y: 180, w: 140, h: 200, label: 'V-301', name: 'وعاء الضغط العالي', desc: 'HP Buffer Vessel', temp: '60°C', press: '140 bar', level: '72%', flow: '3,200 m³/h', type: 'vessel' },
+  { id: 'TK-401', x: 2560, y: 200, w: 200, h: 220, label: 'TK-401', name: 'خزان التخزين الرئيسي', desc: 'Main Storage Tank', temp: '28°C', press: '2 bar', level: '85%', flow: '15,000 m³', type: 'tank' },
+  { id: 'TK-402', x: 2560, y: 480, w: 160, h: 180, label: 'TK-402', name: 'خزان الوقود', desc: 'Fuel Storage Tank', temp: '25°C', press: '1.5 bar', level: '60%', flow: '4,200 m³', type: 'tank' },
+  { id: 'V-501', x: 160, y: 1100, w: 160, h: 200, label: 'V-501', name: 'وعاء غاز الآلة', desc: 'Instrument Gas Buffer', temp: '30°C', press: '8 bar', level: '—', flow: '120 Nm³/h', type: 'vessel' },
+  { id: 'V-601', x: 1360, y: 1100, w: 180, h: 240, label: 'V-601', name: 'وعاء المعالجة الثانوي', desc: 'Secondary Process Vessel', temp: '42°C', press: '22 bar', level: '51%', flow: '2,800 m³/h', type: 'vessel' },
+  { id: 'T-701', x: 2200, y: 1150, w: 200, h: 260, label: 'T-701', name: 'برج الشطف', desc: 'Wash Column', temp: '35°C', press: '8 bar', level: '44%', flow: '1,900 kg/h', type: 'column' },
+];
+
+const heatExchangers = [
+  { id: 'E-201', x: 860, y: 520, w: 180, h: 80, label: 'E-201', name: 'مبادل حراري رئيسي', desc: 'Main Process Heat Exchanger', duty: '12.4 MW', hotT: '185→95°C', coldT: '25→115°C' },
+  { id: 'E-202', x: 1400, y: 520, w: 180, h: 80, label: 'E-202', name: 'مبادل الغاز/السائل', desc: 'Gas/Liquid HX', duty: '4.8 MW', hotT: '140→70°C', coldT: '30→80°C' },
+  { id: 'E-601', x: 1600, y: 1200, w: 180, h: 80, label: 'E-601', name: 'مبادل المعالجة الثانوية', desc: 'Secondary Process HX', duty: '2.2 MW', hotT: '90→45°C', coldT: '20→55°C' },
+  { id: 'E-301', x: 2000, y: 300, w: 160, h: 70, label: 'E-301', name: 'مبادل ما قبل التبريد', desc: 'Pre-cooling HX', duty: '3.1 MW', hotT: '120→60°C', coldT: '5→40°C' },
+];
+
+const pumps = [
+  { id: 'P-101A', cx: 380, cy: 560, r: 28, label: 'P-101A', name: 'مضخة نقل السائل A', speed: '1480 rpm', power: '75 kW', flow: '420 m³/h', head: '85 m', status: 'running' },
+  { id: 'P-101B', cx: 450, cy: 560, r: 28, label: 'P-101B', name: 'مضخة نقل السائل B (احتياطية)', speed: '0 rpm', power: '0 kW', flow: '0 m³/h', head: '0 m', status: 'standby' },
+  { id: 'P-201A', cx: 860, cy: 650, r: 30, label: 'P-201A', name: 'مضخة الإرجاع الرئيسية', speed: '1785 rpm', power: '110 kW', flow: '580 m³/h', head: '120 m', status: 'running' },
+  { id: 'P-401', cx: 2520, cy: 480, r: 32, label: 'P-401', name: 'مضخة نقل المنتج', speed: '1450 rpm', power: '132 kW', flow: '620 m³/h', head: '95 m', status: 'running' },
+  { id: 'P-601', cx: 1320, cy: 1250, r: 28, label: 'P-601', name: 'مضخة المعالجة الثانوية', speed: '1200 rpm', power: '55 kW', flow: '280 m³/h', head: '65 m', status: 'running' },
+  { id: 'C-301', cx: 1780, cy: 420, r: 34, label: 'C-301', name: 'ضاغط الغاز الرئيسي', speed: '3550 rpm', power: '450 kW', flow: '8200 Nm³/h', head: '2.8 bar', status: 'running' },
+  { id: 'C-302', cx: 1860, cy: 420, r: 34, label: 'C-302', name: 'ضاغط الغاز (احتياطي)', speed: '0 rpm', power: '0 kW', flow: '0 Nm³/h', head: '0 bar', status: 'standby' },
+];
+
+const valves = [
+  { id: 'FCV-101', x: 300, y: 120, size: 20, label: 'FCV-101', type: 'flow', name: 'صمام تحكم في التدفق', signal: '65%', set: '1,200 m³/h' },
+  { id: 'PCV-101', x: 560, y: 120, size: 20, label: 'PCV-101', type: 'pressure', name: 'صمام تحكم في الضغط', signal: '45%', set: '82 bar' },
+  { id: 'LCV-102', x: 440, y: 380, size: 18, label: 'LCV-102', type: 'level', name: 'صمام تحكم في المستوى', signal: '52%', set: '45%' },
+  { id: 'TCV-201', x: 1000, y: 520, size: 20, label: 'TCV-201', type: 'temp', name: 'صمام تحكم في الحرارة', signal: '78%', set: '180°C' },
+  { id: 'FCV-201', x: 1200, y: 150, size: 20, label: 'FCV-201', type: 'flow', name: 'صمام تحكم دوراني', signal: '70%', set: '8,000 kg/h' },
+  { id: 'PCV-301', x: 1700, y: 300, size: 20, label: 'PCV-301', type: 'pressure', name: 'صمام ضغط عالي', signal: '58%', set: '138 bar' },
+  { id: 'HV-401', x: 2440, y: 300, size: 22, label: 'HV-401', type: 'hand', name: 'صمام يدوي رئيسي', signal: 'مفتوح', set: '100%' },
+  { id: 'PRV-101', x: 200, y: 140, size: 16, label: 'PRV-101', type: 'relief', name: 'صمام تخفيف الضغط', signal: '—', set: '95 bar' },
+  { id: 'PRV-201', x: 960, y: 140, size: 16, label: 'PRV-201', type: 'relief', name: 'صمام أمان برج التقطير', signal: '—', set: '15 bar' },
+  { id: 'FCV-601', x: 1520, y: 1120, size: 18, label: 'FCV-601', type: 'flow', name: 'صمام المعالجة الثانوية', signal: '42%', set: '2,500 m³/h' },
+  { id: 'LCV-601', x: 1720, y: 1120, size: 18, label: 'LCV-601', type: 'level', name: 'صمام مستوى المعالجة', signal: '61%', set: '50%' },
+];
+
+const instruments = [
+  { id: 'PT-101', cx: 220, cy: 160, r: 16, label: 'PT-101', tag: 'PT', name: 'مقياس ضغط الدخل', value: '84.2 bar', range: '0-100 bar', alarm: false },
+  { id: 'TT-101', cx: 280, cy: 160, r: 16, label: 'TT-101', tag: 'TT', name: 'مقياس حرارة الدخل', value: '43.8°C', range: '0-100°C', alarm: false },
+  { id: 'FT-101', cx: 340, cy: 160, r: 16, label: 'FT-101', tag: 'FT', name: 'مقياس تدفق الغاز', value: '12,240 Nm³/h', range: '0-15000', alarm: false },
+  { id: 'LT-102', cx: 500, cy: 230, r: 16, label: 'LT-102', tag: 'LT', name: 'مقياس مستوى الفاصل', value: '62.3%', range: '0-100%', alarm: false },
+  { id: 'PT-201', cx: 980, cy: 200, r: 16, label: 'PT-201', tag: 'PT', name: 'ضغط برج التقطير', value: '12.1 bar', range: '0-20 bar', alarm: false },
+  { id: 'TT-201', cx: 1060, cy: 200, r: 16, label: 'TT-201', tag: 'TT', name: 'حرارة البرج العلوي', value: '188.4°C', range: '0-250°C', alarm: true },
+  { id: 'FT-201', cx: 1140, cy: 200, r: 16, label: 'FT-201', tag: 'FT', name: 'تدفق مغذي البرج', value: '8,340 kg/h', range: '0-12000', alarm: false },
+  { id: 'PT-301', cx: 1860, cy: 200, r: 16, label: 'PT-301', tag: 'PT', name: 'ضغط الضاغط خروج', value: '138.5 bar', range: '0-160 bar', alarm: false },
+  { id: 'TT-301', cx: 1940, cy: 200, r: 16, label: 'TT-301', tag: 'TT', name: 'حرارة الضاغط خروج', value: '92.3°C', range: '0-150°C', alarm: false },
+  { id: 'LT-401', cx: 2640, cy: 280, r: 16, label: 'LT-401', tag: 'LT', name: 'مستوى خزان المنتج', value: '85.1%', range: '0-100%', alarm: false },
+  { id: 'PT-501', cx: 260, cy: 1080, r: 16, label: 'PT-501', tag: 'PT', name: 'ضغط غاز الآلة', value: '7.8 bar', range: '0-12 bar', alarm: false },
+  { id: 'FT-601', cx: 1440, cy: 1080, r: 16, label: 'FT-601', tag: 'FT', name: 'تدفق المعالجة الثانوية', value: '2,750 m³/h', range: '0-4000', alarm: false },
+  { id: 'TT-701', cx: 2280, cy: 1120, r: 16, label: 'TT-701', tag: 'TT', name: 'حرارة برج الشطف', value: '36.2°C', range: '0-80°C', alarm: false },
+  { id: 'AT-101', cx: 420, cy: 160, r: 16, label: 'AT-101', tag: 'AT', name: 'محلل جودة الغاز', value: '98.2% CH₄', range: '—', alarm: false },
+];
+
+// ─────────────────────────────────────────────
+// Pipes / Connections
+// ─────────────────────────────────────────────
+const pipes = [
+  // Feed inlet
+  { id: 'L-001', path: 'M 0,320 H 120', color: 'var(--pipe-gas)', w: 5, type: 'gas', animated: true, label: 'خط الغاز الخام', tag: '14"-GAS-001' },
+  // V-101 to V-102
+  { id: 'L-002', path: 'M 280,310 H 380', color: 'var(--pipe-gas)', w: 4, type: 'gas', animated: true, label: '' },
+  // V-102 bottom to P-101
+  { id: 'L-003', path: 'M 450,400 V 560 H 380', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  // P-101 to V-103
+  { id: 'L-004', path: 'M 450,560 H 540 V 530', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  // V-102 gas outlet to T-201 feed
+  { id: 'L-005', path: 'M 520,220 H 700 V 280 H 900', color: 'var(--pipe-gas)', w: 4, type: 'gas', animated: true },
+  // V-101 gas top to FCV-101
+  { id: 'L-006', path: 'M 200,200 V 140 H 300', color: 'var(--pipe-gas)', w: 4, type: 'gas', animated: true },
+  // Gas to PCV-101 to T-201
+  { id: 'L-007', path: 'M 340,140 H 560 V 140', color: 'var(--pipe-gas)', w: 4, type: 'gas', animated: true },
+  { id: 'L-007b', path: 'M 600,140 H 800 V 300 H 900', color: 'var(--pipe-gas)', w: 4, type: 'gas', animated: true },
+  // T-201 to E-201
+  { id: 'L-008', path: 'M 900,520 H 860', color: 'var(--pipe-hot)', w: 3, type: 'hot', animated: true },
+  // E-201 to T-202
+  { id: 'L-009', path: 'M 1040,560 H 1100', color: 'var(--pipe-hot)', w: 3, type: 'hot', animated: true },
+  // T-202 to C-301
+  { id: 'L-010', path: 'M 1280,400 H 1700 V 420 H 1780', color: 'var(--pipe-gas)', w: 4, type: 'gas', animated: true },
+  // C-301 to E-301
+  { id: 'L-011', path: 'M 1860,400 H 2000', color: 'var(--pipe-hot)', w: 3, type: 'hot', animated: true },
+  // E-301 to V-301
+  { id: 'L-012', path: 'M 2160,300 H 1900 V 280 H 1760', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  // V-301 to HV-401
+  { id: 'L-013', path: 'M 1760,300 H 1700 V 380 H 2440', color: 'var(--pipe-process)', w: 4, type: 'liquid', animated: true },
+  // HV-401 to TK-401
+  { id: 'L-014', path: 'M 2500,300 H 2560', color: 'var(--pipe-process)', w: 4, type: 'liquid', animated: true },
+  // P-401 to TK-402
+  { id: 'L-015', path: 'M 2520,512 V 560 H 2560', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  // Product outlet
+  { id: 'L-016', path: 'M 2760,320 H 3200', color: 'var(--pipe-process)', w: 5, type: 'liquid', animated: true, label: 'خط المنتج', tag: '12"-LIQ-016' },
+  // Instrument gas line
+  { id: 'L-017', path: 'M 120,1200 H 80 V 320 H 120', color: 'var(--pipe-inst)', w: 1.5, type: 'instrument', animated: false, dash: '4,3' },
+  // Secondary process lines
+  { id: 'L-018', path: 'M 1360,1220 H 1320 V 1250', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  { id: 'L-019', path: 'M 1540,1220 H 1600', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  { id: 'L-020', path: 'M 1780,1240 H 2200', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  { id: 'L-021', path: 'M 2400,1280 H 2800', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  // E-202 connections
+  { id: 'L-022', path: 'M 1280,560 H 1400', color: 'var(--pipe-hot)', w: 3, type: 'hot', animated: true },
+  { id: 'L-023', path: 'M 1580,560 H 1700 V 400 H 1760', color: 'var(--pipe-cold)', w: 3, type: 'cold', animated: true },
+  // Steam supply
+  { id: 'L-024', path: 'M 1000,750 V 840 H 200 V 1000', color: '#94a3b8', w: 2, type: 'steam', animated: false, dash: '6,4' },
+  // Flare header
+  { id: 'L-025', path: 'M 200,140 H 200 V 80 H 3000 V 1900 H 200', color: '#f97316', w: 1.5, type: 'flare', animated: false, dash: '8,5' },
+  // E-601
+  { id: 'L-026', path: 'M 1540,1240 H 1600', color: 'var(--pipe-hot)', w: 2, type: 'hot', animated: true },
+  { id: 'L-027', path: 'M 1600,1280 H 1540 V 1340 H 1360', color: 'var(--pipe-cold)', w: 2, type: 'cold', animated: true },
+  // P-201 recycle
+  { id: 'L-028', path: 'M 860,650 H 800 V 300 H 900', color: 'var(--pipe-process)', w: 3, type: 'liquid', animated: true },
+  // Control lines (instrument signal - dashed thin)
+  { id: 'CS-101', path: 'M 300,140 V 180', color: 'var(--pipe-inst)', w: 1, type: 'signal', animated: false, dash: '2,2' },
+  { id: 'CS-102', path: 'M 440,390 V 420', color: 'var(--pipe-inst)', w: 1, type: 'signal', animated: false, dash: '2,2' },
+  { id: 'CS-201', path: 'M 1000,530 V 560', color: 'var(--pipe-inst)', w: 1, type: 'signal', animated: false, dash: '2,2' },
+];
+
+// ─────────────────────────────────────────────
+// Draw pipes first (below everything)
+// ─────────────────────────────────────────────
+const pipeGroup = mainGroup.append('g').attr('id', 'pipe-group');
+
+pipes.forEach(pipe => {
+  const el = pipeGroup.append('path')
+    .attr('d', pipe.path)
+    .attr('fill', 'none')
+    .attr('stroke', pipe.color)
+    .attr('stroke-width', pipe.w)
+    .attr('stroke-linecap', 'round')
+    .attr('stroke-linejoin', 'round')
+    .attr('id', 'pipe-' + pipe.id);
+
+  if (pipe.dash) el.attr('stroke-dasharray', pipe.dash);
+  if (pipe.animated && flowActive) el.attr('class', 'pipe-flow');
+
+  if (pipe.label) {
+    const pathEl = document.getElementById('pipe-' + pipe.id);
+    const len = pathEl ? pathEl.getTotalLength() : 100;
+    pipeGroup.append('text')
+      .attr('class', 'tag-text')
+      .attr('dy', -4)
+      .append('textPath')
+      .attr('href', '#pipe-' + pipe.id)
+      .attr('startOffset', '20%')
+      .text(pipe.label + (pipe.tag ? ' | ' + pipe.tag : ''));
+  }
+});
+
+// ─────────────────────────────────────────────
+// Draw vessels
+// ─────────────────────────────────────────────
+const vesselGroup = mainGroup.append('g').attr('id', 'vessel-group');
+
+vessels.forEach(v => {
+  const g = vesselGroup.append('g').attr('id', v.id).attr('class', 'clickable');
+
+  const isColumn = v.type === 'column';
+  const isTank = v.type === 'tank';
+  const rx = isColumn ? 6 : (isTank ? 10 : 8);
+
+  g.append('rect')
+    .attr('x', v.x)
+    .attr('y', v.y)
+    .attr('width', v.w)
+    .attr('height', v.h)
+    .attr('rx', rx)
+    .attr('class', 'vessel');
+
+  // Level indicator inside vessel
+  if (v.level !== '—') {
+    const lvlPct = parseFloat(v.level) / 100;
+    const lvlH = v.h * lvlPct;
+    g.append('rect')
+      .attr('x', v.x + 3)
+      .attr('y', v.y + v.h - lvlH - 3)
+      .attr('width', v.w - 6)
+      .attr('height', lvlH)
+      .attr('rx', rx - 2)
+      .attr('fill', 'rgba(59,130,246,0.15)')
+      .attr('stroke', 'none');
+  }
+
+  // Stripes for columns
+  if (isColumn) {
+    for (let i = 1; i < 5; i++) {
+      g.append('line')
+        .attr('x1', v.x + 10).attr('y1', v.y + (v.h * i / 5))
+        .attr('x2', v.x + v.w - 10).attr('y2', v.y + (v.h * i / 5))
+        .attr('stroke', 'var(--border)').attr('stroke-width', 0.5)
+        .attr('stroke-dasharray', '4,3');
+    }
+  }
+
+  // Label
+  g.append('text')
+    .attr('class', 'label-text')
+    .attr('x', v.x + v.w / 2)
+    .attr('y', v.y + 16)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '11px')
+    .attr('font-weight', '600')
+    .attr('fill', 'var(--blue-light)')
+    .text(v.label);
+
+  g.append('text')
+    .attr('class', 'tag-text')
+    .attr('x', v.x + v.w / 2)
+    .attr('y', v.y + v.h + 14)
+    .attr('text-anchor', 'middle')
+    .text(v.name.length > 14 ? v.name.substring(0,14) + '…' : v.name);
+
+  // Level bar on right side
+  if (v.level !== '—') {
+    const lvlPct = parseFloat(v.level) / 100;
+    g.append('rect').attr('x', v.x + v.w + 4).attr('y', v.y).attr('width', 6).attr('height', v.h).attr('rx', 3).attr('fill', 'var(--border)');
+    g.append('rect').attr('x', v.x + v.w + 4).attr('y', v.y + v.h * (1 - lvlPct)).attr('width', 6).attr('height', v.h * lvlPct).attr('rx', 3).attr('fill', 'var(--blue)');
+  }
+
+  g.on('click', () => showInfo(v.id, 'vessel', v));
+  g.on('mouseover', function() { d3.select(this).select('rect').attr('stroke', 'var(--blue)').attr('stroke-width', 2); });
+  g.on('mouseout', function() { d3.select(this).select('rect').attr('class', 'vessel'); });
+});
+
+// ─────────────────────────────────────────────
+// Draw heat exchangers
+// ─────────────────────────────────────────────
+heatExchangers.forEach(he => {
+  const g = mainGroup.append('g').attr('id', he.id);
+
+  g.append('rect')
+    .attr('x', he.x).attr('y', he.y)
+    .attr('width', he.w).attr('height', he.h)
+    .attr('rx', 4)
+    .attr('class', 'heat-exchanger');
+
+  // Internal chevrons for HX symbol
+  for (let i = 1; i <= 4; i++) {
+    const xi = he.x + (he.w * i / 5);
+    g.append('path')
+      .attr('d', `M ${xi-6},${he.y+10} L ${xi},${he.y+he.h/2} L ${xi-6},${he.y+he.h-10}`)
+      .attr('fill', 'none')
+      .attr('stroke', '#e11d48')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.5);
+  }
+
+  g.append('text')
+    .attr('class', 'label-text')
+    .attr('x', he.x + he.w / 2).attr('y', he.y + 14)
+    .attr('text-anchor', 'middle')
+    .attr('fill', '#f43f5e')
+    .attr('font-size', '10px')
+    .text(he.label);
+
+  g.append('text')
+    .attr('class', 'tag-text')
+    .attr('x', he.x + he.w / 2).attr('y', he.y + he.h + 13)
+    .attr('text-anchor', 'middle')
+    .text(he.name.length > 16 ? he.name.substring(0,16) + '…' : he.name);
+
+  g.on('click', () => showInfo(he.id, 'hx', he));
+});
+
+// ─────────────────────────────────────────────
+// Draw pumps/compressors
+// ─────────────────────────────────────────────
+pumps.forEach(p => {
+  const g = mainGroup.append('g').attr('id', p.id);
+
+  const isCompressor = p.id.startsWith('C-');
+  const statusColor = p.status === 'running' ? 'var(--green)' : p.status === 'standby' ? 'var(--yellow)' : 'var(--red)';
+
+  g.append('circle')
+    .attr('cx', p.cx).attr('cy', p.cy).attr('r', p.r)
+    .attr('class', 'pump');
+
+  if (p.status === 'running') {
+    g.append('circle')
+      .attr('cx', p.cx).attr('cy', p.cy)
+      .attr('r', p.r)
+      .attr('fill', 'none')
+      .attr('stroke', statusColor)
+      .attr('stroke-width', 1.5)
+      .attr('class', 'active-elem');
+  }
+
+  // Pump symbol
+  if (!isCompressor) {
+    g.append('path')
+      .attr('d', `M ${p.cx-8},${p.cy+6} Q ${p.cx},${p.cy-10} ${p.cx+8},${p.cy+6} Z`)
+      .attr('fill', 'var(--cyan)')
+      .attr('opacity', 0.6);
+  } else {
+    g.append('text')
+      .attr('x', p.cx).attr('y', p.cy + 4)
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'var(--yellow)')
+      .attr('font-size', '10px')
+      .text('C');
+  }
+
+  // Status dot
+  g.append('circle')
+    .attr('cx', p.cx + p.r - 6).attr('cy', p.cy - p.r + 6)
+    .attr('r', 5)
+    .attr('fill', statusColor);
+
+  g.append('text')
+    .attr('class', 'label-text')
+    .attr('x', p.cx).attr('y', p.cy + p.r + 13)
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '9px')
+    .text(p.label);
+
+  g.on('click', () => showInfo(p.id, 'pump', p));
+  g.on('mouseover', function() { d3.select(this).select('circle').attr('stroke', 'var(--cyan)').attr('stroke-width', 2); });
+  g.on('mouseout', function() { d3.select(this).select('circle').attr('class', 'pump'); });
+});
+
+// ─────────────────────────────────────────────
+// Draw valves
+// ─────────────────────────────────────────────
+valves.forEach(v => {
+  const g = mainGroup.append('g').attr('id', v.id);
+  const s = v.size;
+
+  // Butterfly/Globe valve symbol (bow-tie)
+  g.append('path')
+    .attr('d', `M ${v.x-s},${v.y} L ${v.x},${v.y-s} L ${v.x+s},${v.y} L ${v.x},${v.y+s} Z`)
+    .attr('class', v.type === 'relief' ? 'vessel' : 'valve');
+
+  // Stem
+  g.append('line')
+    .attr('x1', v.x).attr('y1', v.y - s)
+    .attr('x2', v.x).attr('y2', v.y - s - 12)
+    .attr('stroke', v.type === 'relief' ? 'var(--red)' : 'var(--orange)')
+    .attr('stroke-width', 1.5);
+
+  // Actuator circle for control valves
+  if (['flow', 'pressure', 'level', 'temp'].includes(v.type)) {
+    g.append('circle')
+      .attr('cx', v.x).attr('cy', v.y - s - 20)
+      .attr('r', 10)
+      .attr('fill', 'var(--bg3)')
+      .attr('stroke', 'var(--orange)')
+      .attr('stroke-width', 1);
+    g.append('text')
+      .attr('x', v.x).attr('y', v.y - s - 17)
+      .attr('text-anchor', 'middle').attr('fill', 'var(--orange)')
+      .attr('font-size', '8px').attr('font-family', 'monospace')
+      .text(v.type === 'flow' ? 'FC' : v.type === 'pressure' ? 'PC' : v.type === 'level' ? 'LC' : 'TC');
+  }
+
+  g.append('text')
+    .attr('class', 'tag-text')
+    .attr('x', v.x + s + 4).attr('y', v.y + 4)
+    .attr('font-size', '8px')
+    .text(v.label);
+
+  g.on('click', () => showInfo(v.id, 'valve', v));
+});
+
+// ─────────────────────────────────────────────
+// Draw instruments
+// ─────────────────────────────────────────────
+instruments.forEach(inst => {
+  const g = mainGroup.append('g').attr('id', inst.id);
+
+  if (inst.alarm && alarmsActive) {
+    g.append('circle')
+      .attr('cx', inst.cx).attr('cy', inst.cy).attr('r', inst.r)
+      .attr('class', 'alarm');
+  } else {
+    g.append('circle')
+      .attr('cx', inst.cx).attr('cy', inst.cy).attr('r', inst.r)
+      .attr('class', 'instrument');
+  }
+
+  g.append('text')
+    .attr('x', inst.cx).attr('y', inst.cy - 2)
+    .attr('text-anchor', 'middle')
+    .attr('fill', 'var(--purple)')
+    .attr('font-size', '8px')
+    .attr('font-family', 'monospace')
+    .attr('font-weight', '600')
+    .text(inst.tag);
+
+  g.append('text')
+    .attr('x', inst.cx).attr('y', inst.cy + 8)
+    .attr('text-anchor', 'middle')
+    .attr('fill', 'var(--text3)')
+    .attr('font-size', '7px')
+    .attr('font-family', 'monospace')
+    .text(inst.id.split('-').slice(-1)[0]);
+
+  if (inst.alarm) {
+    g.append('text')
+      .attr('x', inst.cx + inst.r).attr('y', inst.cy - inst.r)
+      .attr('fill', 'var(--red)')
+      .attr('font-size', '10px')
+      .attr('font-weight', '600')
+      .text('!');
+  }
+
+  g.on('click', () => showInfo(inst.id, 'instrument', inst));
+});
+
+// ─────────────────────────────────────────────
+// Nozzles / connections on vessels
+// ─────────────────────────────────────────────
+const nozzles = [
+  // V-101 nozzles
+  { x: 120, y: 320, dx: -20, dy: 0, label: 'N1' },
+  { x: 280, y: 310, dx: 20, dy: 0, label: 'N2' },
+  { x: 200, y: 200, dx: 0, dy: -20, label: 'N3' },
+  { x: 200, y: 440, dx: 0, dy: 20, label: 'N4' },
+];
+nozzles.forEach(n => {
+  mainGroup.append('line').attr('x1', n.x).attr('y1', n.y).attr('x2', n.x + n.dx).attr('y2', n.y + n.dy)
+    .attr('stroke', '#4a5568').attr('stroke-width', 4).attr('stroke-linecap', 'round');
+  mainGroup.append('text').attr('class', 'unit-label').attr('x', n.x + n.dx + (n.dx > 0 ? 3 : n.dx < 0 ? -15 : -8)).attr('y', n.y + n.dy + (n.dy > 0 ? 10 : n.dy < 0 ? -3 : 3)).text(n.label);
+});
+
+// ─────────────────────────────────────────────
+// Title Block (bottom right)
+// ─────────────────────────────────────────────
+const tb = mainGroup.append('g').attr('id', 'title-block');
+tb.append('rect').attr('x', 2500).attr('y', 1700).attr('width', 660).attr('height', 260).attr('rx', 8)
+  .attr('fill', 'var(--bg2)').attr('stroke', 'var(--border2)').attr('stroke-width', 1);
+tb.append('rect').attr('x', 2500).attr('y', 1700).attr('width', 660).attr('height', 36).attr('rx', 8)
+  .attr('fill', 'var(--bg3)').attr('stroke', 'none');
+tb.append('text').attr('x', 2830).attr('y', 1723).attr('text-anchor', 'middle')
+  .attr('fill', 'var(--blue-light)').attr('font-size', '14px').attr('font-weight', '600')
+  .text('مخطط P&ID — منشأة معالجة الغاز الطبيعي');
+
+const titleRows = [
+  ['المشروع:', 'منشأة معالجة الغاز الطبيعي'],
+  ['رقم المخطط:', 'PID-GP-001-A2'],
+  ['الوحدة:', 'الوحدة الرئيسية — طاقة 500 MMSCFD'],
+  ['التاريخ:', '2025-01-15'],
+  ['المراجعة:', 'Rev. A2'],
+  ['المسؤول:', 'قسم الهندسة'],
+  ['الحالة:', 'تشغيل فعلي'],
+];
+
+titleRows.forEach((row, i) => {
+  tb.append('text').attr('x', 2520).attr('y', 1755 + i * 26)
+    .attr('fill', 'var(--text3)').attr('font-size', '10px').text(row[0]);
+  tb.append('text').attr('x', 2640).attr('y', 1755 + i * 26)
+    .attr('fill', 'var(--text)').attr('font-size', '10px').text(row[1]);
+});
+
+// Revision table
+tb.append('line').attr('x1', 2620).attr('y1', 1740).attr('x2', 2620).attr('y2', 1960)
+  .attr('stroke', 'var(--border)').attr('stroke-width', 0.5);
+
+// ─────────────────────────────────────────────
+// Tooltip & Info Panel
+// ─────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+
+function showInfo(id, type, data) {
+  const panel = document.getElementById('info-panel');
+  let html = `<div class="info-title">${id} — ${getTypeName(type)}</div>`;
+
+  const rows = getInfoRows(type, data);
+  rows.forEach(r => {
+    html += `<div class="info-row"><span class="info-label">${r[0]}</span><span class="info-val">${r[1]}</span></div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function getTypeName(type) {
+  const names = { vessel: 'وعاء/خزان', pump: 'مضخة/ضاغط', valve: 'صمام', instrument: 'أداة قياس', hx: 'مبادل حراري' };
+  return names[type] || type;
+}
+
+function getInfoRows(type, data) {
+  if (type === 'vessel') return [
+    ['الاسم', data.name], ['الوصف', data.desc], ['الحرارة', data.temp],
+    ['الضغط', data.press], ['المستوى', data.level], ['التدفق', data.flow]
+  ];
+  if (type === 'pump') return [
+    ['الاسم', data.name], ['الحالة', data.status === 'running' ? '🟢 تشغيل' : '🟡 احتياطي'],
+    ['السرعة', data.speed], ['الطاقة', data.power], ['التدفق', data.flow], ['الارتفاع', data.head]
+  ];
+  if (type === 'valve') return [
+    ['الاسم', data.name], ['النوع', data.type], ['الإشارة', data.signal], ['النقطة المضبوطة', data.set]
+  ];
+  if (type === 'instrument') return [
+    ['الاسم', data.name], ['القراءة', data.value], ['المدى', data.range],
+    ['التنبيه', data.alarm ? '🔴 نشط' : '🟢 طبيعي']
+  ];
+  if (type === 'hx') return [
+    ['الاسم', data.name], ['الوصف', data.desc], ['الحمل الحراري', data.duty],
+    ['الطرف الساخن', data.hotT], ['الطرف البارد', data.coldT]
+  ];
+  return [];
+}
+
+// ─────────────────────────────────────────────
+// Controls
+// ─────────────────────────────────────────────
+function toggleFlow() {
+  flowActive = !flowActive;
+  const btn = document.getElementById('btn-flow');
+  btn.classList.toggle('active', flowActive);
+  d3.selectAll('.pipe-flow, .pipe-flow-rev').classed('pipe-flow', flowActive);
+  if (!flowActive) {
+    pipes.filter(p => p.animated).forEach(p => {
+      d3.select('#pipe-' + p.id).attr('stroke-dasharray', null).attr('class', null);
+    });
+  } else {
+    pipes.filter(p => p.animated).forEach(p => {
+      d3.select('#pipe-' + p.id).attr('class', 'pipe-flow');
+    });
+  }
+}
+
+function toggleLabels() {
+  labelsVisible = !labelsVisible;
+  const btn = document.getElementById('btn-labels');
+  btn.classList.toggle('active', labelsVisible);
+  d3.selectAll('.tag-text').style('display', labelsVisible ? null : 'none');
+  d3.selectAll('.unit-label').style('display', labelsVisible ? null : 'none');
+}
+
+function toggleAlarms() {
+  alarmsActive = !alarmsActive;
+  const btn = document.getElementById('btn-alarms');
+  btn.classList.toggle('active', alarmsActive);
+  instruments.filter(i => i.alarm).forEach(inst => {
+    d3.select('#' + inst.id).select('circle')
+      .attr('class', alarmsActive ? 'alarm' : 'instrument');
+  });
+}
+
+function zoomIn() { svg.transition().duration(300).call(zoom.scaleBy, 1.4); }
+function zoomOut() { svg.transition().duration(300).call(zoom.scaleBy, 0.7); }
+function resetZoom() {
+  const container = document.getElementById('canvas-container');
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const scale = Math.min(cw / W, ch / H) * 0.9;
+  svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate((cw - W * scale) / 2, (ch - H * scale) / 2).scale(scale));
+}
+
+function exportSVG() {
+  const svgEl = document.getElementById('pid-canvas');
+  const serializer = new XMLSerializer();
+  let svgStr = serializer.serializeToString(svgEl);
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'PID_NaturalGas_A2.svg'; a.click();
+}
+
+// Initial fit
+setTimeout(() => {
+  const container = document.getElementById('canvas-container');
+  const cw = container.clientWidth, ch = container.clientHeight;
+  const scale = Math.min(cw / W, ch / H) * 0.9;
+  svg.call(zoom.transform, d3.zoomIdentity.translate((cw - W * scale) / 2, (ch - H * scale) / 2).scale(scale));
+}, 100);
+</script>
+</body>
+</html>

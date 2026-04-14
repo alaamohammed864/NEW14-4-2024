@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Industrial Digital Twin — Distillation Tower</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #030d14;
+    --bg2: #060f1a;
+    --glass: rgba(10,40,70,0.45);
+    --glass2: rgba(0,200,255,0.06);
+    --border: rgba(0,200,255,0.18);
+    --cyan: #00e5ff;
+    --cyan2: #00b4d8;
+    --orange: #ff6d00;
+    --orange2: #ff9500;
+    --green: #00ff90;
+    --yellow: #ffe600;
+    --red: #ff3c5a;
+    --text: #cce9f7;
+    --muted: #4a7a9b;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-main: 'Rajdhani', sans-serif;
+    --font-display: 'Orbitron', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 8s ease-in-out infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: -20%;
+    width: 80vw;
+    height: 80vw;
+    background: radial-gradient(ellipse, rgba(0,100,180,0.13) 0%, transparent 70%);
+    animation: orb 12s ease-in-out infinite alternate;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  @keyframes gridPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes orb { 0%{transform:translate(0,0)} 100%{transform:translate(15vw,10vh)} }
+
+  .page { position: relative; z-index: 1; padding: 0; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(3,13,20,0.85);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .logo-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .logo-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .logo-title span { color: var(--cyan); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--green);
+    background: rgba(0,255,144,0.08);
+    border: 1px solid rgba(0,255,144,0.25);
+    border-radius: 4px;
+    padding: 5px 12px;
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulseDot 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulseDot {
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:0.4;transform:scale(0.7)}
+  }
+
+  .timestamp {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    height: calc(100vh - 65px);
+  }
+
+  /* ── SIDEBAR LEFT ── */
+  .sidebar-left {
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    background: rgba(4,16,28,0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0,200,255,0.15);
+    margin-bottom: 8px;
+  }
+
+  /* ── GLASS CARD ── */
+  .glass-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,200,255,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .glass-card:hover { border-color: rgba(0,200,255,0.4); }
+
+  /* ── SENSOR ROW ── */
+  .sensor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+
+  .sensor-row:last-child { border-bottom: none; }
+
+  .sensor-name {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .sensor-value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    transition: color 0.5s;
+  }
+
+  .val-normal { color: var(--cyan); }
+  .val-warn   { color: var(--yellow); }
+  .val-alert  { color: var(--red); animation: flashRed 0.8s infinite; }
+
+  @keyframes flashRed { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── CENTER TOWER SVG ── */
+  .center-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .tower-title {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    align-self: flex-start;
+  }
+
+  .tower-wrapper {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+  }
+
+  /* ── TOWER SVG ── */
+  .tower-svg-container {
+    position: relative;
+    width: 160px;
+    flex-shrink: 0;
+  }
+
+  /* Glow on tower */
+  .tower-glow {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 220px; height: 520px;
+    background: radial-gradient(ellipse, rgba(0,150,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    animation: glowPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes glowPulse {
+    0%,100%{opacity:1} 50%{opacity:0.5}
+  }
+
+  /* ── TRAY LABELS ── */
+  .tower-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 440px;
+    padding: 18px 0;
+  }
+
+  .tray-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .tray-label-line {
+    width: 28px;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .tray-val {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* ── FLOW INDICATORS PANEL ── */
+  .flows-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    height: 440px;
+  }
+
+  .flow-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  .flow-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  .flow-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .flow-unit {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  /* ── BOTTOM CHARTS ── */
+  .charts-row {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    height: 180px;
+  }
+
+  .chart-panel {
+    padding: 16px 20px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-panel:last-child { border-right: none; }
+
+  .chart-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .chart-value-big {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .chart-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  canvas.sparkline {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    width: 100%;
+    height: 60px;
+    opacity: 0.5;
+  }
+
+  /* ── SIDEBAR RIGHT ── */
+  .sidebar-right {
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    background: rgba(4,16,28,0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    grid-row: 1 / 3;
+    grid-column: 3;
+  }
+
+  /* ── GAUGE ── */
+  .gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 0;
+  }
+
+  .gauge-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  .gauge-canvas { display: block; }
+
+  .gauge-number {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1;
+    margin-top: -4px;
+  }
+
+  /* ── ALARM LIST ── */
+  .alarm-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    background: rgba(255,60,90,0.08);
+    border: 1px solid rgba(255,60,90,0.2);
+    margin-bottom: 6px;
+  }
+
+  .alarm-item.warn {
+    background: rgba(255,230,0,0.06);
+    border-color: rgba(255,230,0,0.2);
+  }
+
+  .alarm-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  .alarm-text {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .alarm-time {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    margin-bottom: 10px;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 20px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+  }
+
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── DATA STREAM ── */
+  .data-stream {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+    overflow: hidden;
+    height: 80px;
+    position: relative;
+  }
+
+  .data-stream::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: linear-gradient(transparent, var(--glass));
+  }
+
+  .stream-line { animation: streamIn 0.3s ease-out; }
+  @keyframes streamIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
+
+  /* ── TOWER SVG ── */
+  svg.tower {
+    filter: drop-shadow(0 0 18px rgba(0,200,255,0.25));
+  }
+
+  /* Bubble animation for liquid */
+  @keyframes bubbleRise {
+    0% { transform: translateY(0) scale(1); opacity: 0.7; }
+    100% { transform: translateY(-30px) scale(0.3); opacity: 0; }
+  }
+
+  .bubble {
+    animation: bubbleRise 2s ease-in infinite;
+  }
+
+  .bubble:nth-child(2) { animation-delay: 0.5s; }
+  .bubble:nth-child(3) { animation-delay: 1.1s; }
+
+  /* Steam animation */
+  @keyframes steamRise {
+    0% { transform: translateY(0) scaleX(1); opacity: 0.6; }
+    100% { transform: translateY(-40px) scaleX(1.5); opacity: 0; }
+  }
+
+  .steam { animation: steamRise 2.5s ease-out infinite; }
+  .steam:nth-child(2) { animation-delay: 0.8s; }
+  .steam:nth-child(3) { animation-delay: 1.6s; }
+
+  /* Pipe flow */
+  @keyframes flowAnim {
+    0% { stroke-dashoffset: 40; }
+    100% { stroke-dashoffset: 0; }
+  }
+
+  .flow-pipe {
+    stroke-dasharray: 8 4;
+    animation: flowAnim 1s linear infinite;
+  }
+
+  /* Scanline overlay */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  /* Corner decorations */
+  .corner-deco {
+    position: absolute;
+    width: 16px; height: 16px;
+    border-color: var(--cyan);
+    border-style: solid;
+    opacity: 0.5;
+  }
+
+  .corner-deco.tl { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+  .corner-deco.tr { top: 8px; right: 8px; border-width: 2px 2px 0 0; }
+  .corner-deco.bl { bottom: 8px; left: 8px; border-width: 0 0 2px 2px; }
+  .corner-deco.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+  .efficiency-ring {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+  }
+
+  /* ── NOTIFICATION TICKER ── */
+  .ticker {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(3,13,20,0.95);
+    border-top: 1px solid rgba(0,200,255,0.15);
+    padding: 6px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    z-index: 50;
+  }
+
+  .ticker-label {
+    color: var(--cyan);
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+
+  .ticker-track {
+    overflow: hidden;
+    flex: 1;
+    height: 16px;
+    position: relative;
+  }
+
+  .ticker-content {
+    position: absolute;
+    white-space: nowrap;
+    animation: tickerScroll 30s linear infinite;
+  }
+
+  @keyframes tickerScroll {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<div class="page">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <span class="logo-sub">Industrial Digital Twin</span>
+      <span class="logo-title">Distillation <span>Tower</span> Dashboard</span>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">
+        <div class="pulse-dot"></div>
+        SYSTEM ONLINE — NORMAL OPERATION
+      </div>
+      <div class="timestamp" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- MAIN GRID -->
+  <div class="main">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar-left">
+      <div class="section-label">Temperature Profile</div>
+      <div class="glass-card">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco tr"></div>
+        <div id="tempSensors"></div>
+      </div>
+
+      <div class="section-label">Pressure Sensors</div>
+      <div class="glass-card">
+        <div id="pressSensors"></div>
+      </div>
+
+      <div class="section-label">Feed Stream</div>
+      <div class="glass-card">
+        <div class="sensor-row">
+          <span class="sensor-name">FLOW RATE</span>
+          <span class="sensor-value val-normal" id="feedFlow">847.3 m³/h</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">TEMP</span>
+          <span class="sensor-value val-warn" id="feedTemp">168.4 °C</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">API GRAVITY</span>
+          <span class="sensor-value val-normal">34.2°</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">S CONTENT</span>
+          <span class="sensor-value val-normal">0.84 wt%</span>
+        </div>
+      </div>
+
+      <div class="section-label">Data Stream</div>
+      <div class="glass-card" style="padding:10px 12px;">
+        <div class="data-stream" id="dataStream"></div>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL -->
+    <div class="center-panel">
+      <div class="tower-title">T-1001 // Atmospheric Distillation Column</div>
+
+      <div class="tower-wrapper">
+
+        <!-- FLOWS LEFT -->
+        <div class="flows-panel">
+          <div class="flow-item">
+            <div class="flow-label">OVERHEAD VAPOR</div>
+            <div class="flow-value" style="color:var(--cyan)" id="ovhd">243<span class="flow-unit">m³/h</span></div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-label">REFLUX RATIO</div>
+            <div class="flow-value" style="color:var(--cyan2)" id="reflux">2.8<span class="flow-unit">L/V</span></div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-label">FEED RATE</div>
+            <div class="flow-value" style="color:var(--orange)" id="feed">847<span class="flow-unit">m³/h</span></div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-label">BOTTOMS FLOW</div>
+            <div class="flow-value" style="color:var(--orange2)" id="bottoms">189<span class="flow-unit">m³/h</span></div>
+          </div>
+          <div class="flow-item">
+            <div class="flow-label">REBOILER DUTY</div>
+            <div class="flow-value" style="color:var(--yellow)" id="reboil">28.4<span class="flow-unit">MW</span></div>
+          </div>
+        </div>
+
+        <!-- TOWER SVG -->
+        <div class="tower-svg-container">
+          <div class="tower-glow"></div>
+          <svg class="tower" viewBox="0 0 160 520" width="160" height="520" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="towerBody" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#0a2a4a"/>
+                <stop offset="30%" stop-color="#0e3a60"/>
+                <stop offset="70%" stop-color="#0e3a60"/>
+                <stop offset="100%" stop-color="#061d33"/>
+              </linearGradient>
+              <linearGradient id="liquidTop" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#0077aa" stop-opacity="0.2"/>
+              </linearGradient>
+              <linearGradient id="liquidBottom" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ff6d00" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#cc4400" stop-opacity="0.8"/>
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- Tower body -->
+            <rect x="30" y="30" width="100" height="460" rx="4" fill="url(#towerBody)" stroke="#1a4a6a" stroke-width="1.5"/>
+            <!-- Sheen -->
+            <rect x="30" y="30" width="8" height="460" rx="2" fill="rgba(255,255,255,0.04)"/>
+
+            <!-- TOP CAP -->
+            <ellipse cx="80" cy="30" rx="50" ry="8" fill="#0e3a60" stroke="#1a6a8a" stroke-width="1.5"/>
+
+            <!-- BOTTOM CAP -->
+            <ellipse cx="80" cy="490" rx="50" ry="8" fill="#0e3a60" stroke="#1a4a6a" stroke-width="1.5"/>
+
+            <!-- Liquid in reboiler (bottom) -->
+            <rect x="31" y="440" width="98" height="49" fill="url(#liquidBottom)" rx="0"/>
+
+            <!-- Bubbles in reboiler -->
+            <circle class="bubble" cx="55" cy="470" r="3" fill="rgba(255,150,0,0.5)"/>
+            <circle class="bubble" cx="80" cy="475" r="2" fill="rgba(255,150,0,0.5)"/>
+            <circle class="bubble" cx="105" cy="468" r="2.5" fill="rgba(255,150,0,0.5)"/>
+
+            <!-- Liquid in condenser (top) -->
+            <rect x="31" y="31" width="98" height="35" fill="url(#liquidTop)" rx="0"/>
+
+            <!-- Steam in condenser -->
+            <ellipse class="steam" cx="55" cy="48" rx="8" ry="3" fill="rgba(0,200,255,0.25)"/>
+            <ellipse class="steam" cx="80" cy="44" rx="10" ry="3" fill="rgba(0,200,255,0.25)"/>
+            <ellipse class="steam" cx="105" cy="50" rx="7" ry="3" fill="rgba(0,200,255,0.25)"/>
+
+            <!-- TRAYS — 8 trays -->
+            <line x1="31" y1="110" x2="129" y2="110" stroke="#1a6a8a" stroke-width="1.5"/>
+            <line x1="31" y1="165" x2="129" y2="165" stroke="#1a6a8a" stroke-width="1.5"/>
+            <line x1="31" y1="220" x2="129" y2="220" stroke="#1a6a8a" stroke-width="1.5"/>
+            <line x1="31" y1="270" x2="129" y2="270" stroke="#1a6a8a" stroke-width="1.5"/>
+            <line x1="31" y1="320" x2="129" y2="320" stroke="#1a6a8a" stroke-width="1.5"/>
+            <line x1="31" y1="370" x2="129" y2="370" stroke="#1a6a8a" stroke-width="1.5"/>
+            <line x1="31" y1="415" x2="129" y2="415" stroke="#1a6a8a" stroke-width="1.5"/>
+
+            <!-- Downcomers alternating -->
+            <rect x="31" y="110" width="18" height="55" fill="rgba(0,100,150,0.3)"/>
+            <rect x="111" y="165" width="18" height="55" fill="rgba(0,100,150,0.3)"/>
+            <rect x="31" y="220" width="18" height="50" fill="rgba(0,100,150,0.3)"/>
+            <rect x="111" y="270" width="18" height="50" fill="rgba(0,100,150,0.3)"/>
+            <rect x="31" y="320" width="18" height="50" fill="rgba(0,100,150,0.3)"/>
+            <rect x="111" y="370" width="18" height="45" fill="rgba(0,100,150,0.3)"/>
+
+            <!-- FEED INLET nozzle -->
+            <rect x="0" y="257" width="30" height="8" rx="2" fill="#1a4a6a" stroke="#00b4d8" stroke-width="1"/>
+            <line class="flow-pipe" x1="0" y1="261" x2="30" y2="261" stroke="#00e5ff" stroke-width="2"/>
+
+            <!-- OVERHEAD vapor outlet -->
+            <rect x="70" y="0" width="8" height="30" rx="2" fill="#1a6a8a" stroke="#00e5ff" stroke-width="1"/>
+            <line class="flow-pipe" x1="74" y1="0" x2="74" y2="30" stroke="#00e5ff" stroke-width="2"/>
+
+            <!-- REFLUX inlet -->
+            <rect x="130" y="50" width="30" height="8" rx="2" fill="#1a6a8a" stroke="#00b4d8" stroke-width="1"/>
+            <line class="flow-pipe" x1="130" y1="54" x2="160" y2="54" stroke="#00b4d8" stroke-width="2"/>
+
+            <!-- BOTTOMS outlet -->
+            <rect x="70" y="490" width="8" height="30" rx="2" fill="#1a4a6a" stroke="#ff6d00" stroke-width="1"/>
+            <line class="flow-pipe" x1="74" y1="490" x2="74" y2="520" stroke="#ff6d00" stroke-width="2"/>
+
+            <!-- Side draw - kerosene -->
+            <rect x="130" y="198" width="30" height="8" rx="2" fill="#1a4a6a" stroke="#ffe600" stroke-width="1"/>
+            <line class="flow-pipe" x1="130" y1="202" x2="160" y2="202" stroke="#ffe600" stroke-width="2"/>
+
+            <!-- Side draw - gas oil -->
+            <rect x="130" y="340" width="30" height="8" rx="2" fill="#1a4a6a" stroke="#ff9500" stroke-width="1"/>
+            <line class="flow-pipe" x1="130" y1="344" x2="160" y2="344" stroke="#ff9500" stroke-width="2"/>
+
+            <!-- REBOILER connection -->
+            <rect x="0" y="430" width="30" height="8" rx="2" fill="#1a4a6a" stroke="#ff6d00" stroke-width="1"/>
+            <line class="flow-pipe" x1="0" y1="434" x2="30" y2="434" stroke="#ff6d00" stroke-width="2"/>
+
+            <!-- Instrument taps (small circles on tower wall) -->
+            <circle cx="30" cy="90"  r="3" fill="#00e5ff" filter="url(#glow)"/>
+            <circle cx="30" cy="145" r="3" fill="#00e5ff" filter="url(#glow)"/>
+            <circle cx="30" cy="248" r="3" fill="#ffe600" filter="url(#glow)"/>
+            <circle cx="30" cy="300" r="3" fill="#00e5ff" filter="url(#glow)"/>
+            <circle cx="30" cy="350" r="3" fill="#00e5ff" filter="url(#glow)"/>
+            <circle cx="30" cy="400" r="3" fill="#ff9500" filter="url(#glow)"/>
+
+            <!-- Level indicators -->
+            <rect x="122" y="58" width="6" height="20" rx="2" fill="rgba(0,200,255,0.3)" stroke="#00b4d8" stroke-width="0.8"/>
+            <rect x="122" y="460" width="6" height="22" rx="2" fill="rgba(255,109,0,0.3)" stroke="#ff6d00" stroke-width="0.8"/>
+
+            <!-- Tray efficiency dots -->
+            <circle cx="80" cy="137" r="2" fill="rgba(0,229,255,0.4)"/>
+            <circle cx="80" cy="192" r="2" fill="rgba(0,229,255,0.4)"/>
+            <circle cx="80" cy="245" r="2" fill="rgba(0,229,255,0.4)"/>
+            <circle cx="80" cy="295" r="2" fill="rgba(0,229,255,0.4)"/>
+            <circle cx="80" cy="345" r="2" fill="rgba(0,229,255,0.4)"/>
+            <circle cx="80" cy="392" r="2" fill="rgba(255,149,0,0.4)"/>
+          </svg>
+        </div>
+
+        <!-- TRAY LABELS RIGHT -->
+        <div class="tower-labels">
+          <div class="tray-label">
+            <div class="tray-label-line"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">CONDENSER</div>
+              <div class="tray-val val-normal" id="t_cond">62°C</div>
+            </div>
+          </div>
+          <div class="tray-label">
+            <div class="tray-label-line"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">TRAY 25</div>
+              <div class="tray-val val-normal" id="t_25">118°C</div>
+            </div>
+          </div>
+          <div class="tray-label" style="color:var(--yellow)">
+            <div class="tray-label-line" style="background:rgba(255,230,0,0.4)"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">KEROSENE DRAW</div>
+              <div class="tray-val val-warn" id="t_kero">204°C</div>
+            </div>
+          </div>
+          <div class="tray-label">
+            <div class="tray-label-line"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">FEED TRAY</div>
+              <div class="tray-val val-normal" id="t_feed">265°C</div>
+            </div>
+          </div>
+          <div class="tray-label" style="color:var(--orange2)">
+            <div class="tray-label-line" style="background:rgba(255,149,0,0.4)"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">GAS OIL DRAW</div>
+              <div class="tray-val" style="color:var(--orange2)" id="t_go">320°C</div>
+            </div>
+          </div>
+          <div class="tray-label">
+            <div class="tray-label-line"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">TRAY 5</div>
+              <div class="tray-val val-normal" id="t_5">348°C</div>
+            </div>
+          </div>
+          <div class="tray-label" style="color:var(--orange)">
+            <div class="tray-label-line" style="background:rgba(255,109,0,0.4)"></div>
+            <div>
+              <div style="color:var(--muted);font-size:9px">REBOILER</div>
+              <div class="tray-val" style="color:var(--orange)" id="t_reb">384°C</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM CHART ROW -->
+      <div class="charts-row">
+        <div class="chart-panel">
+          <div class="chart-label">Overhead Pressure</div>
+          <div class="chart-value-big" style="color:var(--cyan)" id="bigPress">1.08</div>
+          <div class="chart-sub">bar (g) · Δ +0.02</div>
+          <canvas class="sparkline" id="spark1" width="300" height="60"></canvas>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-label">Column Efficiency</div>
+          <div class="chart-value-big" style="color:var(--green)" id="bigEff">87.4</div>
+          <div class="chart-sub">% · Target ≥85%</div>
+          <canvas class="sparkline" id="spark2" width="300" height="60"></canvas>
+        </div>
+        <div class="chart-panel">
+          <div class="chart-label">Reboiler Temp</div>
+          <div class="chart-value-big" style="color:var(--orange)" id="bigReb">384</div>
+          <div class="chart-sub">°C · SP: 380°C</div>
+          <canvas class="sparkline" id="spark3" width="300" height="60"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="sidebar-right">
+      <div class="section-label">Performance KPIs</div>
+      <div class="glass-card">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco br"></div>
+        <div id="kpiGauges"></div>
+      </div>
+
+      <div class="section-label">Product Yields</div>
+      <div class="glass-card">
+        <div id="yieldBars"></div>
+      </div>
+
+      <div class="section-label">Active Alarms</div>
+      <div id="alarmList">
+        <div class="alarm-item warn">
+          <div class="alarm-icon">⚠</div>
+          <div>
+            <div class="alarm-text">FEED TEMP HIGH — TI-1024<br>Deviation: +8.4°C from SP</div>
+            <div class="alarm-time">08:34:12 · PRIORITY 2</div>
+          </div>
+        </div>
+        <div class="alarm-item warn">
+          <div class="alarm-icon">⚠</div>
+          <div>
+            <div class="alarm-text">REFLUX FLOW LOW — FIC-102<br>Flow: 183 m³/h (SP: 195)</div>
+            <div class="alarm-time">08:31:07 · PRIORITY 2</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">Product Specs</div>
+      <div class="glass-card">
+        <div class="sensor-row">
+          <span class="sensor-name">LPG PURITY</span>
+          <span class="sensor-value val-normal">97.8%</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">NAPHTHA IBP</span>
+          <span class="sensor-value val-normal">36°C</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">KEROSENE FBP</span>
+          <span class="sensor-value val-warn">244°C</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">GO VISCOSITY</span>
+          <span class="sensor-value val-normal">4.8 cSt</span>
+        </div>
+        <div class="sensor-row">
+          <span class="sensor-name">ATB DENSITY</span>
+          <span class="sensor-value val-normal">0.876 g/ml</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /page -->
+
+<!-- TICKER -->
+<div class="ticker">
+  <span class="ticker-label">LIVE ·</span>
+  <div class="ticker-track">
+    <div class="ticker-content">
+      TI-1001: 62.3°C &nbsp;·&nbsp; TI-1008: 118.7°C &nbsp;·&nbsp; TI-1015: 204.1°C &nbsp;·&nbsp;
+      TI-1022: 265.4°C &nbsp;·&nbsp; PI-2001: 1.08 bar &nbsp;·&nbsp; PI-2002: 1.42 bar &nbsp;·&nbsp;
+      FI-3001: 847.3 m³/h &nbsp;·&nbsp; FI-3004: 243.1 m³/h &nbsp;·&nbsp; FI-3007: 189.6 m³/h &nbsp;·&nbsp;
+      LI-4001: 68.4% &nbsp;·&nbsp; LI-4002: 72.1% &nbsp;·&nbsp; AI-5001: 97.8% &nbsp;·&nbsp;
+      EFFICIENCY: 87.4% &nbsp;·&nbsp; REBOILER DUTY: 28.4 MW &nbsp;·&nbsp; CONDENSER LOAD: 22.7 MW &nbsp;·&nbsp;
+      CRUDE FEED: ARABIAN MEDIUM &nbsp;·&nbsp; UNIT STATUS: NORMAL OPERATION &nbsp;·&nbsp;
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toTimeString().slice(0,8) + ' UTC+3';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── DATA SIMULATION ──
+const sensors = {
+  temps: [
+    { id: 'T-1001', zone: 'COND OVERHEAD', base: 62.3, unit: '°C' },
+    { id: 'T-1008', zone: 'TRAY 25 (RECT)', base: 118.7, unit: '°C' },
+    { id: 'T-1015', zone: 'KEROSENE DRAW', base: 204.1, unit: '°C', warn: true },
+    { id: 'T-1022', zone: 'FEED TRAY', base: 265.4, unit: '°C' },
+    { id: 'T-1029', zone: 'STRIPPING', base: 348.2, unit: '°C' },
+    { id: 'T-1036', zone: 'REBOILER', base: 384.0, unit: '°C' },
+  ],
+  press: [
+    { id: 'P-2001', zone: 'OVERHEAD', base: 1.08, unit: ' bar' },
+    { id: 'P-2002', zone: 'MID COLUMN', base: 1.42, unit: ' bar' },
+    { id: 'P-2003', zone: 'BOTTOM', base: 1.78, unit: ' bar' },
+  ]
+};
+
+function rnd(base, delta) {
+  return (base + (Math.random() - 0.5) * delta).toFixed(1);
+}
+
+function buildSensors() {
+  const tc = document.getElementById('tempSensors');
+  sensors.temps.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'sensor-row';
+    row.innerHTML = `<span class="sensor-name">${s.id} / ${s.zone}</span><span class="sensor-value ${s.warn?'val-warn':'val-normal'}" id="sv_t${i}">${s.base}${s.unit}</span>`;
+    tc.appendChild(row);
+  });
+
+  const pc = document.getElementById('pressSensors');
+  sensors.press.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'sensor-row';
+    row.innerHTML = `<span class="sensor-name">${s.id} / ${s.zone}</span><span class="sensor-value val-normal" id="sv_p${i}">${s.base}${s.unit}</span>`;
+    pc.appendChild(row);
+  });
+}
+
+buildSensors();
+
+// ── KPI GAUGES (canvas) ──
+function drawGauge(canvas, pct, color, label, valueText) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h * 0.72, r = Math.min(w, h) * 0.38;
+  ctx.clearRect(0, 0, w, h);
+
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 0, false);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Value arc
+  const angle = Math.PI + (pct / 100) * Math.PI;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, angle, false);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 8;
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = color;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Value text
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold 16px 'Orbitron', monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(valueText, cx, cy - 4);
+
+  // Label
+  ctx.fillStyle = '#4a7a9b';
+  ctx.font = `10px 'Share Tech Mono', monospace`;
+  ctx.fillText(label, cx, cy + 16);
+}
+
+function buildKPIGauges() {
+  const wrap = document.getElementById('kpiGauges');
+  const gauges = [
+    { label: 'EFFICIENCY', pct: 87.4, color: '#00ff90', val: '87.4%', id: 'g1' },
+    { label: 'CAPACITY', pct: 74, color: '#00e5ff', val: '74%', id: 'g2' },
+    { label: 'RECOVERY', pct: 91.2, color: '#ff9500', val: '91.2%', id: 'g3' },
+  ];
+
+  gauges.forEach(g => {
+    const div = document.createElement('div');
+    div.className = 'gauge-wrap';
+    div.innerHTML = `
+      <div class="gauge-label">${g.label}</div>
+      <canvas class="gauge-canvas" id="${g.id}" width="120" height="70"></canvas>
+    `;
+    wrap.appendChild(div);
+    requestAnimationFrame(() => drawGauge(document.getElementById(g.id), g.pct, g.color, g.label, g.val));
+  });
+}
+
+buildKPIGauges();
+
+// ── YIELD BARS ──
+const yields = [
+  { name: 'LPG', pct: 4.2, color: '#00e5ff' },
+  { name: 'NAPHTHA', pct: 18.6, color: '#00b4d8' },
+  { name: 'KEROSENE', pct: 14.3, color: '#ffe600' },
+  { name: 'GASOIL', pct: 22.7, color: '#ff9500' },
+  { name: 'ATB', pct: 40.2, color: '#ff6d00' },
+];
+
+function buildYields() {
+  const wrap = document.getElementById('yieldBars');
+  yields.forEach(y => {
+    const div = document.createElement('div');
+    div.className = 'progress-wrap';
+    div.innerHTML = `
+      <div class="progress-header">
+        <span style="color:${y.color}">${y.name}</span>
+        <span>${y.pct}%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${y.pct}%;background:linear-gradient(90deg,${y.color}88,${y.color})"></div>
+      </div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+buildYields();
+
+// ── SPARKLINE CHARTS ──
+const sparkData = {
+  s1: Array.from({length: 40}, () => 1.05 + Math.random()*0.08),
+  s2: Array.from({length: 40}, () => 84 + Math.random()*6),
+  s3: Array.from({length: 40}, () => 380 + Math.random()*8),
+};
+
+function drawSparkline(canvasId, data, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth || 300;
+  const h = 60;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0, 0, w, h);
+
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => [
+    (i / (data.length - 1)) * w,
+    h - 8 - ((v - min) / range) * (h - 16)
+  ]);
+
+  // Fill
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(1, color + '00');
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], h);
+  pts.forEach(p => ctx.lineTo(p[0], p[1]));
+  ctx.lineTo(pts[pts.length-1][0], h);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = color;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawAllSparklines() {
+  drawSparkline('spark1', sparkData.s1, '#00e5ff');
+  drawSparkline('spark2', sparkData.s2, '#00ff90');
+  drawSparkline('spark3', sparkData.s3, '#ff6d00');
+}
+
+drawAllSparklines();
+
+// ── LIVE UPDATE ──
+const trayEls = ['t_cond','t_25','t_kero','t_feed','t_go','t_5','t_reb'];
+const trayBases = [62.3,118.7,204.1,265.4,320.1,348.2,384.0];
+
+function updateLive() {
+  // Update temp sensors
+  sensors.temps.forEach((s, i) => {
+    const el = document.getElementById(`sv_t${i}`);
+    if (el) el.textContent = rnd(s.base, 1.2) + s.unit;
+  });
+
+  // Update pressure
+  sensors.press.forEach((s, i) => {
+    const el = document.getElementById(`sv_p${i}`);
+    if (el) el.textContent = rnd(s.base, 0.04) + s.unit;
+  });
+
+  // Update tray labels
+  trayEls.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = rnd(trayBases[i], 1.5) + '°C';
+  });
+
+  // Update flows
+  document.getElementById('ovhd').innerHTML   = rnd(243, 4)  + '<span class="flow-unit">m³/h</span>';
+  document.getElementById('reflux').innerHTML = rnd(2.8, 0.1)+ '<span class="flow-unit">L/V</span>';
+  document.getElementById('feed').innerHTML   = rnd(847, 5)  + '<span class="flow-unit">m³/h</span>';
+  document.getElementById('bottoms').innerHTML= rnd(189, 3)  + '<span class="flow-unit">m³/h</span>';
+  document.getElementById('reboil').innerHTML = rnd(28.4,0.3)+ '<span class="flow-unit">MW</span>';
+  document.getElementById('feedFlow').textContent = rnd(847, 5) + ' m³/h';
+  document.getElementById('feedTemp').textContent = rnd(168.4, 0.8) + ' °C';
+
+  // Update big displays
+  document.getElementById('bigPress').textContent = rnd(1.08, 0.04);
+  document.getElementById('bigEff').textContent   = rnd(87.4, 0.5);
+  document.getElementById('bigReb').textContent   = Math.round(parseFloat(rnd(384, 2)));
+
+  // Sparkline push
+  sparkData.s1.push(1.05 + Math.random()*0.08); sparkData.s1.shift();
+  sparkData.s2.push(84 + Math.random()*6);       sparkData.s2.shift();
+  sparkData.s3.push(380 + Math.random()*8);      sparkData.s3.shift();
+  drawAllSparklines();
+}
+
+setInterval(updateLive, 2000);
+
+// ── DATA STREAM ──
+const streamMessages = [
+  'TAG TI-1001 → 62.4°C OK',
+  'FLOW FI-3001 → 847.3 m³/h',
+  'CTRL PIC-2001 → SP 1.05 bar',
+  'TAG LI-4001 → 68.4%',
+  'ALARM CHK → PRIORITY 2 ACTIVE',
+  'TAG TI-1036 → 384.1°C OK',
+  'CALC EFF → 87.4% ✓',
+  'YIELD LPG → 4.2% norm',
+  'FI-3004 REFLUX → 183 m³/h',
+  'PLC SCAN → 250ms cycle OK',
+  'MODBUS RTU → ALL NODES ACK',
+  'HIST TAG → 1842 values/min',
+];
+
+let streamIdx = 0;
+function addStreamLine() {
+  const container = document.getElementById('dataStream');
+  const line = document.createElement('div');
+  line.className = 'stream-line';
+  line.style.color = Math.random() > 0.8 ? '#ffe600' : '#4a7a9b';
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8);
+  line.textContent = `[${ts}] ${streamMessages[streamIdx % streamMessages.length]}`;
+  streamIdx++;
+  container.appendChild(line);
+  if (container.children.length > 8) container.removeChild(container.firstChild);
+}
+
+setInterval(addStreamLine, 1200);
+addStreamLine();
+</script>
+</body>
+</html>

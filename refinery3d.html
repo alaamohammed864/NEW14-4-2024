@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrated Oil Refinery 3D Model</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#0c1020;font-family:'Segoe UI',Tahoma,sans-serif;color:#c0d4e8}
+canvas{display:block}
+#loading{position:fixed;inset:0;background:#0c1020;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity 0.8s}
+#loading.hide{opacity:0;pointer-events:none}
+#loading h1{font-size:28px;letter-spacing:4px;margin-bottom:8px;color:#2e7fd0}
+#loading h2{font-size:14px;color:#506070;margin-bottom:40px;letter-spacing:2px}
+#loading .bar-wrap{width:320px;height:4px;background:rgba(46,127,208,0.15);border-radius:2px;overflow:hidden}
+#loading .bar{height:100%;width:0;background:linear-gradient(90deg,#2e7fd0,#50b0ff);border-radius:2px;transition:width 0.3s}
+#loading .status{margin-top:16px;font-size:12px;color:#506070}
+#toolbar{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(8,12,22,0.97);border-bottom:1px solid rgba(50,110,200,0.25);display:flex;align-items:center;padding:0 12px;gap:8px;z-index:100}
+#toolbar .logo{display:flex;align-items:center;gap:8px;margin-right:12px}
+#toolbar .logo span{font-size:14px;font-weight:600;color:#2e7fd0}
+#toolbar .logo small{font-size:10px;color:#506070}
+.btn{background:rgba(46,127,208,0.12);border:1px solid rgba(46,127,208,0.25);color:#c0d4e8;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.btn:hover{background:rgba(46,127,208,0.25);border-color:rgba(46,127,208,0.5)}
+.btn.active{background:rgba(46,127,208,0.35);border-color:#2e7fd0;color:#fff}
+.sep{width:1px;height:24px;background:rgba(50,110,200,0.2);margin:0 4px}
+#legend{position:fixed;left:8px;top:56px;width:180px;background:rgba(8,12,22,0.93);border:1px solid rgba(50,110,200,0.25);border-radius:6px;padding:10px;font-size:11px;z-index:90;max-height:calc(100vh - 120px);overflow-y:auto}
+#legend h3{font-size:12px;color:#2e7fd0;margin-bottom:8px;cursor:pointer}
+#legend .item{display:flex;align-items:center;gap:6px;padding:2px 0}
+#legend .swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+#info{position:fixed;right:8px;top:56px;width:220px;background:rgba(8,12,22,0.93);border:1px solid rgba(50,110,200,0.25);border-radius:6px;padding:12px;font-size:11px;z-index:90;display:none}
+#info h3{font-size:13px;color:#2e7fd0;margin-bottom:8px}
+#info .row{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(50,110,200,0.08)}
+#info .row .lbl{color:#506070}
+#stats{position:fixed;left:8px;bottom:32px;background:rgba(8,12,22,0.93);border:1px solid rgba(50,110,200,0.25);border-radius:6px;padding:10px;font-size:11px;z-index:90;width:180px}
+#stats .val{color:#2e7fd0;font-weight:600}
+#hint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(8,12,22,0.85);border:1px solid rgba(50,110,200,0.2);border-radius:4px;padding:4px 16px;font-size:11px;color:#506070;z-index:90}
+#minimap{position:fixed;right:8px;bottom:32px;width:150px;height:120px;background:rgba(8,12,22,0.9);border:1px solid rgba(50,110,200,0.25);border-radius:6px;z-index:90;overflow:hidden}
+#minimap canvas{width:100%;height:100%}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <h1>⛽ INTEGRATED OIL REFINERY</h1>
+  <h2>3D VISUALIZATION MODEL</h2>
+  <div class="bar-wrap"><div class="bar" id="loadBar"></div></div>
+  <div class="status" id="loadStatus">Initializing...</div>
+</div>
+
+<div id="toolbar">
+  <div class="logo"><span>⛽ Integrated Refinery 3D</span><small>200,000 BPD</small></div>
+  <div class="sep"></div>
+  <button class="btn active" onclick="setView('perspective')">Perspective</button>
+  <button class="btn" onclick="setView('top')">Top</button>
+  <button class="btn" onclick="setView('iso')">Iso</button>
+  <button class="btn" onclick="setView('north')">North</button>
+  <button class="btn" onclick="setView('east')">East</button>
+  <button class="btn" onclick="setView('fcc')">FCC</button>
+  <button class="btn" onclick="setView('tanks')">Tanks</button>
+  <div class="sep"></div>
+  <button class="btn" id="btnWire" onclick="toggleWire()">Wireframe</button>
+  <button class="btn active" id="btnShadow" onclick="toggleShadows()">Shadows</button>
+  <button class="btn active" id="btnLabels" onclick="toggleLabels()">Labels</button>
+  <button class="btn" id="btnNight" onclick="toggleNight()">Night Mode</button>
+  <div class="sep"></div>
+  <button class="btn" id="btnRotate" onclick="toggleAutoRotate()">Auto Rotate</button>
+</div>
+
+<div id="legend">
+  <h3>▼ LEGEND</h3>
+  <div class="item"><div class="swatch" style="background:#ddd8c8"></div>Distillation Columns</div>
+  <div class="item"><div class="swatch" style="background:#a0a8b0"></div>Reactors</div>
+  <div class="item"><div class="swatch" style="background:#c4c8d0"></div>Heat Exchangers</div>
+  <div class="item"><div class="swatch" style="background:#d8d0a8"></div>Storage Tanks</div>
+  <div class="item"><div class="swatch" style="background:#2a5040"></div>Pumps & Compressors</div>
+  <div class="item"><div class="swatch" style="background:#706860"></div>Fired Heaters</div>
+  <div class="item"><div class="swatch" style="background:#a0a8b4"></div>Pipe Racks</div>
+  <div class="item"><div class="swatch" style="background:#a8a090"></div>Utilities</div>
+  <div class="item"><div class="swatch" style="background:#ccc4b4"></div>Buildings</div>
+  <div class="item"><div class="swatch" style="background:#cc2200"></div>Fire & Safety</div>
+</div>
+
+<div id="info">
+  <h3 id="infoTitle">Equipment Info</h3>
+  <div class="row"><span class="lbl">Tag</span><span id="infoTag">-</span></div>
+  <div class="row"><span class="lbl">Type</span><span id="infoType">-</span></div>
+  <div class="row"><span class="lbl">Fluid</span><span id="infoFluid">-</span></div>
+  <div class="row"><span class="lbl">Pressure</span><span id="infoPres">-</span></div>
+  <div class="row"><span class="lbl">Temp</span><span id="infoTemp">-</span></div>
+  <div class="row"><span class="lbl">Material</span><span id="infoMat">-</span></div>
+  <div class="row"><span class="lbl">Status</span><span id="infoStatus">-</span></div>
+</div>
+
+<div id="stats">
+  <div><b style="color:#2e7fd0">Integrated Complex</b></div>
+  <div>Capacity: <span class="val">200,000 BPD</span></div>
+  <div>Units: <span class="val">10 Process</span></div>
+  <div>Columns: <span class="val">12</span> | Reactors: <span class="val">8</span></div>
+  <div>Tanks: <span class="val">14</span> | Heaters: <span class="val">6</span></div>
+</div>
+
+<div id="hint">Left: Rotate | Right: Pan | Scroll: Zoom | Click: Details</div>
+
+<div id="minimap"><canvas id="minimapCanvas" width="150" height="120"></canvas></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// === GLOBALS (all declared before use) ===
+var EQ = [];
+var labelSprites = [];
+var flameGroup, flameLights, fans, steamCones;
+var nightMode = false;
+var autoRotate = false;
+var wireframeMode = false;
+var shadowsOn = true;
+var labelsOn = true;
+var nightLights = [];
+var sunLight, hemiLight, fillLight;
+
+// Camera orbit state
+var camTheta = 0.7;
+var camPhi = 0.8;
+var camRadius = 900;
+var camTarget = new THREE.Vector3(0, 20, 0);
+var targetTheta = 0.7;
+var targetPhi = 0.8;
+var targetRadius = 900;
+var targetCenter = new THREE.Vector3(0, 20, 0);
+
+// Mouse/touch state
+var isDragging = false;
+var isRightDrag = false;
+var lastMX = 0, lastMY = 0;
+var touchDist = 0;
+
+// Scene setup
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0c1020);
+scene.fog = new THREE.FogExp2(0x0c1020, 0.0008);
+
+var camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 5000);
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+
+// === MATERIALS ===
+var MAT = {};
+function M(name, color, metal, rough, opts) {
+  var params = { color: color, metalness: metal, roughness: rough };
+  if (opts) {
+    if (opts.transparent) { params.transparent = true; params.opacity = opts.opacity || 0.3; }
+    if (opts.emissive) { params.emissive = opts.emissive; params.emissiveIntensity = opts.emissiveIntensity || 1; }
+  }
+  MAT[name] = new THREE.MeshStandardMaterial(params);
+  return MAT[name];
+}
+
+M('ground', 0x8a7550, 0, 1);
+M('concrete', 0xb0a890, 0, 0.95);
+M('asphalt', 0x484840, 0, 1);
+M('marking', 0xe8d820, 0, 0.9);
+M('insul', 0xddd8c8, 0.05, 0.88);
+M('ss', 0xc4c8d0, 0.9, 0.15);
+M('cs', 0xa0a8b0, 0.7, 0.35);
+M('tankShell', 0xd8d0a8, 0.25, 0.65);
+M('tankRoof', 0xc0b060, 0.3, 0.55);
+M('pipeCS', 0x8890a0, 0.75, 0.3);
+M('pipeInsul', 0xe0d8c0, 0.05, 0.85);
+M('pipeSS', 0xb8bcc8, 0.85, 0.2);
+M('pipeFire', 0xcc2200, 0.6, 0.4);
+M('pipeFG', 0xd4c020, 0.5, 0.5);
+M('steel', 0xa0a8b4, 0.8, 0.25);
+M('grating', 0x606870, 0.7, 0.4);
+M('foundation', 0x989080, 0, 1);
+M('wall', 0xccc4b4, 0, 0.92);
+M('bldRoof', 0x5a6878, 0.3, 0.75);
+M('glass', 0x88c8e8, 0.1, 0.05, { transparent: true, opacity: 0.3 });
+M('motor', 0x2a5040, 0.65, 0.4);
+M('compressor', 0x3a5060, 0.5, 0.5);
+M('heaterCase', 0x706860, 0.3, 0.7);
+M('heaterStack', 0x484848, 0.6, 0.5);
+M('flareSteel', 0x787880, 0.8, 0.3);
+M('sphere', 0xd0c8a8, 0.3, 0.6);
+M('ladder', 0x606878, 0.85, 0.25);
+M('yellow', 0xe0b800, 0.3, 0.5);
+M('fireTruck', 0xcc1100, 0.4, 0.5);
+M('coolingTower', 0xa8a090, 0, 0.9);
+M('refractory', 0xb09070, 0, 1);
+M('flame', 0xff6600, 0, 1, { emissive: 0xff4400, emissiveIntensity: 2 });
+M('flameYellow', 0xffaa00, 0, 1, { emissive: 0xffaa00, emissiveIntensity: 2.5 });
+M('steam', 0xffffff, 0, 1, { transparent: true, opacity: 0.15 });
+M('burnerGlow', 0xff4400, 0, 1, { emissive: 0xff3300, emissiveIntensity: 1.5 });
+
+// === GEOMETRY HELPERS ===
+function B(w, h, d, mat, x, y, z, parent) {
+  var g = new THREE.BoxGeometry(w, h, d);
+  var m = new THREE.Mesh(g, mat);
+  m.position.set(x, y + h / 2, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+function CYL(r, h, mat, x, y, z, parent, rSeg) {
+  var g = new THREE.CylinderGeometry(r, r, h, rSeg || 24);
+  var m = new THREE.Mesh(g, mat);
+  m.position.set(x, y + h / 2, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+function CONE(r, h, mat, x, y, z, parent) {
+  var g = new THREE.ConeGeometry(r, h, 16);
+  var m = new THREE.Mesh(g, mat);
+  m.position.set(x, y + h / 2, z);
+  m.castShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+function SLAB(w, h, d, mat, x, y, z, parent) {
+  return B(w, h, d, mat, x, y, z, parent);
+}
+
+function PIPE(p1, p2, r, mat, parent) {
+  var dir = new THREE.Vector3().subVectors(p2, p1);
+  var len = dir.length();
+  var g = new THREE.CylinderGeometry(r, r, len, 8);
+  var m = new THREE.Mesh(g, mat);
+  var mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+  m.position.copy(mid);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  m.castShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+function TORUS(R, r, mat, x, y, z, parent) {
+  var g = new THREE.TorusGeometry(R, r, 8, 24);
+  var m = new THREE.Mesh(g, mat);
+  m.position.set(x, y, z);
+  m.rotation.x = Math.PI / 2;
+  (parent || scene).add(m);
+  return m;
+}
+
+function addEQ(mesh, data) {
+  mesh.userData = data;
+  EQ.push(mesh);
+  return mesh;
+}
+
+// === LABELS ===
+function makeLabel(text, x, y, z) {
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 256;
+  canvas.height = 64;
+  ctx.fillStyle = 'rgba(6,10,22,0.88)';
+  ctx.fillRect(0, 0, 256, 64);
+  ctx.strokeStyle = 'rgba(46,127,208,0.6)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, 254, 62);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 20px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, 128, 40);
+  var tex = new THREE.CanvasTexture(canvas);
+  var spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+  var sprite = new THREE.Sprite(spriteMat);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(24, 6, 1);
+  scene.add(sprite);
+  labelSprites.push(sprite);
+  return sprite;
+}
+
+function makeBigLabel(text, x, y, z) {
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 512;
+  canvas.height = 64;
+  ctx.fillStyle = 'rgba(6,10,22,0.75)';
+  ctx.fillRect(0, 0, 512, 64);
+  ctx.strokeStyle = 'rgba(46,127,208,0.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, 510, 62);
+  ctx.fillStyle = '#2e7fd0';
+  ctx.font = 'bold 24px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, 256, 42);
+  var tex = new THREE.CanvasTexture(canvas);
+  var spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+  var sprite = new THREE.Sprite(spriteMat);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(40, 5, 1);
+  scene.add(sprite);
+  labelSprites.push(sprite);
+  return sprite;
+}
+
+// === SPIRAL STAIRCASE ===
+function addStaircase(cx, cz, baseY, topY, radius, parent) {
+  var steps = Math.floor((topY - baseY) / 0.8);
+  var grp = parent || scene;
+  for (var i = 0; i < steps; i++) {
+    var angle = (i / steps) * Math.PI * 8;
+    var sy = baseY + (i / steps) * (topY - baseY);
+    var sx = cx + Math.cos(angle) * radius;
+    var sz = cz + Math.sin(angle) * radius;
+    var step = B(1.2, 0.1, 0.4, MAT.grating, sx, sy, sz, grp);
+    step.rotation.y = -angle;
+  }
+  // Central pole
+  CYL(0.08, topY - baseY, MAT.ladder, cx, baseY, cz, grp);
+}
+
+// === PLATFORM ===
+function addPlatform(cx, cz, y, radius, parent) {
+  var grp = parent || scene;
+  TORUS(radius + 0.5, 0.08, MAT.steel, cx, y, cz, grp);
+  // Grating floor - simplified ring
+  var ring = new THREE.RingGeometry(radius - 1.5, radius + 1.5, 24);
+  var rm = new THREE.Mesh(ring, MAT.grating);
+  rm.position.set(cx, y, cz);
+  rm.rotation.x = -Math.PI / 2;
+  grp.add(rm);
+  // Handrails
+  TORUS(radius + 1.5, 0.04, MAT.yellow, cx, y + 1, cz, grp);
+  TORUS(radius + 1.5, 0.04, MAT.yellow, cx, y + 0.5, cz, grp);
+}
+
+// === PROGRESS ===
+function setProgress(pct, msg) {
+  document.getElementById('loadBar').style.width = pct + '%';
+  document.getElementById('loadStatus').textContent = msg;
+}
+
+// ============================================================
+// BUILD SCENE
+// ============================================================
+
+setProgress(10, 'Creating ground and roads...');
+
+// GROUND
+var groundGeo = new THREE.PlaneGeometry(1200, 1000);
+var ground = new THREE.Mesh(groundGeo, MAT.ground);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Site concrete pad
+SLAB(800, 0.3, 600, MAT.concrete, 0, 0, 0);
+
+// ROADS
+// Main E-W spine
+SLAB(800, 0.05, 8, MAT.asphalt, 0, 0.3, 0);
+SLAB(798, 0.06, 0.15, MAT.marking, 0, 0.36, 0);
+// Main N-S spine
+SLAB(8, 0.05, 600, MAT.asphalt, 0, 0.3, 0);
+SLAB(0.15, 0.06, 598, MAT.marking, 0, 0.36, 0);
+// Perimeter road
+SLAB(800, 0.05, 6, MAT.asphalt, 0, 0.3, -297);
+SLAB(800, 0.05, 6, MAT.asphalt, 0, 0.3, 297);
+SLAB(6, 0.05, 600, MAT.asphalt, -397, 0.3, 0);
+SLAB(6, 0.05, 600, MAT.asphalt, 397, 0.3, 0);
+
+// FENCE (simplified - posts and rails)
+var fenceLen = 800;
+var fenceWid = 600;
+for (var fi = -fenceLen / 2; fi <= fenceLen / 2; fi += 10) {
+  CYL(0.05, 2.5, MAT.steel, fi, 0.3, -fenceWid / 2, scene, 6);
+  CYL(0.05, 2.5, MAT.steel, fi, 0.3, fenceWid / 2, scene, 6);
+}
+for (var fj = -fenceWid / 2; fj <= fenceWid / 2; fj += 10) {
+  CYL(0.05, 2.5, MAT.steel, -fenceLen / 2, 0.3, fj, scene, 6);
+  CYL(0.05, 2.5, MAT.steel, fenceLen / 2, 0.3, fj, scene, 6);
+}
+
+// Guard booth at east gate
+B(4, 3, 4, MAT.wall, 398, 0.3, 0);
+B(4.2, 0.2, 4.2, MAT.bldRoof, 398, 3.3, 0);
+
+setProgress(20, 'Building CDU (Unit 100)...');
+
+// ============================================================
+// UNIT 100 - CRUDE DISTILLATION UNIT
+// ============================================================
+var cduX = -150, cduZ = -150;
+
+// CDU-T-101 Atmospheric Column
+var t101 = CYL(4.5, 55, MAT.insul, cduX, 4, cduZ);
+addEQ(t101, { name: 'Atmospheric Distillation Column', tag: 'CDU-T-101', type: 'Column', fluid: 'Crude Oil', pressure: '2.5 barg', temp: '370°C', material: 'CS + Cladding', status: 'EXISTING' });
+// Skirt
+CYL(4.8, 4, MAT.foundation, cduX, 0.3, cduZ);
+// Tray ring flanges
+for (var ti = 0; ti < 28; ti++) {
+  TORUS(4.7, 0.12, MAT.cs, cduX, 6 + ti * 1.8, cduZ);
+}
+// Insulation bands
+for (var bi = 0; bi < 18; bi++) {
+  TORUS(4.65, 0.08, MAT.ss, cduX, 5 + bi * 3, cduZ);
+}
+// Platforms
+for (var pi = 0; pi < 8; pi++) {
+  addPlatform(cduX, cduZ, 10 + pi * 6, 5.5);
+}
+// Spiral staircase
+addStaircase(cduX + 5.5, cduZ, 0.3, 58, 5.5);
+// Top condenser drum
+var condDrum = CYL(1.2, 5, MAT.ss, cduX, 58, cduZ + 3);
+condDrum.rotation.z = Math.PI / 2;
+condDrum.position.y = 60;
+scene.add(condDrum);
+// Overhead vapor pipe
+PIPE(new THREE.Vector3(cduX, 58, cduZ), new THREE.Vector3(cduX, 60, cduZ + 3), 0.3, MAT.pipeCS);
+// Reboiler
+B(4, 2, 3, MAT.cs, cduX + 6, 0.3, cduZ);
+// Nozzles
+for (var ni = 0; ni < 6; ni++) {
+  var nh = 10 + ni * 8;
+  CYL(0.2, 1.5, MAT.cs, cduX + 4.5, nh, cduZ);
+}
+makeLabel('CDU-T-101 | Atm. Distillation', cduX, 65, cduZ);
+
+// CDU-T-102 Vacuum Column
+var t102 = CYL(3.8, 42, MAT.insul, cduX + 20, 4, cduZ);
+addEQ(t102, { name: 'Vacuum Distillation Column', tag: 'CDU-T-102', type: 'Column', fluid: 'Reduced Crude', pressure: '-0.9 barg', temp: '400°C', material: 'CS + SS Clad', status: 'EXISTING' });
+CYL(4.1, 4, MAT.foundation, cduX + 20, 0.3, cduZ);
+for (var vi = 0; vi < 6; vi++) { addPlatform(cduX + 20, cduZ, 8 + vi * 6, 5); }
+addStaircase(cduX + 20 + 5, cduZ, 0.3, 46, 5);
+// Connecting pipes
+for (var cp = 0; cp < 4; cp++) {
+  PIPE(new THREE.Vector3(cduX + 4.5, 20 + cp * 5, cduZ), new THREE.Vector3(cduX + 16, 18 + cp * 5, cduZ), 0.15, MAT.pipeInsul);
+}
+makeLabel('CDU-T-102 | Vacuum Column', cduX + 20, 50, cduZ);
+
+// CDU-T-103 Pre-flash Column
+var t103 = CYL(2.5, 28, MAT.insul, cduX - 20, 4, cduZ - 10);
+addEQ(t103, { name: 'Pre-flash Column', tag: 'CDU-T-103', type: 'Column', fluid: 'Crude', pressure: '3 barg', temp: '280°C', material: 'CS', status: 'EXISTING' });
+CYL(2.8, 4, MAT.foundation, cduX - 20, 0.3, cduZ - 10);
+makeLabel('CDU-T-103 | Pre-flash', cduX - 20, 36, cduZ - 10);
+
+// Preheat exchangers
+for (var ei = 0; ei < 6; ei++) {
+  var ex = cduX - 40 + (ei % 3) * 8;
+  var ez = cduZ + 25 + Math.floor(ei / 3) * 5;
+  var exch = CYL(0.6, 6, MAT.ss, ex, 1.2, ez);
+  exch.rotation.z = Math.PI / 2;
+  exch.position.y = 2;
+  addEQ(exch, { name: 'Preheat Exchanger', tag: 'CDU-E-10' + (ei + 1), type: 'Shell & Tube HX', fluid: 'Crude/Product', pressure: '15 barg', temp: '300°C', material: 'CS/SS', status: 'EXISTING' });
+  // Saddles
+  B(0.8, 1.2, 1.4, MAT.foundation, ex - 1.5, 0.3, ez);
+  B(0.8, 1.2, 1.4, MAT.foundation, ex + 1.5, 0.3, ez);
+}
+
+// Crude charge pumps
+for (var pi2 = 0; pi2 < 3; pi2++) {
+  var px = cduX - 50;
+  var pz = cduZ + 40 + pi2 * 4;
+  B(2, 1, 1.5, MAT.foundation, px, 0.3, pz);
+  B(1.5, 0.8, 1, MAT.motor, px - 0.5, 1.3, pz);
+  CYL(0.4, 1, MAT.cs, px + 1, 1.3, pz);
+  B(0.6, 0.5, 0.5, MAT.yellow, px + 0.3, 1.3, pz);
+}
+
+// Air cooled exchangers
+for (var ai = 0; ai < 4; ai++) {
+  var ax = cduX + 40 + ai * 10;
+  var az = cduZ + 30;
+  var acf = B(8, 3, 4, MAT.steel, ax, 4, az);
+  addEQ(acf, { name: 'Air Cooled Exchanger', tag: 'CDU-A-10' + (ai + 1), type: 'Air Cooler', fluid: 'Product', pressure: '5 barg', temp: '80°C', material: 'CS', status: 'EXISTING' });
+  // Fan on top
+  CYL(1.5, 0.3, MAT.grating, ax, 7, az);
+}
+
+// Feed flash drum
+var v101 = CYL(1.5, 8, MAT.ss, cduX - 30, 1.2, cduZ + 15);
+v101.rotation.z = Math.PI / 2;
+v101.position.y = 2.5;
+addEQ(v101, { name: 'Feed Flash Drum', tag: 'CDU-V-101', type: 'Horizontal Vessel', fluid: 'Crude', pressure: '5 barg', temp: '250°C', material: 'CS', status: 'EXISTING' });
+
+// Overhead accumulator
+var v102 = CYL(1.2, 6, MAT.ss, cduX + 10, 1.2, cduZ + 20);
+v102.rotation.z = Math.PI / 2;
+v102.position.y = 2;
+addEQ(v102, { name: 'Overhead Accumulator', tag: 'CDU-V-102', type: 'Horizontal Vessel', fluid: 'Naphtha', pressure: '2 barg', temp: '60°C', material: 'CS', status: 'EXISTING' });
+
+makeBigLabel('UNIT 100 — CDU', cduX, 70, cduZ);
+
+setProgress(30, 'Building FCC (Unit 200)...');
+
+// ============================================================
+// UNIT 200 - FCC
+// ============================================================
+var fccX = 150, fccZ = -150;
+
+// FCC Reactor
+var r201 = CYL(5, 35, MAT.cs, fccX, 0.3, fccZ);
+addEQ(r201, { name: 'FCC Reactor', tag: 'FCC-R-201', type: 'Reactor', fluid: 'Hydrocarbons/Catalyst', pressure: '3 barg', temp: '530°C', material: 'CS + Refractory', status: 'EXISTING' });
+// Cyclones on top
+CYL(0.8, 4, MAT.cs, fccX - 2, 35.3, fccZ);
+CYL(0.8, 4, MAT.cs, fccX + 2, 35.3, fccZ);
+// Riser
+PIPE(new THREE.Vector3(fccX - 3, 0.3, fccZ - 5), new THREE.Vector3(fccX, 35, fccZ), 0.25, MAT.pipeInsul);
+// Standpipe
+PIPE(new THREE.Vector3(fccX + 3, 0.3, fccZ + 5), new THREE.Vector3(fccX + 18, 5, fccZ), 0.3, MAT.pipeCS);
+makeLabel('FCC-R-201 | FCC Reactor', fccX, 42, fccZ);
+
+// FCC Regenerator
+var r202 = CYL(6, 38, MAT.cs, fccX + 18, 0.3, fccZ);
+addEQ(r202, { name: 'FCC Regenerator', tag: 'FCC-R-202', type: 'Reactor', fluid: 'Spent Catalyst/Air', pressure: '2.5 barg', temp: '730°C', material: 'CS + Refractory', status: 'EXISTING' });
+// Flue gas stack
+CYL(1.2, 20, MAT.heaterStack, fccX + 18, 38.3, fccZ);
+// Double wall at base (refractory)
+CYL(6.5, 6, MAT.refractory, fccX + 18, 0.3, fccZ);
+// Platforms
+for (var fp = 0; fp < 6; fp++) { addPlatform(fccX + 18, fccZ, 8 + fp * 6, 7.5); }
+addStaircase(fccX + 18 + 7, fccZ, 0.3, 38, 7);
+makeLabel('FCC-R-202 | Regenerator', fccX + 18, 62, fccZ);
+
+// FCC glow light
+var fccGlow = new THREE.PointLight(0xff6600, 1.5, 50);
+fccGlow.position.set(fccX + 18, 40, fccZ);
+scene.add(fccGlow);
+
+// Main Fractionator
+var t201 = CYL(3.5, 45, MAT.insul, fccX - 25, 4, fccZ);
+addEQ(t201, { name: 'Main Fractionator', tag: 'FCC-T-201', type: 'Column', fluid: 'FCC Products', pressure: '1.5 barg', temp: '350°C', material: 'CS', status: 'EXISTING' });
+CYL(3.8, 4, MAT.foundation, fccX - 25, 0.3, fccZ);
+for (var fp2 = 0; fp2 < 7; fp2++) { addPlatform(fccX - 25, fccZ, 8 + fp2 * 6, 4.5); }
+addStaircase(fccX - 25 + 4.5, fccZ, 0.3, 49, 4.5);
+makeLabel('FCC-T-201 | Fractionator', fccX - 25, 53, fccZ);
+
+// Wet Gas Compressor
+B(8, 3, 3, MAT.compressor, fccX - 30, 0.3, fccZ + 25);
+B(6, 3, 3, MAT.motor, fccX - 22, 0.3, fccZ + 25);
+B(12, 0.5, 6, MAT.foundation, fccX - 26, 0.3, fccZ + 25);
+addEQ(B(2, 2, 1, MAT.compressor, fccX - 16, 0.3, fccZ + 25), { name: 'Lube Oil Console', tag: 'FCC-C-201', type: 'Centrifugal Compressor', fluid: 'Wet Gas', pressure: '16 barg', temp: '120°C', material: 'CS', status: 'EXISTING' });
+makeLabel('FCC-C-201 | Wet Gas Comp.', fccX - 26, 8, fccZ + 25);
+
+// Air Blower
+B(6, 3, 3, MAT.compressor, fccX + 35, 0.3, fccZ + 20);
+CYL(1.5, 2, MAT.cs, fccX + 40, 0.3, fccZ + 20);
+
+// Slurry vessels
+CYL(2, 8, MAT.cs, fccX - 40, 0.3, fccZ - 10);
+CYL(2, 8, MAT.cs, fccX - 40, 0.3, fccZ - 16);
+
+makeBigLabel('UNIT 200 — FCC', fccX, 65, fccZ);
+
+setProgress(40, 'Building HCU, CCR, Hydrotreaters...');
+
+// ============================================================
+// UNIT 300 - HYDROCRACKER
+// ============================================================
+var hcuX = -150, hcuZ = 100;
+
+var r301 = CYL(2.8, 20, MAT.cs, hcuX, 0.3, hcuZ);
+addEQ(r301, { name: 'Hydrocracker Reactor 1', tag: 'HCU-R-301', type: 'HP Reactor', fluid: 'VGO + H2', pressure: '170 barg', temp: '420°C', material: 'Cr-Mo Steel', status: 'EXISTING' });
+// Heavy flanges
+for (var hf = 0; hf < 5; hf++) {
+  TORUS(3.2, 0.2, MAT.cs, hcuX, 2 + hf * 4, hcuZ);
+}
+// Davit arm
+B(0.2, 0.2, 4, MAT.steel, hcuX, 20, hcuZ);
+makeLabel('HCU-R-301 | Hydrocracker', hcuX, 24, hcuZ);
+
+var r302 = CYL(2.8, 20, MAT.cs, hcuX + 12, 0.3, hcuZ);
+addEQ(r302, { name: 'Hydrocracker Reactor 2', tag: 'HCU-R-302', type: 'HP Reactor', fluid: 'VGO + H2', pressure: '170 barg', temp: '420°C', material: 'Cr-Mo Steel', status: 'EXISTING' });
+for (var hf2 = 0; hf2 < 5; hf2++) {
+  TORUS(3.2, 0.2, MAT.cs, hcuX + 12, 2 + hf2 * 4, hcuZ);
+}
+makeLabel('HCU-R-302', hcuX + 12, 24, hcuZ);
+
+// HP Separator
+var hpSep = CYL(1.8, 10, MAT.ss, hcuX + 25, 1.2, hcuZ);
+hpSep.rotation.z = Math.PI / 2;
+hpSep.position.y = 3;
+addEQ(hpSep, { name: 'HP Separator', tag: 'HCU-V-301', type: 'HP Vessel', fluid: 'Mixed HC + H2', pressure: '160 barg', temp: '350°C', material: 'Cr-Mo', status: 'EXISTING' });
+
+// Recycle compressor
+B(4, 2, 2, MAT.compressor, hcuX - 20, 0.3, hcuZ + 15);
+CYL(0.6, 4, MAT.cs, hcuX - 22, 0.3, hcuZ + 15);
+CYL(0.6, 4, MAT.cs, hcuX - 18, 0.3, hcuZ + 15);
+B(3, 2, 2, MAT.motor, hcuX - 14, 0.3, hcuZ + 15);
+
+makeBigLabel('UNIT 300 — HCU', hcuX, 28, hcuZ);
+
+// ============================================================
+// UNIT 400 - CCR
+// ============================================================
+var ccrX = 150, ccrZ = 100;
+
+// Stacked reactors
+for (var ri = 0; ri < 4; ri++) {
+  var ry = 2 + ri * 6.5;
+  var rr = CYL(2, 5, MAT.cs, ccrX, ry, ccrZ);
+  addEQ(rr, { name: 'CCR Reactor ' + (ri + 1), tag: 'CCR-R-40' + (ri + 1), type: 'Radial Flow Reactor', fluid: 'Naphtha + H2', pressure: '7 barg', temp: '520°C', material: 'SS 321', status: 'EXISTING' });
+  if (ri < 3) {
+    PIPE(new THREE.Vector3(ccrX + 2, ry + 5, ccrZ), new THREE.Vector3(ccrX + 3, ry + 6, ccrZ), 0.1, MAT.pipeInsul);
+  }
+}
+makeLabel('CCR-R-401:404 | CCR Reactors', ccrX, 32, ccrZ);
+
+// Catalyst regenerator
+CYL(1.5, 20, MAT.cs, ccrX + 12, 0.3, ccrZ);
+makeLabel('CCR Regenerator', ccrX + 12, 24, ccrZ);
+
+// Charge heater
+var h401 = B(15, 12, 8, MAT.heaterCase, ccrX - 20, 0.3, ccrZ);
+addEQ(h401, { name: 'Platformer Charge Heater', tag: 'CCR-H-401', type: 'Fired Heater', fluid: 'Naphtha', pressure: '35 barg', temp: '530°C', material: 'CS/SS', status: 'EXISTING' });
+B(15, 4, 8, MAT.heaterCase, ccrX - 20, 12.3, ccrZ); // Convection
+CYL(1.2, 25, MAT.heaterStack, ccrX - 20, 16.3, ccrZ);
+// Burner ports
+for (var bp = 0; bp < 8; bp++) {
+  CYL(0.2, 0.3, MAT.burnerGlow, ccrX - 20 - 7.5, 2 + bp * 1.2, ccrZ - 3 + bp * 0.3, scene, 12);
+}
+makeLabel('CCR-H-401 | Charge Heater', ccrX - 20, 44, ccrZ);
+
+// Reformate Splitter
+var t401 = CYL(2.5, 32, MAT.insul, ccrX + 30, 4, ccrZ);
+addEQ(t401, { name: 'Reformate Splitter', tag: 'CCR-T-401', type: 'Column', fluid: 'Reformate', pressure: '4 barg', temp: '180°C', material: 'CS', status: 'EXISTING' });
+CYL(2.8, 4, MAT.foundation, ccrX + 30, 0.3, ccrZ);
+makeLabel('CCR-T-401 | Splitter', ccrX + 30, 40, ccrZ);
+
+makeBigLabel('UNIT 400 — CCR', ccrX, 45, ccrZ);
+
+// ============================================================
+// UNIT 500 - HYDROTREATERS
+// ============================================================
+// NHT
+var nhtX = -50, nhtZ = -200;
+var r501 = CYL(2, 14, MAT.cs, nhtX, 0.3, nhtZ);
+addEQ(r501, { name: 'Naphtha Hydrotreater', tag: 'NHT-R-501', type: 'Reactor', fluid: 'Naphtha + H2', pressure: '35 barg', temp: '340°C', material: 'CS', status: 'EXISTING' });
+CYL(1.8, 22, MAT.insul, nhtX + 10, 4, nhtZ);
+makeLabel('NHT-R-501', nhtX, 18, nhtZ);
+
+// DHT
+var dhtX = 50, dhtZ = -200;
+var r502 = CYL(2.5, 18, MAT.cs, dhtX, 0.3, dhtZ);
+addEQ(r502, { name: 'Diesel Hydrotreater', tag: 'DHT-R-502', type: 'Reactor', fluid: 'Diesel + H2', pressure: '55 barg', temp: '380°C', material: 'Cr-Mo', status: 'EXISTING' });
+B(6, 2, 3, MAT.compressor, dhtX + 10, 0.3, dhtZ);
+makeLabel('DHT-R-502', dhtX, 22, dhtZ);
+
+makeBigLabel('UNIT 500 — HYDROTREATERS', 0, 25, nhtZ);
+
+setProgress(50, 'Building fired heaters, tanks...');
+
+// ============================================================
+// UNIT 600 - FIRED HEATERS
+// ============================================================
+var heaterTags = ['H-601', 'H-602', 'H-603'];
+for (var hi = 0; hi < 3; hi++) {
+  var hx = -60 + hi * 60;
+  var hz = -280;
+  var heater = B(20, 14, 10, MAT.heaterCase, hx, 0.3, hz);
+  addEQ(heater, { name: 'Fired Heater', tag: heaterTags[hi], type: 'Box Heater', fluid: 'Process', pressure: '25 barg', temp: '400°C', material: 'CS', status: 'EXISTING' });
+  B(20, 4, 10, MAT.heaterCase, hx, 14.3, hz); // Convection
+  CYL(1.5, 30, MAT.heaterStack, hx, 18.3, hz);
+  // Burner ports
+  for (var hb = 0; hb < 8; hb++) {
+    CYL(0.2, 0.2, MAT.burnerGlow, hx - 10, 2 + hb * 1.3, hz + 5);
+  }
+  // ID fan
+  CYL(1.5, 1, MAT.cs, hx, 17, hz);
+  makeLabel(heaterTags[hi] + ' | Fired Heater', hx, 52, hz);
+}
+
+makeBigLabel('UNIT 600 — FIRED HEATERS', 0, 55, -280);
+
+// ============================================================
+// UNIT 700 - TANK FARM
+// ============================================================
+var tankBaseZ = 200;
+
+// Floating roof tanks - offset from center to avoid pipe rack at X=0
+var tankXPositions = [-180, -70, 70, 180];
+for (var tki = 0; tki < 8; tki++) {
+  var tx = tankXPositions[tki % 4];
+  var tz = tankBaseZ + Math.floor(tki / 4) * 80;
+  var tank = CYL(25, 14, MAT.tankShell, tx, 0.3, tz);
+  addEQ(tank, { name: 'Floating Roof Tank', tag: 'TK-70' + (tki + 1), type: 'Storage Tank', fluid: 'Crude/Product', pressure: 'Atm.', temp: 'Ambient', material: 'CS', status: 'EXISTING' });
+  // Floating roof
+  var roofH = 3 + Math.random() * 8;
+  CYL(24.5, 0.3, MAT.tankRoof, tx, roofH, tz);
+  // Wind girder
+  TORUS(25, 0.15, MAT.steel, tx, 14.3, tz);
+  // Staircase
+  addStaircase(tx + 25.5, tz, 0.3, 14, 26);
+  // Foam chambers
+  for (var fc = 0; fc < 4; fc++) {
+    var fa = (fc / 4) * Math.PI * 2;
+    CYL(0.2, 0.8, MAT.pipeFire, tx + Math.cos(fa) * 25, 13.5, tz + Math.sin(fa) * 25);
+  }
+  makeLabel('TK-70' + (tki + 1), tx, 18, tz);
+}
+
+// Containment dikes - match updated tank positions
+for (var di = 0; di < 2; di++) {
+  var dz = tankBaseZ + di * 80;
+  B(400, 1.5, 0.5, MAT.foundation, 0, 0.3, dz - 35);
+  B(400, 1.5, 0.5, MAT.foundation, 0, 0.3, dz + 35);
+  B(0.5, 1.5, 70, MAT.foundation, -210, 0.3, dz);
+  B(0.5, 1.5, 70, MAT.foundation, 210, 0.3, dz);
+}
+
+// Fixed cone roof tanks - positioned clear of pipe rack
+for (var cti = 0; cti < 4; cti++) {
+  var ctx2 = 240 + (cti % 2) * 35;
+  var ctz = tankBaseZ + 20 + Math.floor(cti / 2) * 40;
+  CYL(12, 10, MAT.tankShell, ctx2, 0.3, ctz);
+  CONE(12, 3, MAT.tankRoof, ctx2, 10.3, ctz);
+  CYL(0.3, 1, MAT.cs, ctx2, 13.3, ctz); // Vent
+  makeLabel('TK-71' + (cti + 1), ctx2, 16, ctz);
+}
+
+// LPG Spheres
+for (var si = 0; si < 2; si++) {
+  var sx = -250 + si * 30;
+  var sz = tankBaseZ + 120;
+  var sphereGeo = new THREE.SphereGeometry(8, 24, 16);
+  var sphereMesh = new THREE.Mesh(sphereGeo, MAT.sphere);
+  sphereMesh.position.set(sx, 14, sz);
+  sphereMesh.castShadow = true;
+  scene.add(sphereMesh);
+  addEQ(sphereMesh, { name: 'LPG Sphere', tag: 'SPH-72' + (si + 1), type: 'Spherical Tank', fluid: 'LPG', pressure: '17 barg', temp: 'Ambient', material: 'CS', status: 'EXISTING' });
+  // Support legs
+  for (var sl = 0; sl < 4; sl++) {
+    var la = (sl / 4) * Math.PI * 2 + Math.PI / 4;
+    CYL(0.3, 6, MAT.steel, sx + Math.cos(la) * 5, 0.3, sz + Math.sin(la) * 5);
+  }
+  // Fire spray ring
+  TORUS(8.5, 0.08, MAT.pipeFire, sx, 14, sz);
+  makeLabel('SPH-72' + (si + 1) + ' | LPG', sx, 24, sz);
+}
+
+// Blast walls
+B(35, 3, 0.5, MAT.foundation, -235, 0.3, tankBaseZ + 100);
+B(0.5, 3, 40, MAT.foundation, -265, 0.3, tankBaseZ + 120);
+B(0.5, 3, 40, MAT.foundation, -205, 0.3, tankBaseZ + 120);
+
+makeBigLabel('UNIT 700 — TANK FARM', 0, 22, tankBaseZ);
+
+setProgress(60, 'Building amine, sulfur, utilities...');
+
+// ============================================================
+// UNIT 800 - AMINE & SULFUR
+// ============================================================
+var asuX = 0, asuZ = 180;
+
+var t801 = CYL(1.8, 30, MAT.insul, asuX - 15, 4, asuZ - 40);
+addEQ(t801, { name: 'Amine Absorber', tag: 'AGU-T-801', type: 'Column', fluid: 'Sour Gas/Amine', pressure: '50 barg', temp: '50°C', material: 'CS', status: 'EXISTING' });
+CYL(2, 4, MAT.foundation, asuX - 15, 0.3, asuZ - 40);
+makeLabel('AGU-T-801 | Amine Absorber', asuX - 15, 38, asuZ - 40);
+
+var t802 = CYL(1.5, 24, MAT.insul, asuX, 4, asuZ - 40);
+addEQ(t802, { name: 'Amine Regenerator', tag: 'AGU-T-802', type: 'Column', fluid: 'Rich Amine', pressure: '2 barg', temp: '120°C', material: 'CS', status: 'EXISTING' });
+CYL(1.8, 4, MAT.foundation, asuX, 0.3, asuZ - 40);
+// Reboiler
+CYL(0.8, 4, MAT.ss, asuX + 4, 1.2, asuZ - 40);
+makeLabel('AGU-T-802 | Regenerator', asuX, 32, asuZ - 40);
+
+// Claus SRU
+CYL(1.2, 8, MAT.ss, asuX + 20, 1.2, asuZ - 35); // WHB
+for (var ci = 0; ci < 3; ci++) {
+  B(4, 3, 3, MAT.cs, asuX + 30 + ci * 6, 0.3, asuZ - 35);
+}
+// Sulfur pit
+B(6, 1, 4, MAT.yellow, asuX + 30, 0.1, asuZ - 28);
+// Tail gas stack
+CYL(0.8, 35, MAT.heaterStack, asuX + 45, 0.3, asuZ - 35);
+makeLabel('SRU | Sulfur Recovery', asuX + 30, 10, asuZ - 35);
+
+// ============================================================
+// UNIT 900 - UTILITIES
+// ============================================================
+var utilX = 300, utilZ = -50;
+
+// Cooling tower
+var ct = B(40, 12, 20, MAT.coolingTower, utilX - 50, 0.3, utilZ);
+addEQ(ct, { name: 'Cooling Tower', tag: 'CT-901', type: 'Counter-flow CT', fluid: 'Cooling Water', pressure: 'Atm.', temp: '32°C', material: 'Concrete/FRP', status: 'EXISTING' });
+// Fans on top (animated)
+fans = [];
+for (var cfi = 0; cfi < 4; cfi++) {
+  var fanX = utilX - 65 + cfi * 10;
+  var fanGrp = new THREE.Group();
+  fanGrp.position.set(fanX, 12.5, utilZ);
+  for (var fb = 0; fb < 4; fb++) {
+    var blade = B(0.3, 0.1, 3, MAT.steel, 0, 0, 0, fanGrp);
+    blade.rotation.y = (fb / 4) * Math.PI * 2;
+  }
+  scene.add(fanGrp);
+  fans.push(fanGrp);
+}
+// Basin
+B(42, 1, 22, MAT.concrete, utilX - 50, 0.3, utilZ);
+makeLabel('CT-901 | Cooling Tower', utilX - 50, 16, utilZ);
+
+// Steam pipes (visible from CT)
+steamCones = [];
+for (var sci = 0; sci < 4; sci++) {
+  var sc = CONE(2, 5, MAT.steam, utilX - 65 + sci * 10, 13, utilZ);
+  steamCones.push(sc);
+}
+
+// Steam Boilers
+for (var bi2 = 0; bi2 < 2; bi2++) {
+  var bx = utilX - 50 + bi2 * 25;
+  var bz = utilZ + 30;
+  B(15, 12, 8, MAT.heaterCase, bx, 0.3, bz);
+  CYL(1.2, 12, MAT.ss, bx, 12.3, bz); // Steam drum
+  CYL(1.2, 35, MAT.heaterStack, bx, 0.3, bz - 6);
+  makeLabel('B-90' + (bi2 + 1) + ' | Boiler', bx, 40, bz);
+}
+
+// Instrument air compressors
+for (var iac = 0; iac < 3; iac++) {
+  B(3, 2, 2, MAT.compressor, utilX + 20, 0.3, utilZ - 20 + iac * 6);
+  CYL(0.8, 3, MAT.cs, utilX + 25, 0.3, utilZ - 20 + iac * 6);
+}
+
+// Demin water plant
+B(20, 5, 15, MAT.wall, utilX - 10, 0.3, utilZ - 40);
+B(20.5, 0.3, 15.5, MAT.bldRoof, utilX - 10, 5.3, utilZ - 40);
+CYL(8, 6, MAT.tankShell, utilX - 10, 0.3, utilZ - 60);
+makeLabel('Demin Water Plant', utilX - 10, 8, utilZ - 40);
+
+// Emergency diesel gen
+B(15, 5, 10, MAT.wall, utilX + 30, 0.3, utilZ + 20);
+CYL(0.5, 8, MAT.heaterStack, utilX + 33, 5.3, utilZ + 20);
+CYL(0.5, 8, MAT.heaterStack, utilX + 27, 5.3, utilZ + 20);
+
+makeBigLabel('UTILITIES', utilX - 20, 45, utilZ);
+
+setProgress(70, 'Building flare system...');
+
+// ============================================================
+// UNIT 1000 - FLARE SYSTEM
+// ============================================================
+var flareX = 0, flareZ = 350;
+
+// HP Flare Stack
+// Foundation
+CYL(5, 1, MAT.foundation, flareX, 0.3, flareZ, scene, 8);
+
+// Stack - tapered sections
+var flareGrp = new THREE.Group();
+scene.add(flareGrp);
+var stackSections = [
+  { rB: 1.5, rT: 1.3, h: 24 },
+  { rB: 1.3, rT: 1.0, h: 24 },
+  { rB: 1.0, rT: 0.8, h: 24 },
+  { rB: 0.8, rT: 0.6, h: 24 },
+  { rB: 0.6, rT: 0.5, h: 24 }
+];
+var stackY = 1.3;
+for (var ss = 0; ss < stackSections.length; ss++) {
+  var sec = stackSections[ss];
+  var sg = new THREE.CylinderGeometry(sec.rT, sec.rB, sec.h, 12);
+  var sm = new THREE.Mesh(sg, MAT.flareSteel);
+  sm.position.set(flareX, stackY + sec.h / 2, flareZ);
+  sm.castShadow = true;
+  scene.add(sm);
+  stackY += sec.h;
+}
+
+// Platforms every 15m
+for (var plat = 1; plat <= 7; plat++) {
+  addPlatform(flareX, flareZ, plat * 15 + 1.3, 3);
+}
+
+// Ladder
+CYL(0.06, 120, MAT.ladder, flareX + 1.5, 1.3, flareZ);
+
+// Guy wires - anchor points visible as small cylinders
+var guyLevels = [40, 70, 100];
+for (var gl = 0; gl < guyLevels.length; gl++) {
+  for (var gd = 0; gd < 4; gd++) {
+    var ga = (gd / 4) * Math.PI * 2;
+    var anchorX = flareX + Math.cos(ga) * 60;
+    var anchorZ = flareZ + Math.sin(ga) * 60;
+    CYL(0.3, 1, MAT.foundation, anchorX, 0.3, anchorZ);
+    // Wire
+    PIPE(new THREE.Vector3(flareX, guyLevels[gl] + 1.3, flareZ), new THREE.Vector3(anchorX, 1.3, anchorZ), 0.02, MAT.steel);
+  }
+}
+
+// KO drum
+var koDrum = CYL(2, 10, MAT.cs, flareX - 15, 1.2, flareZ);
+koDrum.rotation.z = Math.PI / 2;
+koDrum.position.y = 3;
+addEQ(koDrum, { name: 'Flare KO Drum', tag: 'FKO-1001', type: 'Horizontal Vessel', fluid: 'Flare Gas', pressure: '1 barg', temp: 'Ambient', material: 'CS', status: 'EXISTING' });
+
+// Liquid seal drum
+CYL(1.5, 5, MAT.cs, flareX - 20, 0.3, flareZ);
+
+// ANIMATED FLAME
+flameGroup = new THREE.Group();
+flameGroup.position.set(flareX, 122, flareZ);
+scene.add(flameGroup);
+for (var fl = 0; fl < 5; fl++) {
+  var fmat = fl % 2 === 0 ? MAT.flame : MAT.flameYellow;
+  var fc2 = CONE(1.5 + fl * 0.3, 3 + fl * 0.5, fmat, (fl - 2) * 0.3, fl * 0.3, 0, flameGroup);
+  fc2.castShadow = false;
+}
+
+flameLights = [];
+var flareLight1 = new THREE.PointLight(0xff6600, 10, 200);
+flareLight1.position.set(flareX, 124, flareZ);
+scene.add(flareLight1);
+flameLights.push(flareLight1);
+
+var flareLight2 = new THREE.PointLight(0xff4400, 5, 100);
+flareLight2.position.set(flareX, 120, flareZ);
+scene.add(flareLight2);
+flameLights.push(flareLight2);
+
+// Aviation lights
+for (var avl = 0; avl < 3; avl++) {
+  var avLight = new THREE.PointLight(0xff0000, 0.5, 20);
+  avLight.position.set(flareX + 1.5, 1.3 + 40 + avl * 30, flareZ);
+  scene.add(avLight);
+}
+
+makeLabel('HP Flare | 120m', flareX, 130, flareZ);
+
+// LP Flare
+for (var lps = 0; lps < 3; lps++) {
+  CYL(0.4, 20, MAT.flareSteel, flareX + 30, 1.3 + lps * 20, flareZ);
+}
+makeLabel('LP Flare | 60m', flareX + 30, 65, flareZ);
+
+makeBigLabel('FLARE SYSTEM', flareX, 135, flareZ);
+
+setProgress(80, 'Building pipe racks, buildings...');
+
+// ============================================================
+// PIPE RACKS
+// ============================================================
+// Main N-S pipe rack at X=0
+for (var prn = -280; prn < 280; prn += 8) {
+  // H-frame columns
+  CYL(0.15, 8, MAT.steel, -3, 0.3, prn);
+  CYL(0.15, 8, MAT.steel, 3, 0.3, prn);
+  // Beams
+  B(6, 0.15, 0.15, MAT.steel, 0, 4.3, prn);
+  B(6, 0.15, 0.15, MAT.steel, 0, 6.3, prn);
+  B(6, 0.15, 0.15, MAT.steel, 0, 8.3, prn);
+}
+// Pipes on rack (simplified - 4 main visible pipes)
+CYL(0.3, 560, MAT.pipeInsul, -2, 4.6, 0);
+CYL(0.2, 560, MAT.pipeCS, -1, 4.6, 0);
+CYL(0.15, 560, MAT.pipeSS, 0, 6.6, 0);
+CYL(0.1, 560, MAT.pipeFire, 1, 6.6, 0);
+CYL(0.08, 560, MAT.pipeFG, 2, 8.6, 0);
+
+// Main E-W pipe rack at Z=0
+for (var pre = -380; pre < 380; pre += 8) {
+  CYL(0.15, 8, MAT.steel, pre, 0.3, -3);
+  CYL(0.15, 8, MAT.steel, pre, 0.3, 3);
+  B(0.15, 0.15, 6, MAT.steel, pre, 4.3, 0);
+  B(0.15, 0.15, 6, MAT.steel, pre, 6.3, 0);
+  B(0.15, 0.15, 6, MAT.steel, pre, 8.3, 0);
+}
+// E-W pipes
+var ewPipeGeo = new THREE.CylinderGeometry(0.25, 0.25, 760, 8);
+var ewPipe1 = new THREE.Mesh(ewPipeGeo, MAT.pipeInsul);
+ewPipe1.rotation.z = Math.PI / 2;
+ewPipe1.position.set(0, 5, -1);
+scene.add(ewPipe1);
+
+var ewPipe2Geo = new THREE.CylinderGeometry(0.15, 0.15, 760, 8);
+var ewPipe2 = new THREE.Mesh(ewPipe2Geo, MAT.pipeCS);
+ewPipe2.rotation.z = Math.PI / 2;
+ewPipe2.position.set(0, 7, 1);
+scene.add(ewPipe2);
+
+// ============================================================
+// BUILDINGS
+// ============================================================
+// Control Room
+var ctrlRoom = B(40, 6, 20, MAT.wall, 300, 0.3, 0);
+B(40.5, 0.3, 20.5, MAT.bldRoof, 300, 6.3, 0);
+// Windows with blue glow
+for (var wi = 0; wi < 6; wi++) {
+  B(3, 2, 0.2, MAT.glass, 282 + wi * 6, 3, -10);
+}
+// DCS glow
+var dcsGlow = new THREE.PointLight(0x4488ff, 0.5, 15);
+dcsGlow.position.set(300, 4, 0);
+scene.add(dcsGlow);
+nightLights.push(dcsGlow);
+// Satellite dish
+CYL(1.5, 0.2, MAT.ss, 310, 6.5, -5);
+makeLabel('Control Room', 300, 10, 0);
+
+// Admin block
+B(30, 8, 15, MAT.wall, 300, 0.3, 60);
+B(30.5, 0.3, 15.5, MAT.bldRoof, 300, 8.3, 60);
+for (var awi = 0; awi < 8; awi++) {
+  B(2.5, 1.5, 0.2, MAT.glass, 288 + awi * 3.5, 3, 52.5);
+  B(2.5, 1.5, 0.2, MAT.glass, 288 + awi * 3.5, 6, 52.5);
+}
+makeLabel('Administration', 300, 12, 60);
+
+// Parking
+SLAB(30, 0.05, 20, MAT.asphalt, 300, 0.3, 85);
+
+// Fire station
+B(20, 5, 12, MAT.wall, 280, 0.3, -80);
+B(20.5, 0.3, 12.5, MAT.bldRoof, 280, 5.3, -80);
+// Red doors
+for (var fd = 0; fd < 3; fd++) {
+  B(4, 4, 0.3, MAT.pipeFire, 274 + fd * 6, 0.3, -86);
+}
+// Fire truck (simplified)
+B(7, 2.5, 2.5, MAT.fireTruck, 280, 0.3, -78);
+makeLabel('Fire Station', 280, 8, -80);
+
+// Medical, Lab, Mosque, Warehouse
+B(15, 4, 10, MAT.wall, 330, 0.3, -30);
+makeLabel('Medical Center', 330, 8, -30);
+
+B(20, 4, 12, MAT.wall, 330, 0.3, 30);
+makeLabel('Laboratory', 330, 8, 30);
+
+B(10, 4, 8, MAT.wall, 350, 0.3, -60);
+// Small dome
+var domeGeo = new THREE.SphereGeometry(3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+var dome = new THREE.Mesh(domeGeo, MAT.ss);
+dome.position.set(350, 4.3, -60);
+scene.add(dome);
+makeLabel('Mosque', 350, 10, -60);
+
+B(40, 6, 20, MAT.wall, 320, 0.3, -120);
+B(40.5, 0.3, 20.5, MAT.bldRoof, 320, 6.3, -120);
+makeLabel('Warehouse', 320, 10, -120);
+
+B(25, 5, 15, MAT.wall, 340, 0.3, -160);
+makeLabel('Workshop', 340, 8, -160);
+
+makeBigLabel('ADMIN AREA', 320, 14, 0);
+
+setProgress(85, 'Adding fire safety systems...');
+
+// ============================================================
+// FIRE & SAFETY
+// ============================================================
+// Fire water ring main (simplified - along perimeter)
+// Fire hydrants every 30m
+for (var fhi = -380; fhi <= 380; fhi += 30) {
+  CYL(0.08, 0.8, MAT.pipeFire, fhi, 0.3, -290);
+  CYL(0.08, 0.8, MAT.pipeFire, fhi, 0.3, 290);
+}
+for (var fhj = -290; fhj <= 290; fhj += 30) {
+  CYL(0.08, 0.8, MAT.pipeFire, -390, 0.3, fhj);
+  CYL(0.08, 0.8, MAT.pipeFire, 390, 0.3, fhj);
+}
+
+// Foam skids at tank farm
+for (var fsk = 0; fsk < 3; fsk++) {
+  B(3, 2, 2, MAT.pipeFire, -200 + fsk * 60, 0.3, tankBaseZ - 40);
+}
+
+setProgress(95, 'Setting up lighting and controls...');
+
+// ============================================================
+// LIGHTING
+// ============================================================
+sunLight = new THREE.DirectionalLight(0xfff8e8, 2.8);
+sunLight.position.set(200, 300, 150);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 4096;
+sunLight.shadow.mapSize.height = 4096;
+sunLight.shadow.camera.left = -400;
+sunLight.shadow.camera.right = 400;
+sunLight.shadow.camera.top = 400;
+sunLight.shadow.camera.bottom = -400;
+sunLight.shadow.bias = -0.0006;
+sunLight.shadow.normalBias = 0.05;
+scene.add(sunLight);
+
+hemiLight = new THREE.HemisphereLight(0xa0c0e0, 0x604830, 0.9);
+scene.add(hemiLight);
+
+fillLight = new THREE.DirectionalLight(0x5090c0, 0.4);
+fillLight.position.set(-150, 80, -100);
+scene.add(fillLight);
+
+// ============================================================
+// CAMERA CONTROLS (Custom Orbit)
+// ============================================================
+function updateCamera() {
+  camTheta += (targetTheta - camTheta) * 0.1;
+  camPhi += (targetPhi - camPhi) * 0.1;
+  camRadius += (targetRadius - camRadius) * 0.1;
+  camTarget.lerp(targetCenter, 0.1);
+
+  camera.position.x = camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
+  camera.position.y = camTarget.y + camRadius * Math.cos(camPhi);
+  camera.position.z = camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
+  camera.lookAt(camTarget);
+}
+
+var canvas = renderer.domElement;
+canvas.addEventListener('mousedown', function(e) {
+  isDragging = true;
+  isRightDrag = e.button === 2;
+  lastMX = e.clientX;
+  lastMY = e.clientY;
+});
+canvas.addEventListener('mousemove', function(e) {
+  if (!isDragging) return;
+  var dx = e.clientX - lastMX;
+  var dy = e.clientY - lastMY;
+  lastMX = e.clientX;
+  lastMY = e.clientY;
+  if (isRightDrag) {
+    var panSpeed = camRadius * 0.001;
+    var right = new THREE.Vector3();
+    camera.getWorldDirection(right);
+    right.cross(camera.up).normalize();
+    var up = new THREE.Vector3(0, 1, 0);
+    targetCenter.add(right.multiplyScalar(-dx * panSpeed));
+    targetCenter.add(up.multiplyScalar(dy * panSpeed));
+  } else {
+    targetTheta -= dx * 0.005;
+    targetPhi = Math.max(0.05, Math.min(Math.PI / 2 - 0.02, targetPhi - dy * 0.005));
+  }
+});
+canvas.addEventListener('mouseup', function() { isDragging = false; });
+canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+canvas.addEventListener('wheel', function(e) {
+  targetRadius = Math.max(50, Math.min(2000, targetRadius + e.deltaY * 0.5));
+});
+
+// Touch
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    isDragging = true;
+    isRightDrag = false;
+    lastMX = e.touches[0].clientX;
+    lastMY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    var dx2 = e.touches[0].clientX - e.touches[1].clientX;
+    var dy2 = e.touches[0].clientY - e.touches[1].clientY;
+    touchDist = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    var dx3 = e.touches[0].clientX - lastMX;
+    var dy3 = e.touches[0].clientY - lastMY;
+    lastMX = e.touches[0].clientX;
+    lastMY = e.touches[0].clientY;
+    targetTheta -= dx3 * 0.005;
+    targetPhi = Math.max(0.05, Math.min(Math.PI / 2 - 0.02, targetPhi - dy3 * 0.005));
+  } else if (e.touches.length === 2) {
+    var dx4 = e.touches[0].clientX - e.touches[1].clientX;
+    var dy4 = e.touches[0].clientY - e.touches[1].clientY;
+    var newDist = Math.sqrt(dx4 * dx4 + dy4 * dy4);
+    targetRadius = Math.max(50, Math.min(2000, targetRadius * (touchDist / newDist)));
+    touchDist = newDist;
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', function() { isDragging = false; });
+
+// Click for equipment info
+canvas.addEventListener('click', function(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(EQ);
+  var infoPanel = document.getElementById('info');
+  if (intersects.length > 0) {
+    var d = intersects[0].object.userData;
+    document.getElementById('infoTitle').textContent = d.name || '-';
+    document.getElementById('infoTag').textContent = d.tag || '-';
+    document.getElementById('infoType').textContent = d.type || '-';
+    document.getElementById('infoFluid').textContent = d.fluid || '-';
+    document.getElementById('infoPres').textContent = d.pressure || '-';
+    document.getElementById('infoTemp').textContent = d.temp || '-';
+    document.getElementById('infoMat').textContent = d.material || '-';
+    document.getElementById('infoStatus').textContent = d.status || '-';
+    infoPanel.style.display = 'block';
+  } else {
+    infoPanel.style.display = 'none';
+  }
+});
+
+// ============================================================
+// VIEW PRESETS
+// ============================================================
+function setView(name) {
+  var views = {
+    perspective: { theta: 0.7, phi: 0.8, r: 900, t: [0, 20, 0] },
+    top: { theta: 0, phi: 0.02, r: 1000, t: [0, 0, 0] },
+    iso: { theta: Math.PI / 4, phi: Math.PI / 4, r: 800, t: [0, 0, 0] },
+    north: { theta: 0, phi: 0.6, r: 700, t: [0, 0, 0] },
+    east: { theta: Math.PI / 2, phi: 0.6, r: 700, t: [0, 0, 0] },
+    fcc: { theta: 0.5, phi: 0.7, r: 250, t: [150, 20, -150] },
+    tanks: { theta: 0.3, phi: 0.8, r: 450, t: [0, 0, 240] }
+  };
+  var v = views[name];
+  if (v) {
+    targetTheta = v.theta;
+    targetPhi = v.phi;
+    targetRadius = v.r;
+    targetCenter.set(v.t[0], v.t[1], v.t[2]);
+  }
+}
+
+// ============================================================
+// TOGGLES
+// ============================================================
+function toggleWire() {
+  wireframeMode = !wireframeMode;
+  document.getElementById('btnWire').classList.toggle('active');
+  scene.traverse(function(child) {
+    if (child.isMesh && child.material) {
+      child.material.wireframe = wireframeMode;
+    }
+  });
+}
+
+function toggleShadows() {
+  shadowsOn = !shadowsOn;
+  document.getElementById('btnShadow').classList.toggle('active');
+  renderer.shadowMap.enabled = shadowsOn;
+  scene.traverse(function(child) {
+    if (child.isMesh) {
+      child.castShadow = shadowsOn;
+      child.receiveShadow = shadowsOn;
+    }
+  });
+}
+
+function toggleLabels() {
+  labelsOn = !labelsOn;
+  document.getElementById('btnLabels').classList.toggle('active');
+  for (var li = 0; li < labelSprites.length; li++) {
+    labelSprites[li].visible = labelsOn;
+  }
+}
+
+function toggleNight() {
+  nightMode = !nightMode;
+  document.getElementById('btnNight').classList.toggle('active');
+  if (nightMode) {
+    sunLight.intensity = 0.1;
+    hemiLight.color.set(0x001030);
+    hemiLight.intensity = 0.3;
+    scene.background.set(0x020510);
+    scene.fog.color.set(0x020510);
+  } else {
+    sunLight.intensity = 2.8;
+    hemiLight.color.set(0xa0c0e0);
+    hemiLight.intensity = 0.9;
+    scene.background.set(0x0c1020);
+    scene.fog.color.set(0x0c1020);
+  }
+}
+
+function toggleAutoRotate() {
+  autoRotate = !autoRotate;
+  document.getElementById('btnRotate').classList.toggle('active');
+}
+
+// ============================================================
+// MINIMAP
+// ============================================================
+var mmCanvas = document.getElementById('minimapCanvas');
+var mmCtx = mmCanvas.getContext('2d');
+
+function drawMinimap() {
+  mmCtx.fillStyle = 'rgba(8,12,22,0.95)';
+  mmCtx.fillRect(0, 0, 150, 120);
+
+  var scale = 0.09;
+  var ox = 75, oy = 60;
+
+  // Units as colored rects
+  var units = [
+    { x: -150, z: -150, w: 120, h: 80, c: '#ddd8c8', label: 'CDU' },
+    { x: 150, z: -150, w: 100, h: 90, c: '#a0a8b0', label: 'FCC' },
+    { x: -150, z: 100, w: 80, h: 70, c: '#c4c8d0', label: 'HCU' },
+    { x: 150, z: 100, w: 70, h: 60, c: '#a0a8b0', label: 'CCR' },
+    { x: 0, z: 240, w: 420, h: 100, c: '#d8d0a8', label: 'TANKS' },
+    { x: 300, z: -50, w: 100, h: 80, c: '#a8a090', label: 'UTIL' },
+    { x: 300, z: 30, w: 80, h: 40, c: '#ccc4b4', label: 'ADMIN' }
+  ];
+
+  for (var ui = 0; ui < units.length; ui++) {
+    var u = units[ui];
+    mmCtx.fillStyle = u.c + '40';
+    mmCtx.strokeStyle = u.c + '80';
+    mmCtx.lineWidth = 1;
+    mmCtx.fillRect(ox + (u.x - u.w / 2) * scale, oy + (u.z - u.h / 2) * scale, u.w * scale, u.h * scale);
+    mmCtx.strokeRect(ox + (u.x - u.w / 2) * scale, oy + (u.z - u.h / 2) * scale, u.w * scale, u.h * scale);
+    mmCtx.fillStyle = '#c0d4e8';
+    mmCtx.font = '6px sans-serif';
+    mmCtx.textAlign = 'center';
+    mmCtx.fillText(u.label, ox + u.x * scale, oy + u.z * scale + 3);
+  }
+
+  // Camera indicator
+  var cx = ox + camTarget.x * scale;
+  var cy = oy + camTarget.z * scale;
+  mmCtx.beginPath();
+  mmCtx.arc(cx, cy, 3, 0, Math.PI * 2);
+  mmCtx.fillStyle = '#2e7fd0';
+  mmCtx.fill();
+  mmCtx.beginPath();
+  mmCtx.moveTo(cx, cy);
+  mmCtx.lineTo(cx + Math.sin(camTheta) * 10, cy + Math.cos(camTheta) * 10);
+  mmCtx.strokeStyle = '#2e7fd0';
+  mmCtx.lineWidth = 1.5;
+  mmCtx.stroke();
+}
+
+// Minimap click to navigate
+mmCanvas.addEventListener('click', function(e) {
+  var rect = mmCanvas.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  var scale = 0.09;
+  var wx = (mx - 75) / scale;
+  var wz = (my - 60) / scale;
+  targetCenter.set(wx, 20, wz);
+});
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+var clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  var t = clock.getElapsedTime();
+
+  // Auto rotate
+  if (autoRotate) {
+    targetTheta += 0.002;
+  }
+
+  updateCamera();
+
+  // Flame animation
+  if (flameGroup) {
+    for (var fi2 = 0; fi2 < flameGroup.children.length; fi2++) {
+      var fc3 = flameGroup.children[fi2];
+      fc3.scale.y = 1 + Math.sin(t * 6 + fi2 * 1.2) * 0.25 + Math.sin(t * 11 + fi2) * 0.1;
+      fc3.scale.x = 1 + Math.cos(t * 7 + fi2) * 0.15;
+      fc3.scale.z = 1 + Math.sin(t * 8 + fi2 * 0.7) * 0.1;
+    }
+  }
+
+  // Flame lights
+  if (flameLights && flameLights.length > 0) {
+    flameLights[0].intensity = 8 + Math.sin(t * 9) * 3 + Math.random() * 1.5;
+    flameLights[1].intensity = 4 + Math.sin(t * 7) * 2;
+  }
+
+  // FCC glow flicker
+  if (fccGlow) {
+    fccGlow.intensity = 1.5 + Math.sin(t * 3) * 0.3;
+  }
+
+  // Cooling tower fans
+  if (fans) {
+    for (var fani = 0; fani < fans.length; fani++) {
+      fans[fani].rotation.y += 0.02;
+    }
+  }
+
+  // Steam animation
+  if (steamCones) {
+    for (var sti = 0; sti < steamCones.length; sti++) {
+      steamCones[sti].scale.y = 1 + Math.sin(t * 0.5 + sti) * 0.3;
+      steamCones[sti].material.opacity = 0.1 + Math.sin(t * 0.3 + sti) * 0.05;
+    }
+  }
+
+  // Draw minimap every 10 frames
+  if (Math.floor(t * 60) % 10 === 0) {
+    drawMinimap();
+  }
+
+  renderer.render(scene, camera);
+}
+
+// ============================================================
+// RESIZE
+// ============================================================
+window.addEventListener('resize', function() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ============================================================
+// START
+// ============================================================
+setProgress(100, 'Complete!');
+
+setTimeout(function() {
+  document.getElementById('loading').classList.add('hide');
+}, 2500);
+
+animate();
+
+</script>
+</body>
+</html>
