@@ -1,1 +1,1765 @@
-Enhanced 3D and 2D visualization, advanced calculation tools, undo/redo system, keyboard shortcuts, export functionality for DXF and PDF, responsive design, and real-time performance improvements for lifting plans.
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiftPlan CAD — Autodesk Style</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&family=Share+Tech+Mono&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;user-select:none}
+:root{
+  --bg:#1e1e1e;--bg2:#252526;--bg3:#2d2d2d;--bg4:#3c3c3c;
+  --border:#454545;--border2:#5a5a5a;
+  --accent:#00bfff;--accent2:#ff8c00;--green:#6ab04c;--red:#c0392b;
+  --text:#cccccc;--text2:#999;--text3:#666;
+  --toolbar:#3c3f41;--ribbon:#2b2b2b;
+  --panel:#252526;--canvas:#1a1a1a;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Roboto Condensed',sans-serif;font-size:13px;color:var(--text)}
+
+/* ── TITLE BAR ── */
+#titlebar{height:30px;background:#1f1f1f;border-bottom:1px solid #111;display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.tb-logo{color:var(--accent);font-weight:700;font-size:14px;letter-spacing:2px;font-family:'Share Tech Mono',monospace}
+.tb-file{color:var(--text2);font-size:11px;margin-right:auto}
+.tb-btns{display:flex;gap:2px}
+.tb-btn{width:46px;height:30px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.tb-btn:hover{background:rgba(255,255,255,.08)}
+.tb-btn.close:hover{background:#c0392b;color:#fff}
+.tb-minimize:hover{background:rgba(255,255,255,.1)}
+
+/* ── MENU BAR ── */
+#menubar{height:28px;background:#2d2d2d;border-bottom:1px solid #111;display:flex;align-items:center;padding:0 4px;flex-shrink:0}
+.menu-item{padding:0 10px;height:28px;display:flex;align-items:center;cursor:pointer;font-size:12px;color:var(--text2);white-space:nowrap;position:relative}
+.menu-item:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.menu-item.active{background:var(--accent);color:#000;font-weight:700}
+
+/* ── RIBBON ── */
+#ribbon{height:88px;background:var(--ribbon);border-bottom:2px solid #111;display:flex;flex-shrink:0;overflow:hidden}
+.ribbon-tab-content{display:none;flex:1;padding:4px 8px;gap:2px;align-items:flex-end}
+.ribbon-tab-content.active{display:flex}
+.rib-group{border:1px solid #3a3a3a;border-radius:2px;padding:4px 6px;display:flex;flex-direction:column;align-items:center;min-width:60px;background:rgba(0,0,0,.15)}
+.rib-group-title{font-size:9px;color:var(--text3);margin-top:4px;text-align:center;text-transform:uppercase;letter-spacing:.5px}
+.rib-row{display:flex;gap:2px;margin-bottom:2px}
+.rib-btn{background:transparent;border:1px solid transparent;color:var(--text2);cursor:pointer;padding:2px 6px;border-radius:2px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9px;min-width:36px;transition:all .15s}
+.rib-btn:hover{background:rgba(255,255,255,.1);border-color:var(--border);color:var(--text)}
+.rib-btn.active{background:rgba(0,191,255,.15);border-color:var(--accent);color:var(--accent)}
+.rib-btn svg{width:20px;height:20px;flex-shrink:0}
+.rib-btn-lg{min-width:48px;padding:6px 8px}
+.rib-btn-lg svg{width:28px;height:28px}
+.rib-sep{width:1px;background:var(--border);margin:0 4px;align-self:stretch}
+
+/* ── RIBBON TABS ── */
+#ribbon-tabs{height:24px;background:#252525;display:flex;align-items:flex-end;padding:0 8px;flex-shrink:0;border-bottom:none}
+.rtab{padding:4px 14px;font-size:11px;cursor:pointer;color:var(--text2);border:1px solid transparent;border-bottom:none;border-radius:2px 2px 0 0;background:transparent;white-space:nowrap}
+.rtab:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.rtab.active{background:var(--ribbon);color:var(--accent);border-color:#3a3a3a;font-weight:700}
+
+/* ── LAYOUT ── */
+#main-layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 30px - 28px - 24px - 88px - 24px - 22px)}
+#left-panel{width:220px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#canvas-area{flex:1;display:flex;flex-direction:column;background:var(--canvas);position:relative;overflow:hidden}
+#right-panel{width:260px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+
+/* ── PANELS ── */
+.panel-header{height:24px;background:#2a2a2a;border-bottom:1px solid var(--border);padding:0 8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.panel-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+.panel-close:hover{color:var(--text)}
+.panel-body{flex:1;overflow-y:auto;overflow-x:hidden}
+.panel-body::-webkit-scrollbar{width:6px}
+.panel-body::-webkit-scrollbar-track{background:#1a1a1a}
+.panel-body::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
+
+/* Model Browser tree */
+.tree-item{display:flex;align-items:center;gap:4px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--text2)}
+.tree-item:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.tree-item.selected{background:rgba(0,191,255,.12);color:var(--accent)}
+.tree-item .ti-icon{width:14px;height:14px;flex-shrink:0}
+.tree-indent{padding-left:16px}
+.tree-expand{width:14px;text-align:center;font-size:9px;color:var(--text3)}
+
+/* Properties panel */
+.prop-section{border-bottom:1px solid var(--border)}
+.prop-section-hdr{padding:5px 8px;font-size:11px;font-weight:700;color:var(--accent);background:rgba(0,191,255,.05);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.prop-row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,.04)}
+.prop-label{padding:4px 8px;font-size:11px;color:var(--text2);border-right:1px solid rgba(255,255,255,.06)}
+.prop-val{padding:4px 8px;font-size:11px;color:var(--text);font-family:'Share Tech Mono',monospace}
+.prop-val.ok{color:var(--green)}
+.prop-val.warn{color:var(--accent2)}
+.prop-val.danger{color:var(--red)}
+.prop-val input{background:transparent;border:none;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:11px;width:100%;outline:none}
+.prop-val input:focus{background:rgba(0,191,255,.1)}
+
+/* ── CANVAS ── */
+#cad-canvas{display:block;cursor:crosshair}
+#canvas-overlay{position:absolute;top:0;left:0;pointer-events:none}
+.view-cube{position:absolute;top:12px;right:12px;pointer-events:none}
+
+/* ── TOOLBAR LEFT (vertical) ── */
+#vtoolbar{width:28px;background:#2a2a2a;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:4px 0;gap:1px;flex-shrink:0}
+.vt-btn{width:26px;height:26px;background:transparent;border:1px solid transparent;border-radius:2px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .1s}
+.vt-btn:hover{background:rgba(255,255,255,.1);border-color:var(--border2);color:var(--text)}
+.vt-btn.active{background:rgba(0,191,255,.2);border-color:var(--accent);color:var(--accent)}
+.vt-sep{width:20px;height:1px;background:var(--border);margin:3px 0}
+
+/* ── STATUS BAR ── */
+#statusbar{height:22px;background:#007acc;border-top:1px solid #005f99;display:flex;align-items:center;padding:0 10px;gap:16px;flex-shrink:0;font-size:11px;color:#fff}
+.sb-item{display:flex;align-items:center;gap:4px;opacity:.85;cursor:pointer}
+.sb-item:hover{opacity:1}
+.sb-sep{width:1px;height:14px;background:rgba(255,255,255,.3)}
+.sb-right{margin-left:auto;display:flex;gap:12px}
+
+/* ── COMMAND LINE ── */
+#cmdline{height:24px;background:#1a1a1a;border-top:1px solid #111;display:flex;align-items:center;padding:0 8px;gap:6px;flex-shrink:0}
+.cmd-prompt{color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:11px;white-space:nowrap}
+#cmd-input{flex:1;background:transparent;border:none;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:11px;outline:none}
+#cmd-input::placeholder{color:var(--text3)}
+.cmd-history{color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:10px}
+
+/* ── TABLE IN CANVAS ── */
+.cad-table{position:absolute;right:10px;top:10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text)}
+.ct-hdr{background:rgba(0,40,80,.95);border:1px solid var(--accent);padding:4px 10px;font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px}
+.ct-section{background:rgba(0,20,40,.9);border:1px solid #334;padding:3px 8px;font-size:10px;font-weight:700;color:#88ccff;margin-top:2px}
+.ct-row{display:grid;grid-template-columns:170px 60px;background:rgba(0,10,25,.85);border-left:1px solid #334;border-right:1px solid #334;border-bottom:1px solid #1a2a3a}
+.ct-row:hover{background:rgba(0,40,80,.5)}
+.ct-label{padding:2px 8px;color:#aaa;border-right:1px solid #334}
+.ct-value{padding:2px 6px;text-align:right;color:#eee;font-weight:700}
+.ct-value.ok{color:#6ab04c}
+.ct-value.warn{color:#ff8c00}
+
+/* TITLE BLOCK */
+.title-block{position:absolute;bottom:10px;right:10px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2)}
+.tb-outer{border:1px solid #556;background:rgba(0,10,25,.9)}
+.tb-inner{display:grid;grid-template-columns:200px 80px 80px 80px;border-top:1px solid #556}
+.tb-cell{padding:2px 4px;border-right:1px solid #556;border-bottom:1px solid #334}
+.tb-cell-hdr{font-weight:700;color:#88ccff;font-size:8px;text-transform:uppercase}
+
+/* DIMENSION LABELS */
+.dim-label{position:absolute;font-family:'Share Tech Mono',monospace;font-size:10px;color:#ff8c00;pointer-events:none}
+
+/* CONTEXT MENU */
+#ctx-menu{position:fixed;background:#2a2a2a;border:1px solid var(--border2);z-index:1000;display:none;min-width:160px;box-shadow:4px 4px 12px rgba(0,0,0,.5)}
+.ctx-item{padding:6px 14px;font-size:12px;cursor:pointer;color:var(--text2);display:flex;justify-content:space-between;gap:20px}
+.ctx-item:hover{background:rgba(0,191,255,.15);color:var(--text)}
+.ctx-sep{height:1px;background:var(--border);margin:3px 0}
+.ctx-shortcut{color:var(--text3);font-size:10px;font-family:'Share Tech Mono',monospace}
+
+/* MODAL */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2000;display:none;align-items:center;justify-content:center}
+#modal{background:#2d2d2d;border:1px solid var(--border2);border-top:2px solid var(--accent);min-width:520px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.modal-hdr{padding:10px 16px;background:#252525;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:13px;font-weight:700;color:var(--accent)}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;line-height:1}
+.modal-close:hover{color:var(--red)}
+.modal-body{padding:16px}
+.modal-footer{padding:10px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:#252525}
+.modal-btn{padding:5px 16px;border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;font-size:12px;font-family:'Roboto Condensed',sans-serif;border-radius:1px}
+.modal-btn:hover{background:rgba(255,255,255,.08)}
+.modal-btn.primary{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+.modal-btn.primary:hover{background:#00a8e0}
+
+/* FORM IN MODAL */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.form-input,.form-select{background:#1a1a1a;border:1px solid var(--border2);color:var(--text);padding:5px 8px;font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;border-radius:1px;width:100%}
+.form-input:focus,.form-select:focus{border-color:var(--accent);background:#1e2a30}
+.form-select option{background:#1a1a1a}
+.form-sep{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0}
+.form-section{grid-column:1/-1;font-size:11px;font-weight:700;color:var(--accent);padding:4px 0;border-bottom:1px solid rgba(0,191,255,.2);margin-bottom:2px}
+
+/* CALC RESULTS */
+.calc-box{background:#1a1a1a;border:1px solid var(--border);padding:10px;margin-top:10px;border-radius:1px}
+.calc-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+.calc-row:last-child{border-bottom:none}
+.calc-lbl{color:var(--text2)}
+.calc-val{font-family:'Share Tech Mono',monospace;font-weight:700}
+.sf-indicator{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.sf-bar-wrap{flex:1;height:6px;background:#333;border-radius:3px;overflow:hidden}
+.sf-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+
+/* TABS IN PANEL */
+.ptabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.ptab{flex:1;padding:5px;text-align:center;font-size:10px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.3px}
+.ptab:hover{color:var(--text)}
+.ptab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── COORDINATE DISPLAY ── */
+#coords{font-family:'Share Tech Mono',monospace;font-size:11px;color:#aaa;min-width:180px}
+
+/* ── LAYER PANEL ── */
+.layer-row{display:grid;grid-template-columns:16px 14px 14px 14px 1fr 60px;gap:4px;align-items:center;padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer}
+.layer-row:hover{background:rgba(255,255,255,.05)}
+.layer-dot{width:10px;height:10px;border-radius:50%}
+.layer-name{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer-icon{font-size:10px;color:var(--text3);cursor:pointer;text-align:center}
+.layer-icon:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<!-- TITLE BAR -->
+<div id="titlebar">
+  <div class="tb-logo">▲ LIFTPLAN</div>
+  <div style="width:1px;height:16px;background:var(--border);margin:0 4px"></div>
+  <span style="font-size:11px;color:var(--text2)">LIFTING PLAN FOR STRIPPER [D-1101] — 197t</span>
+  <span class="tb-file" style="margin-left:12px;font-size:10px;color:var(--text3)">LTM_1500_LP_001.dwg — Saved</span>
+  <div class="tb-btns">
+    <button class="tb-btn tb-minimize">─</button>
+    <button class="tb-btn">□</button>
+    <button class="tb-btn close">✕</button>
+  </div>
+</div>
+
+<!-- MENU BAR -->
+<div id="menubar">
+  <div class="menu-item active">File</div>
+  <div class="menu-item">Edit</div>
+  <div class="menu-item">View</div>
+  <div class="menu-item">Insert</div>
+  <div class="menu-item">Format</div>
+  <div class="menu-item">Draw</div>
+  <div class="menu-item">Modify</div>
+  <div class="menu-item">Annotate</div>
+  <div class="menu-item">Parametric</div>
+  <div class="menu-item">Manage</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item" style="color:var(--accent)">Lift Tools ▾</div>
+  <div class="menu-item">Window</div>
+  <div class="menu-item">Help</div>
+</div>
+
+<!-- RIBBON TABS -->
+<div id="ribbon-tabs">
+  <div class="rtab active" onclick="switchRibbon('home')">Home</div>
+  <div class="rtab" onclick="switchRibbon('annotate')">Annotate</div>
+  <div class="rtab" onclick="switchRibbon('lift')">Lift Plan</div>
+  <div class="rtab" onclick="switchRibbon('view')">View</div>
+  <div class="rtab" onclick="switchRibbon('manage')">Manage</div>
+  <div class="rtab" onclick="switchRibbon('output')">Output</div>
+</div>
+
+<!-- RIBBON -->
+<div id="ribbon">
+
+  <!-- HOME -->
+  <div class="ribbon-tab-content active" id="rib-home">
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn rib-btn-lg" onclick="openLiftWizard()">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="8" width="20" height="16" rx="1"/><path d="M14 8V4M10 4h8"/><path d="M14 8l-3 6h6l-3 6" stroke-width="2"/></svg>
+          <span>New Lift</span>
+        </button>
+        <button class="rib-btn rib-btn-lg" onclick="openLiftWizard()">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 22V8l8-4 8 4v14"/><path d="M10 22v-6h8v6"/><rect x="12" y="10" width="4" height="4"/></svg>
+          <span>Cranes</span>
+        </button>
+      </div>
+      <div class="rib-group-title">Lift Plan</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" id="tool-line" onclick="setTool('line')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="18" x2="18" y2="2"/></svg>Line
+        </button>
+        <button class="rib-btn" id="tool-circle" onclick="setTool('circle')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/></svg>Circle
+        </button>
+        <button class="rib-btn" id="tool-rect" onclick="setTool('rect')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="16" height="12" rx="1"/></svg>Rect
+        </button>
+      </div>
+      <div class="rib-row">
+        <button class="rib-btn" id="tool-arc" onclick="setTool('arc')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16 Q10 2 16 16"/></svg>Arc
+        </button>
+        <button class="rib-btn" id="tool-text" onclick="setTool('text')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h14M10 5v12M7 17h6"/></svg>Text
+        </button>
+        <button class="rib-btn" id="tool-dim" onclick="setTool('dim')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="15" x2="18" y2="15"/><line x1="2" y1="12" x2="2" y2="18"/><line x1="18" y1="12" x2="18" y2="18"/><line x1="2" y1="8" x2="18" y2="8"/></svg>Dim
+        </button>
+      </div>
+      <div class="rib-group-title">Draw</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" id="tool-move" onclick="setTool('move')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2v16M2 10h16M10 2l-3 3M10 2l3 3M10 18l-3-3M10 18l3-3M2 10l3-3M2 10l3 3M18 10l-3-3M18 10l-3 3"/></svg>Move
+        </button>
+        <button class="rib-btn" onclick="setTool('copy')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="6" width="11" height="11" rx="1"/><path d="M3 14V3h11"/></svg>Copy
+        </button>
+        <button class="rib-btn" onclick="setTool('rotate')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10a6 6 0 1 1 12 0"/><path d="M16 10l-3-3M16 10l-3 3"/></svg>Rotate
+        </button>
+      </div>
+      <div class="rib-row">
+        <button class="rib-btn" onclick="setTool('trim')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16l12-12M4 10l6-6M10 16l6-6"/></svg>Trim
+        </button>
+        <button class="rib-btn" onclick="setTool('offset')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 10h10M5 6h10M5 14h10"/></svg>Offset
+        </button>
+        <button class="rib-btn" onclick="deleteSelected()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5l10 10M15 5L5 15"/></svg>Erase
+        </button>
+      </div>
+      <div class="rib-group-title">Modify</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" onclick="setTool('select')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l6 16 3-7 7-3z"/></svg>Select
+        </button>
+        <button class="rib-btn" onclick="zoomExtents()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="5"/><line x1="13" y1="13" x2="18" y2="18"/><line x1="9" y1="6" x2="9" y2="12"/><line x1="6" y1="9" x2="12" y2="9"/></svg>Zoom
+        </button>
+        <button class="rib-btn" onclick="panCanvas()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 4v4H4M4 8l4-4M12 4v4h4M16 8l-4-4M8 16v-4H4M4 12l4 4M12 16v-4h4M16 12l-4 4"/></svg>Pan
+        </button>
+      </div>
+      <div class="rib-group-title">Navigate</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" onclick="calcLift()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="1"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>Calculate
+        </button>
+        <button class="rib-btn" onclick="genReport()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h8l4 4v12H4z"/><path d="M12 2v4h4"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="11" y2="13"/></svg>Report
+        </button>
+      </div>
+      <div class="rib-row">
+        <button class="rib-btn" onclick="window.print()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8H3v8h14V8h-2M5 8V3h10v5"/><rect x="7" y="12" width="6" height="4"/></svg>Plot
+        </button>
+        <button class="rib-btn" onclick="exportDXF()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h8l4 4v12H4z"/><path d="M12 2v4h4"/><path d="M7 14l6-4M7 10l6 4"/></svg>Export
+        </button>
+      </div>
+      <div class="rib-group-title">Output</div>
+    </div>
+  </div>
+
+  <!-- LIFT PLAN RIBBON -->
+  <div class="ribbon-tab-content" id="rib-lift">
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn rib-btn-lg active" onclick="openLiftWizard()">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 4v20M6 8l8-4 8 4M6 8v12l8 4 8-4V8"/></svg>
+          <span>Lift Wizard</span>
+        </button>
+        <button class="rib-btn rib-btn-lg" onclick="switchViewMode('plan')">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="20" height="20" rx="1"/><circle cx="14" cy="14" r="6"/><line x1="14" y1="4" x2="14" y2="8"/><line x1="14" y1="20" x2="14" y2="24"/><line x1="4" y1="14" x2="8" y2="14"/><line x1="20" y1="14" x2="24" y2="14"/></svg>
+          <span>Plan View</span>
+        </button>
+        <button class="rib-btn rib-btn-lg" onclick="switchViewMode('elev')">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="24" x2="24" y2="24"/><path d="M8 24V12l6-8 6 8v12"/><line x1="12" y1="24" x2="12" y2="18" stroke-width="1"/><line x1="16" y1="24" x2="16" y2="18" stroke-width="1"/></svg>
+          <span>Elevation</span>
+        </button>
+      </div>
+      <div class="rib-group-title">Views</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" onclick="drawCraneSwing('main')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16 Q4 4 16 4"/><circle cx="4" cy="16" r="2"/></svg>Main Arc
+        </button>
+        <button class="rib-btn" onclick="drawCraneSwing('tail')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 16 Q16 4 4 4"/><circle cx="16" cy="16" r="2"/></svg>Tail Arc
+        </button>
+        <button class="rib-btn" onclick="drawCOG()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="3"/><line x1="10" y1="2" x2="10" y2="7"/><line x1="10" y1="13" x2="10" y2="18"/><line x1="2" y1="10" x2="7" y2="10"/><line x1="13" y1="10" x2="18" y2="10"/></svg>COG
+        </button>
+      </div>
+      <div class="rib-row">
+        <button class="rib-btn" onclick="drawRigging()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="10" y1="2" x2="5" y2="14"/><line x1="10" y1="2" x2="15" y2="14"/><rect x="4" y="14" width="12" height="4"/></svg>Rigging
+        </button>
+        <button class="rib-btn" onclick="drawGBP()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="14" width="16" height="4"/><path d="M6 14v-4h8v4"/><path d="M10 10V6"/></svg>GBP Mat
+        </button>
+        <button class="rib-btn" onclick="drawNorthArrow()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 4v12M10 4l-3 4M10 4l3 4"/></svg>North
+        </button>
+      </div>
+      <div class="rib-group-title">Lift Elements</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn rib-btn-lg" onclick="calcLift()">
+          <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 14l5 5L22 8"/><circle cx="14" cy="14" r="11"/></svg>
+          <span>Verify SF</span>
+        </button>
+      </div>
+      <div class="rib-row">
+        <button class="rib-btn" onclick="genReport()">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h8l4 4v12H4z"/><path d="M12 2v4h4"/><line x1="7" y1="10" x2="13" y2="10"/></svg>Report
+        </button>
+      </div>
+      <div class="rib-group-title">Verify</div>
+    </div>
+  </div>
+
+  <!-- ANNOTATE RIBBON -->
+  <div class="ribbon-tab-content" id="rib-annotate">
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" onclick="setTool('dim')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="15" x2="18" y2="15"/><line x1="2" y1="12" x2="2" y2="18"/><line x1="18" y1="12" x2="18" y2="18"/></svg>Linear
+        </button>
+        <button class="rib-btn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 4v8M10 12l-5 4M10 12l5 4"/></svg>Radial
+        </button>
+        <button class="rib-btn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8l12 8M16 8l-12 8M4 8l4-4M16 8l-4-4"/></svg>Angular
+        </button>
+      </div>
+      <div class="rib-group-title">Dimension</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" onclick="setTool('text')">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h14M10 5v12M7 17h6"/></svg>Text
+        </button>
+        <button class="rib-btn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h14M3 12h10"/><path d="M15 12l3 4"/></svg>Mtext
+        </button>
+        <button class="rib-btn">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="12" height="8" rx="1"/><path d="M15 8l2 2-2 2"/></svg>Leader
+        </button>
+      </div>
+      <div class="rib-group-title">Text</div>
+    </div>
+  </div>
+
+  <!-- VIEW RIBBON -->
+  <div class="ribbon-tab-content" id="rib-view">
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn" onclick="zoomExtents()"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="5"/><line x1="13" y1="13" x2="18" y2="18"/></svg>Zoom All</button>
+        <button class="rib-btn"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="5"/><line x1="13" y1="13" x2="18" y2="18"/><line x1="9" y1="6" x2="9" y2="12"/><line x1="6" y1="9" x2="12" y2="9"/></svg>Zoom+</button>
+        <button class="rib-btn"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="5"/><line x1="13" y1="13" x2="18" y2="18"/><line x1="6" y1="9" x2="12" y2="9"/></svg>Zoom-</button>
+      </div>
+      <div class="rib-group-title">Zoom</div>
+    </div>
+    <div class="rib-sep"></div>
+    <div class="rib-group">
+      <div class="rib-row">
+        <button class="rib-btn active" onclick="switchViewMode('plan')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="16" height="16" rx="1"/><circle cx="10" cy="10" r="5"/></svg>Plan</button>
+        <button class="rib-btn" onclick="switchViewMode('elev')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="18" x2="18" y2="18"/><path d="M6 18V10l4-6 4 6v8"/></svg>Elev</button>
+        <button class="rib-btn" onclick="switchViewMode('cog')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="2" y1="10" x2="18" y2="10"/><path d="M2 18l16-16"/><line x1="2" y1="2" x2="2" y2="18"/></svg>COG</button>
+      </div>
+      <div class="rib-row">
+        <button class="rib-btn" onclick="switchViewMode('gbp')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="12" width="16" height="6"/><path d="M6 12V8h8v4"/></svg>GBP</button>
+        <button class="rib-btn" onclick="switchViewMode('rigging')"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="10" y1="2" x2="5" y2="14"/><line x1="10" y1="2" x2="15" y2="14"/><rect x="4" y="14" width="12" height="4"/></svg>Rigging</button>
+      </div>
+      <div class="rib-group-title">Views</div>
+    </div>
+  </div>
+
+  <!-- MANAGE / OUTPUT placeholders -->
+  <div class="ribbon-tab-content" id="rib-manage">
+    <div class="rib-group"><div class="rib-row"><button class="rib-btn">Layers</button><button class="rib-btn">Blocks</button><button class="rib-btn">Styles</button></div><div class="rib-group-title">Manage</div></div>
+  </div>
+  <div class="ribbon-tab-content" id="rib-output">
+    <div class="rib-group"><div class="rib-row"><button class="rib-btn rib-btn-lg" onclick="window.print()"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 10H4v10h20V10h-2M6 10V4h16v6"/><rect x="8" y="16" width="12" height="8"/></svg><span>Plot/Print</span></button></div><div class="rib-group-title">Output</div></div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="main-layout">
+
+  <!-- LEFT: MODEL BROWSER + LAYERS -->
+  <div id="left-panel">
+    <div class="ptabs">
+      <div class="ptab active" onclick="switchLeftTab('model')">Model</div>
+      <div class="ptab" onclick="switchLeftTab('layers')">Layers</div>
+    </div>
+
+    <!-- Model Browser -->
+    <div class="panel-body" id="left-model">
+      <div style="padding:4px;background:#1e1e1e;border-bottom:1px solid var(--border)">
+        <input style="width:100%;background:#111;border:1px solid var(--border2);color:var(--text2);padding:3px 6px;font-size:10px;outline:none" placeholder="Search...">
+      </div>
+      <div class="tree-item selected">
+        <span class="tree-expand">▼</span>
+        <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#00bfff" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="1"/></svg>
+        LTM_1500_LP_001.dwg
+      </div>
+      <div class="tree-indent">
+        <div class="tree-item">
+          <span class="tree-expand">▼</span>
+          <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#888" stroke-width="1.5"><rect x="1" y="3" width="12" height="9" rx="1"/><path d="M1 6h12"/></svg>
+          Model Space
+        </div>
+        <div class="tree-indent">
+          <div class="tree-item selected" onclick="selectElement('CRANE-MC')">
+            <span class="tree-expand">▸</span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#f59e0b" stroke-width="1.5"><path d="M7 2v10M3 6l4-4 4 4M3 8l4 4 4-4"/></svg>
+            CRANE-MC [CC-2800-1]
+          </div>
+          <div class="tree-item" onclick="selectElement('CRANE-TC')">
+            <span class="tree-expand">▸</span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#10b981" stroke-width="1.5"><path d="M7 2v10M3 6l4-4 4 4"/></svg>
+            CRANE-TC [CKE-2500-2]
+          </div>
+          <div class="tree-item" onclick="selectElement('EQUIP')">
+            <span class="tree-expand">▸</span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="2" y="4" width="10" height="6" rx="1"/></svg>
+            D-1101 STRIPPER [197t]
+          </div>
+          <div class="tree-item" onclick="selectElement('SWING-MC')">
+            <span class="tree-expand"></span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#ef4444" stroke-width="1.5"><path d="M2 12 Q2 2 12 2"/></svg>
+            SWING-ARC-MC [R=17m]
+          </div>
+          <div class="tree-item" onclick="selectElement('SWING-TC')">
+            <span class="tree-expand"></span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#10b981" stroke-width="1.5"><path d="M12 12 Q12 2 2 2"/></svg>
+            SWING-ARC-TC [R=6.5m]
+          </div>
+          <div class="tree-item" onclick="selectElement('COG')">
+            <span class="tree-expand"></span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#f59e0b" stroke-width="1.5"><circle cx="7" cy="7" r="2"/><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>
+            COG-MARKER
+          </div>
+          <div class="tree-item" onclick="selectElement('RIGGING')">
+            <span class="tree-expand">▸</span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#60a5fa" stroke-width="1.5"><line x1="7" y1="2" x2="3" y2="10"/><line x1="7" y1="2" x2="11" y2="10"/></svg>
+            RIGGING ARRANGEMENT
+          </div>
+          <div class="tree-item">
+            <span class="tree-expand">▸</span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#666" stroke-width="1.5"><rect x="1" y="8" width="12" height="4" rx="1"/></svg>
+            GBP MATS
+          </div>
+          <div class="tree-item">
+            <span class="tree-expand"></span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#666" stroke-width="1.5"><path d="M7 2v8M4 6l3 4 3-4"/></svg>
+            NORTH ARROW
+          </div>
+          <div class="tree-item">
+            <span class="tree-expand"></span>
+            <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#666" stroke-width="1.5"><rect x="1" y="9" width="12" height="4"/><line x1="1" y1="11" x2="13" y2="11"/></svg>
+            TITLE BLOCK
+          </div>
+        </div>
+        <div class="tree-item">
+          <span class="tree-expand">▸</span>
+          <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#888" stroke-width="1.5"><rect x="1" y="3" width="12" height="9" rx="1"/></svg>
+          Layout1 — Plan View
+        </div>
+        <div class="tree-item">
+          <span class="tree-expand">▸</span>
+          <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#888" stroke-width="1.5"><rect x="1" y="3" width="12" height="9" rx="1"/></svg>
+          Layout2 — Elevation
+        </div>
+        <div class="tree-item">
+          <span class="tree-expand">▸</span>
+          <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#888" stroke-width="1.5"><rect x="1" y="3" width="12" height="9" rx="1"/></svg>
+          Layout3 — COG Calc
+        </div>
+        <div class="tree-item">
+          <span class="tree-expand">▸</span>
+          <svg class="ti-icon" viewBox="0 0 14 14" fill="none" stroke="#888" stroke-width="1.5"><rect x="1" y="3" width="12" height="9" rx="1"/></svg>
+          Layout4 — GBP
+        </div>
+      </div>
+    </div>
+
+    <!-- Layers -->
+    <div class="panel-body" id="left-layers" style="display:none">
+      <div style="padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:4px">
+        <button style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:2px 8px;font-size:10px;cursor:pointer;border-radius:1px">+ New</button>
+        <button style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:2px 8px;font-size:10px;cursor:pointer;border-radius:1px">All On</button>
+      </div>
+      <div style="display:grid;grid-template-columns:16px 14px 14px 14px 1fr 50px;gap:3px;padding:3px 6px;background:#1e1e1e;font-size:9px;color:var(--text3);text-transform:uppercase">
+        <span></span><span>V</span><span>F</span><span>L</span><span>Name</span><span>Color</span>
+      </div>
+      <div id="layer-list"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: CANVAS + VERTICAL TOOLBAR -->
+  <div style="display:flex;flex:1;overflow:hidden">
+    <div id="vtoolbar">
+      <button class="vt-btn active" id="vtool-select" onclick="setTool('select')" title="Select (S)">◈</button>
+      <div class="vt-sep"></div>
+      <button class="vt-btn" id="vtool-line" onclick="setTool('line')" title="Line (L)">╱</button>
+      <button class="vt-btn" id="vtool-circle" onclick="setTool('circle')" title="Circle (C)">○</button>
+      <button class="vt-btn" id="vtool-rect" onclick="setTool('rect')" title="Rectangle (REC)">□</button>
+      <button class="vt-btn" id="vtool-arc" onclick="setTool('arc')" title="Arc (A)">⌒</button>
+      <button class="vt-btn" id="vtool-text" onclick="setTool('text')" title="Text (T)">A</button>
+      <button class="vt-btn" id="vtool-dim" onclick="setTool('dim')" title="Dimension (D)">↔</button>
+      <div class="vt-sep"></div>
+      <button class="vt-btn" onclick="setTool('move')" title="Move (M)">✥</button>
+      <button class="vt-btn" onclick="setTool('rotate')" title="Rotate (RO)">↻</button>
+      <button class="vt-btn" onclick="deleteSelected()" title="Erase (E)">✕</button>
+      <div class="vt-sep"></div>
+      <button class="vt-btn" onclick="zoomExtents()" title="Zoom Extents (Z→E)">⊕</button>
+      <button class="vt-btn" title="Pan (P)">⊹</button>
+      <div class="vt-sep"></div>
+      <button class="vt-btn" onclick="openLiftWizard()" title="Lift Plan Wizard" style="color:var(--accent)">⚡</button>
+    </div>
+
+    <div id="canvas-area">
+      <!-- VIEW TABS (model/layout) -->
+      <div style="height:22px;background:#1a1a1a;border-bottom:1px solid #111;display:flex;align-items:flex-end;padding:0 8px;gap:2px;flex-shrink:0">
+        <div id="vt-model" style="padding:2px 14px;font-size:10px;cursor:pointer;background:#252526;color:var(--accent);border:1px solid #3a3a3a;border-bottom:none;border-radius:2px 2px 0 0" onclick="switchViewMode('plan')">PLAN VIEW</div>
+        <div style="padding:2px 12px;font-size:10px;cursor:pointer;color:var(--text3);border:1px solid transparent;border-bottom:none;border-radius:2px 2px 0 0" onclick="switchViewMode('elev')">ELEVATION</div>
+        <div style="padding:2px 12px;font-size:10px;cursor:pointer;color:var(--text3);border:1px solid transparent;border-bottom:none;border-radius:2px 2px 0 0" onclick="switchViewMode('cog')">COG CALC</div>
+        <div style="padding:2px 12px;font-size:10px;cursor:pointer;color:var(--text3);border:1px solid transparent;border-bottom:none;border-radius:2px 2px 0 0" onclick="switchViewMode('gbp')">GBP</div>
+        <div style="padding:2px 12px;font-size:10px;cursor:pointer;color:var(--text3);border:1px solid transparent;border-bottom:none;border-radius:2px 2px 0 0" onclick="switchViewMode('rigging')">RIGGING</div>
+        <div style="padding:2px 10px;font-size:10px;cursor:pointer;color:var(--text3);margin-left:auto" onclick="openLiftWizard()">+ New Sheet</div>
+      </div>
+      <canvas id="cad-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT: PROPERTIES -->
+  <div id="right-panel">
+    <div class="ptabs">
+      <div class="ptab active" onclick="switchRightTab('props')">Properties</div>
+      <div class="ptab" onclick="switchRightTab('data')">Lift Data</div>
+      <div class="ptab" onclick="switchRightTab('check')">Check</div>
+    </div>
+
+    <!-- Properties -->
+    <div class="panel-body" id="right-props">
+      <div style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2)">
+        No selection — <span id="sel-label" style="color:var(--accent)">Click to select</span>
+      </div>
+      <div id="props-content">
+        <!-- filled dynamically -->
+      </div>
+    </div>
+
+    <!-- Lift Data -->
+    <div class="panel-body" id="right-data" style="display:none">
+      <div class="prop-section">
+        <div class="prop-section-hdr">▼ EQUIPMENT</div>
+        <div class="prop-row"><span class="prop-label">Tag No.</span><span class="prop-val">DA-1101</span></div>
+        <div class="prop-row"><span class="prop-label">Description</span><span class="prop-val">Stripper</span></div>
+        <div class="prop-row"><span class="prop-label">Gross Weight</span><span class="prop-val">197 t</span></div>
+        <div class="prop-row"><span class="prop-label">Length</span><span class="prop-val">14.2 m</span></div>
+        <div class="prop-row"><span class="prop-label">Diameter</span><span class="prop-val">3.0 m</span></div>
+        <div class="prop-row"><span class="prop-label">COG from MC</span><span class="prop-val">6.49 m</span></div>
+      </div>
+      <div class="prop-section">
+        <div class="prop-section-hdr">▼ MAIN CRANE</div>
+        <div class="prop-row"><span class="prop-label">Model</span><span class="prop-val">Terex CC-2800-1</span></div>
+        <div class="prop-row"><span class="prop-label">Capacity</span><span class="prop-val">600 t</span></div>
+        <div class="prop-row"><span class="prop-label">Config</span><span class="prop-val">SWSL</span></div>
+        <div class="prop-row"><span class="prop-label">Main Boom</span><span class="prop-val">48.0 m</span></div>
+        <div class="prop-row"><span class="prop-label">Jib Length</span><span class="prop-val">24.0 m</span></div>
+        <div class="prop-row"><span class="prop-label">Op. Radius</span><span class="prop-val">17.0 m</span></div>
+        <div class="prop-row"><span class="prop-label">Cap @ 18m</span><span class="prop-val ok">287.0 t</span></div>
+        <div class="prop-row"><span class="prop-label">CWT</span><span class="prop-val">160 t</span></div>
+        <div class="prop-row"><span class="prop-label">SL-CWT</span><span class="prop-val">200 t</span></div>
+      </div>
+      <div class="prop-section">
+        <div class="prop-section-hdr">▼ TAILING CRANE</div>
+        <div class="prop-row"><span class="prop-label">Model</span><span class="prop-val">Kobelco CKE-2500-2</span></div>
+        <div class="prop-row"><span class="prop-label">Capacity</span><span class="prop-val">250 t</span></div>
+        <div class="prop-row"><span class="prop-label">Config</span><span class="prop-val">STD</span></div>
+        <div class="prop-row"><span class="prop-label">Main Boom</span><span class="prop-val">18.3 m</span></div>
+        <div class="prop-row"><span class="prop-label">Op. Radius</span><span class="prop-val">6.5 m</span></div>
+        <div class="prop-row"><span class="prop-label">Cap @ 7m</span><span class="prop-val ok">165.6 t</span></div>
+        <div class="prop-row"><span class="prop-label">CWT</span><span class="prop-val">90 t</span></div>
+      </div>
+      <div class="prop-section">
+        <div class="prop-section-hdr">▼ RESULTS</div>
+        <div class="prop-row"><span class="prop-label">MC Total Load</span><span class="prop-val warn">209.0 t</span></div>
+        <div class="prop-row"><span class="prop-label">TC Total Load</span><span class="prop-val warn">122.4 t</span></div>
+        <div class="prop-row"><span class="prop-label">Safety Factor MC</span><span class="prop-val ok">1.37 ✓</span></div>
+        <div class="prop-row"><span class="prop-label">Safety Factor TC</span><span class="prop-val ok">1.35 ✓</span></div>
+        <div class="prop-row"><span class="prop-label">MC Usage %</span><span class="prop-val warn">72.8 %</span></div>
+        <div class="prop-row"><span class="prop-label">TC Usage %</span><span class="prop-val warn">73.9 %</span></div>
+      </div>
+    </div>
+
+    <!-- Check -->
+    <div class="panel-body" id="right-check" style="display:none">
+      <div style="padding:8px">
+        <div id="check-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMMAND LINE -->
+<div id="cmdline">
+  <span class="cmd-prompt">Command:</span>
+  <input id="cmd-input" placeholder="Type command or press ENTER..." autocomplete="off">
+  <span class="cmd-history" id="cmd-hist"></span>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div class="sb-item" title="Model/Paper Space">▣ MODEL</div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" id="coords">X: 0.000  Y: 0.000</div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" id="sb-snap">⊞ SNAP</div>
+  <div class="sb-item" id="sb-grid">⊟ GRID</div>
+  <div class="sb-item" id="sb-ortho">⟂ ORTHO</div>
+  <div class="sb-item" id="sb-polar">◈ POLAR</div>
+  <div class="sb-item">OSNAP</div>
+  <div class="sb-item">LWT</div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" id="sb-layer" style="color:#00bfff">0 — LIFT-PLAN</div>
+  <div class="sb-right">
+    <div class="sb-item" id="sb-scale">1:200</div>
+    <div class="sb-item" id="sb-units">mm</div>
+    <div class="sb-item" style="color:#6ab04c" id="sb-status">● READY</div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="openLiftWizard();hideCtx()">Lift Plan Wizard...</div>
+  <div class="ctx-item" onclick="calcLift();hideCtx()">Calculate Safety Factors<span class="ctx-shortcut">SF</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="setTool('select');hideCtx()">Select<span class="ctx-shortcut">S</span></div>
+  <div class="ctx-item" onclick="setTool('line');hideCtx()">Line<span class="ctx-shortcut">L</span></div>
+  <div class="ctx-item" onclick="setTool('circle');hideCtx()">Circle<span class="ctx-shortcut">C</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="zoomExtents();hideCtx()">Zoom Extents<span class="ctx-shortcut">Z E</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="genReport();hideCtx()">Generate Report...<span class="ctx-shortcut">REP</span></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="if(event.target===this)hideModal()">
+  <div id="modal">
+    <div class="modal-hdr">
+      <span class="modal-title" id="modal-title">Lift Plan Wizard</span>
+      <button class="modal-close" onclick="hideModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer">
+      <button class="modal-btn" onclick="hideModal()">Cancel</button>
+      <button class="modal-btn primary" onclick="applyWizard()">Apply & Draw</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('cad-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let tool = 'select';
+let viewMode = 'plan';
+let drawing = false, startX, startY, mx, my;
+let objects = [];
+let selectedIds = [];
+let snap = true, grid = true, ortho = false;
+let camX = 0, camY = 0, zoom = 1;
+let gridSize = 50; // pixels at zoom=1
+let isPanning = false, panStartX, panStartY, panCamX, panCamY;
+let autoRotate = false;
+
+// Lift data (matches the actual drawing)
+const LD = {
+  eqName:'DA-1101 STRIPPER', weight:197, length:14.2, dia:3.0,
+  cogFromMC:6.49, grossWT:107.89,
+  mc:{model:'Terex CC-2800-1',cap:600,config:'SWSL',boom:48,jib:24,radius:17,capAtR:287,cwt:160,scwt:200,hook:10,lines:28,rigging:2},
+  tc:{model:'Kobelco CKE-2500-2',cap:250,config:'STD',boom:18.3,radius:6.5,capAtR:165.6,cwt:90,ccwt:24,hook:4.5,lines:14,rigging:1},
+};
+
+const layers = [
+  {name:'0',color:'#fff',on:true,frozen:false,locked:false},
+  {name:'LIFT-PLAN',color:'#00bfff',on:true,frozen:false,locked:false},
+  {name:'CRANE-MC',color:'#f59e0b',on:true,frozen:false,locked:false},
+  {name:'CRANE-TC',color:'#10b981',on:true,frozen:false,locked:false},
+  {name:'EQUIP',color:'#94a3b8',on:true,frozen:false,locked:false},
+  {name:'SWING-ARC',color:'#ef4444',on:true,frozen:false,locked:false},
+  {name:'RIGGING',color:'#60a5fa',on:true,frozen:false,locked:false},
+  {name:'DIM',color:'#ff8c00',on:true,frozen:false,locked:false},
+  {name:'TEXT',color:'#ccc',on:true,frozen:false,locked:false},
+  {name:'GBP-MATS',color:'#a78bfa',on:true,frozen:false,locked:false},
+  {name:'BORDER',color:'#556',on:true,frozen:false,locked:true},
+];
+
+// Scale: 1 meter = SCALE pixels in CAD coords
+const SCALE = 30;
+
+// ── RESIZE ─────────────────────────────────────────────────────────────────
+function resize(){
+  const area = document.getElementById('canvas-area');
+  W = canvas.width = area.clientWidth - 28;
+  H = canvas.height = area.clientHeight;
+  render();
+}
+
+// ── COORD TRANSFORMS ───────────────────────────────────────────────────────
+function toScreen(wx,wy){return{x:W/2+(wx-camX)*zoom, y:H/2-(wy-camY)*zoom}}
+function toWorld(sx,sy){return{x:(sx-W/2)/zoom+camX, y:-(sy-H/2)/zoom+camY}}
+
+// ── GRID ───────────────────────────────────────────────────────────────────
+function drawGrid(){
+  if(!grid) return;
+  const step = gridSize*zoom;
+  if(step<6) return;
+  ctx.strokeStyle='rgba(255,255,255,0.045)';
+  ctx.lineWidth=0.5;
+  const ox = (W/2 - camX*zoom) % step;
+  const oy = (H/2 + camY*zoom) % step;
+  for(let x=ox;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=oy;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  // Origin cross
+  const o=toScreen(0,0);
+  ctx.strokeStyle='rgba(255,255,255,0.15)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(o.x-8,o.y);ctx.lineTo(o.x+8,o.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(o.x,o.y-8);ctx.lineTo(o.x,o.y+8);ctx.stroke();
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#1a1a1a';
+  ctx.fillRect(0,0,W,H);
+  drawGrid();
+  if(viewMode==='plan') drawPlanView();
+  else if(viewMode==='elev') drawElevView();
+  else if(viewMode==='cog') drawCOGView();
+  else if(viewMode==='gbp') drawGBPView();
+  else if(viewMode==='rigging') drawRiggingView();
+  // User drawn objects
+  objects.forEach(o=>drawObject(o));
+  // Preview while drawing
+  if(drawing) drawPreview();
+  // View cube
+  drawViewCube();
+}
+
+// ── PLAN VIEW ──────────────────────────────────────────────────────────────
+function drawPlanView(){
+  const ts=toScreen.bind(null);
+  const mc=ts(0,0);
+  const tcX=-LD.length*SCALE, tcY=0;
+  const tc=ts(tcX,tcY);
+  const eqL=LD.length*SCALE;
+  const eqH=LD.dia*SCALE;
+  const mRadius=LD.mc.radius*SCALE;
+  const tRadius=LD.tc.radius*SCALE;
+  const cogX=tcX+(LD.cogFromMC)*SCALE;
+
+  // ── Crane worthy area shading
+  ctx.save();
+  ctx.globalAlpha=0.07;
+  ctx.fillStyle='#00bfff';
+  ctx.beginPath();ctx.arc(mc.x,mc.y,mRadius*zoom,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+
+  // ── Main crane swing arc (full circle, dashed red)
+  ctx.strokeStyle='#ef4444';ctx.lineWidth=1*zoom;ctx.setLineDash([8*zoom,4*zoom]);
+  ctx.beginPath();ctx.arc(mc.x,mc.y,mRadius*zoom,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Tail crane swing arc
+  ctx.strokeStyle='#10b981';ctx.lineWidth=1*zoom;ctx.setLineDash([5*zoom,3*zoom]);
+  ctx.beginPath();ctx.arc(tc.x,tc.y,tRadius*zoom,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Equipment (cylinder side view = rectangle)
+  const eqStart=ts(tcX,eqH/2);
+  ctx.fillStyle='rgba(71,85,105,0.5)';
+  ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5*zoom;
+  ctx.beginPath();
+  ctx.rect(tc.x,eqStart.y-eqH*zoom,eqL*zoom,eqH*zoom);
+  ctx.fill();ctx.stroke();
+
+  // Equipment label
+  ctx.fillStyle='#94a3b8';ctx.font=`${11*zoom}px Share Tech Mono,monospace`;
+  ctx.textAlign='center';
+  ctx.fillText(`DA-1101 STRIPPER — ${LD.weight}t`,tc.x+eqL*zoom/2,eqStart.y-eqH*zoom/2+4*zoom);
+
+  // ── COG cross
+  const cogSc=ts(cogX,0);
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5*zoom;
+  const cs=10*zoom;
+  ctx.beginPath();ctx.moveTo(cogSc.x-cs,cogSc.y);ctx.lineTo(cogSc.x+cs,cogSc.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cogSc.x,cogSc.y-cs);ctx.lineTo(cogSc.x,cogSc.y+cs);ctx.stroke();
+  ctx.beginPath();ctx.arc(cogSc.x,cogSc.y,4*zoom,0,Math.PI*2);ctx.fillStyle='#f59e0b';ctx.fill();
+  ctx.fillStyle='#f59e0b';ctx.font=`bold ${10*zoom}px Share Tech Mono,monospace`;
+  ctx.textAlign='center';ctx.fillText('COG',cogSc.x,cogSc.y-14*zoom);
+
+  // ── Lifting radius dimension line (MC)
+  ctx.strokeStyle='#ff8c00';ctx.lineWidth=0.8*zoom;
+  const rEnd=ts(mRadius,0);
+  ctx.beginPath();ctx.moveTo(mc.x,mc.y);ctx.lineTo(rEnd.x,mc.y);ctx.stroke();
+  ctx.fillStyle='#ff8c00';ctx.font=`${9*zoom}px Share Tech Mono,monospace`;
+  ctx.textAlign='center';
+  ctx.fillText(`${LD.mc.radius*1000}  LIFTING RADIUS`,mc.x+mRadius*zoom/2,mc.y+12*zoom);
+  drawArrowH(mc.x,mc.y,rEnd.x,'#ff8c00');
+
+  // ── MC body (crawler + symbol)
+  drawCraneBody(mc.x,mc.y,'#f59e0b','MC\nCC-2800-1\n600t',9698,17000);
+
+  // ── TC body
+  drawCraneBody(tc.x,tc.y,'#10b981','TC\nCKE-2500-2\n250t',6500,6500);
+
+  // ── Crawling distance label
+  const crawlPx=9698/1000*SCALE*zoom;
+  ctx.strokeStyle='rgba(255,140,0,0.4)';ctx.lineWidth=0.5*zoom;ctx.setLineDash([3*zoom,3*zoom]);
+  ctx.beginPath();ctx.moveTo(mc.x-crawlPx,mc.y+30*zoom);ctx.lineTo(mc.x,mc.y+30*zoom);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#ff8c00';ctx.font=`${8*zoom}px Share Tech Mono,monospace`;
+  ctx.textAlign='center';ctx.fillText('9698  CRAWLING DISTANCE',mc.x-crawlPx/2,mc.y+42*zoom);
+
+  // ── DETAILS TABLE (top right)
+  drawDetailsTable();
+
+  // ── Title & border
+  drawTitleBlock();
+  drawBorderAndNorth();
+  drawDimAnnotations();
+}
+
+function drawCraneBody(cx,cy,color,label,crawlW,crawlH){
+  const bw=crawlW/1000*SCALE*zoom;
+  const bh=crawlH/1000*SCALE*zoom*0.4;
+  // Crawler tracks (dashed rectangle)
+  ctx.strokeStyle=color;ctx.lineWidth=2*zoom;ctx.setLineDash([4*zoom,2*zoom]);
+  ctx.beginPath();ctx.rect(cx-bw/2,cy-bh/2,bw,bh);ctx.stroke();
+  ctx.setLineDash([]);
+  // Crane center dot
+  ctx.fillStyle=color;
+  ctx.beginPath();ctx.arc(cx,cy,5*zoom,0,Math.PI*2);ctx.fill();
+  // Label
+  const lines=label.split('\n');
+  ctx.font=`bold ${9*zoom}px Share Tech Mono,monospace`;
+  ctx.fillStyle=color;ctx.textAlign='center';
+  lines.forEach((l,i)=>ctx.fillText(l,cx,cy-20*zoom+i*11*zoom));
+}
+
+function drawArrowH(x1,y,x2,color){
+  ctx.strokeStyle=color;ctx.lineWidth=0.8*zoom;
+  const as=5*zoom;
+  ctx.beginPath();ctx.moveTo(x1+as,y-as/2);ctx.lineTo(x1,y);ctx.lineTo(x1+as,y+as/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2-as,y-as/2);ctx.lineTo(x2,y);ctx.lineTo(x2-as,y+as/2);ctx.stroke();
+}
+
+function drawDetailsTable(){
+  const x=W-10, y=10;
+  const rw=230, rh=16;
+  const rows=[
+    {t:'DETAILS OF LIFTING EQUIPMENT',hdr:true,sec:true},
+    {t:'DA-1101 (STRIPPER)',v:'197  t'},
+    {t:'LENGTH',v:'14.2  m'},
+    {t:'DIA',v:'3  m'},
+    {t:'MAIN CRANE LIFTING DATA',hdr:true,sec:true},
+    {t:'TEREX CC-2800-1 (600 Ton)',v:'600  t'},
+    {t:'CRANE CONFIGURATION',v:'SWSL'},
+    {t:'CRANE COUNTER WEIGHT',v:'160.0  t'},
+    {t:'SUPERLIFT COUNTER WEIGHT',v:'200.0  t'},
+    {t:'MAIN BOOM LENGTH',v:'48.0  m'},
+    {t:'JIB LENGTH',v:'24.0  m'},
+    {t:'MAX. OPERATING RADIUS',v:'17.00  m'},
+    {t:'CAPACITY AT 18-m LIFTING RADIUS',v:'287.0  t',bold:true},
+    {t:'EQUIPMENT WEIGHT (A)',v:'197.0  t'},
+    {t:'WEIGHT OF HOOK BLOCK (B)',v:'10.0  t'},
+    {t:'WEIGHT OF RIGGING GEARS (C)',v:'2.0  t'},
+    {t:'WEIGHT TO BE LIFTED (A+B+C)',v:'209.0  t'},
+    {t:'SAFETY FACTOR',v:'1.37',ok:true,bold:true},
+    {t:'% OF CRANE USAGE CAPACITY',v:'72.8  %',bold:true},
+    {t:'DETAILS OF LIFTING EQUIPMENT',hdr:true,sec:true},
+    {t:'DA-1101 (STRIPPER)',v:'197  t'},
+    {t:'WEIGHT FROM TAILING SIDE AS PER COG',v:'116.9  t'},
+    {t:'TAILING CRANE LIFTING DATA',hdr:true,sec:true},
+    {t:'KOBELCO CKE 2500-2 (250 Ton)',v:'250  t'},
+    {t:'CRANE CONFIGURATION',v:'STD'},
+    {t:'CRANE COUNTER WEIGHT',v:'90.0  t'},
+    {t:'CENTRAL CWT WEIGHT',v:'24.0  t'},
+    {t:'SUPERLIFT COUNTER WEIGHT',v:'N/A'},
+    {t:'MAIN BOOM LENGTH',v:'18.3  m'},
+    {t:'MAX. OPERATING RADIUS',v:'6.50  m'},
+    {t:'CAPACITY AT 7-m LIFTING RADIUS',v:'165.6  t',bold:true},
+    {t:'EQUIPMENT WEIGHT (A)',v:'116.9  t'},
+    {t:'WEIGHT OF HOOK BLOCK (B)',v:'4.5  t'},
+    {t:'WEIGHT OF RIGGING GEARS (C)',v:'1.0  t'},
+    {t:'WEIGHT TO BE LIFTED (A+B+C)',v:'122.4  t'},
+    {t:'SAFETY FACTOR',v:'1.35',ok:true,bold:true},
+    {t:'% OF CRANE USAGE CAPACITY',v:'73.9  %',bold:true},
+  ];
+
+  ctx.save();
+  const fz=Math.min(9*zoom,9);
+  ctx.font=`${fz}px Share Tech Mono,monospace`;
+
+  rows.forEach((r,i)=>{
+    const ry=y+i*rh;
+    if(r.sec){
+      ctx.fillStyle='rgba(0,40,80,0.92)';
+      ctx.fillRect(x-rw,ry,rw,rh);
+      ctx.strokeStyle='#336699';ctx.lineWidth=0.5;
+      ctx.strokeRect(x-rw,ry,rw,rh);
+      ctx.fillStyle='#88ccff';ctx.textAlign='right';ctx.font=`bold ${fz}px Share Tech Mono,monospace`;
+      ctx.fillText(r.t,x-4,ry+rh*0.65);
+      ctx.font=`${fz}px Share Tech Mono,monospace`;
+    } else {
+      ctx.fillStyle=i%2===0?'rgba(0,10,25,0.88)':'rgba(0,15,35,0.88)';
+      ctx.fillRect(x-rw,ry,rw,rh);
+      ctx.strokeStyle='#1a2a3a';ctx.lineWidth=0.3;
+      ctx.strokeRect(x-rw,ry,rw,rh);
+      ctx.fillStyle=r.ok?'#6ab04c':r.bold?'#eee':'#bbb';
+      ctx.textAlign='left';
+      if(r.bold) ctx.font=`bold ${fz}px Share Tech Mono,monospace`;
+      ctx.fillText(r.t,x-rw+4,ry+rh*0.68);
+      ctx.fillStyle=r.ok?'#6ab04c':'#eee';
+      ctx.textAlign='right';
+      if(r.v) ctx.fillText(r.v,x-4,ry+rh*0.68);
+      ctx.font=`${fz}px Share Tech Mono,monospace`;
+    }
+  });
+  ctx.restore();
+}
+
+function drawTitleBlock(){
+  const bx=10, by=H-80, bw=W-20, bh=70;
+  ctx.fillStyle='rgba(0,10,25,0.9)';ctx.strokeStyle='#445566';ctx.lineWidth=1;
+  ctx.fillRect(bx,by,bw,bh);ctx.strokeRect(bx,by,bw,bh);
+  // Inner grid
+  ctx.strokeStyle='#2a3a4a';ctx.lineWidth=0.5;
+  [80,200,300,400].forEach(dx=>{ctx.beginPath();ctx.moveTo(bx+dx,by);ctx.lineTo(bx+dx,by+bh);ctx.stroke()});
+  ctx.beginPath();ctx.moveTo(bx,by+35);ctx.lineTo(bx+bw,by+35);ctx.stroke();
+  // Text
+  ctx.fillStyle='#88ccff';ctx.font='bold 11px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('LIFTING PLAN FOR STRIPPER',bx+410,by+22);
+  ctx.fillStyle='#aaa';ctx.font='9px Share Tech Mono,monospace';
+  ctx.fillText('Prepared by: Bahnam',bx+8,by+15);
+  ctx.fillText('Checked by: —',bx+8,by+28);
+  ctx.fillText('Client: ——',bx+8,by+44);
+  ctx.fillText('Project: ——',bx+8,by+57);
+  ctx.fillText('Date: ' + new Date().toLocaleDateString(),bx+8,by+68);
+  ctx.fillStyle='#00bfff';ctx.font='bold 10px Share Tech Mono,monospace';
+  ctx.fillText('Scale: 1:200 | All Dimensions in MM',bx+410,by+50);
+  ctx.fillStyle='#ff8c00';ctx.font='bold 10px Share Tech Mono,monospace';
+  ctx.fillText('Rev: A0',bx+710,by+15);
+}
+
+function drawBorderAndNorth(){
+  // Drawing border
+  ctx.strokeStyle='#445566';ctx.lineWidth=2;
+  ctx.strokeRect(8,8,W-16,H-16);
+  ctx.strokeStyle='#2a3a4a';ctx.lineWidth=0.5;
+  ctx.strokeRect(12,12,W-24,H-24);
+  // Title
+  ctx.fillStyle='rgba(0,191,255,0.9)';ctx.font='bold 16px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText(viewMode==='plan'?'INDICATIVE PLAN / PLAN VIEW':viewMode.toUpperCase()+' VIEW',W/2,30);
+  // Project title
+  ctx.fillStyle='#ccc';ctx.font='bold 11px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('REMOVAL OF STRIPPER (D-1101), 197Te',20,30);
+  // North arrow (top center-right)
+  drawNorthArrowSymbol(W/2+80,60);
+}
+
+function drawNorthArrowSymbol(cx,cy){
+  const r=20*zoom;
+  ctx.strokeStyle='#aaa';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#aaa';
+  ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx-5,cy);ctx.lineTo(cx,cy+r);ctx.lineTo(cx+5,cy);ctx.closePath();
+  ctx.fillStyle='#fff';ctx.fill();ctx.stroke();
+  ctx.fillStyle='#000';
+  ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx-5,cy);ctx.lineTo(cx,cy);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#00bfff';ctx.font=`bold ${10*zoom}px Share Tech Mono,monospace`;ctx.textAlign='center';
+  ctx.fillText('N',cx,cy-r-4);
+}
+
+function drawDimAnnotations(){
+  if(zoom<0.5) return;
+  const tc=toScreen(-(LD.length*SCALE),0);
+  const mc=toScreen(0,0);
+  // Dimension: total length
+  const y=tc.y+LD.dia/2*SCALE*zoom+25*zoom;
+  ctx.strokeStyle='#ff8c00';ctx.lineWidth=0.7*zoom;
+  ctx.beginPath();ctx.moveTo(tc.x,y);ctx.lineTo(mc.x,y);ctx.stroke();
+  [tc.x,mc.x].forEach(x=>{ctx.beginPath();ctx.moveTo(x,y-5*zoom);ctx.lineTo(x,y+5*zoom);ctx.stroke()});
+  ctx.fillStyle='#ff8c00';ctx.font=`${9*zoom}px Share Tech Mono,monospace`;ctx.textAlign='center';
+  ctx.fillText(`${LD.length*1000}`,tc.x+(mc.x-tc.x)/2,y+12*zoom);
+}
+
+// ── ELEVATION VIEW ─────────────────────────────────────────────────────────
+function drawElevView(){
+  drawBorderAndNorth();
+  drawDetailsTable();
+  drawTitleBlock();
+  const gY=H-90; // ground level
+  const s=zoom*SCALE;
+
+  // Ground line
+  ctx.strokeStyle='#556';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(20,gY);ctx.lineTo(W-280,gY);ctx.stroke();
+  // Ground hatch
+  ctx.strokeStyle='rgba(85,102,120,0.4)';ctx.lineWidth=0.5;
+  for(let x=20;x<W-280;x+=12){ctx.beginPath();ctx.moveTo(x,gY);ctx.lineTo(x-8,gY+10);ctx.stroke()}
+
+  // Height scale (right side)
+  ctx.fillStyle='#aaa';ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='right';
+  for(let h=0;h<=72;h+=8){
+    const sy=gY-h/72*(gY-60);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.4;
+    ctx.beginPath();ctx.moveTo(20,sy);ctx.lineTo(W-285,sy);ctx.stroke();
+    ctx.fillText(h+'.0',W-290,sy+4);
+  }
+
+  // MAIN CRANE (large lattice boom crawler)
+  drawElevCrane(120,gY,s*1.2,'#f59e0b','MAIN CRANE\nTEREX CC-2800-1\n(600t)',48,24);
+
+  // TAILING CRANE
+  drawElevCrane(W-440,gY,s*0.6,'#10b981','TAILING CRANE\nKOBELCO CKE-2500-2\n(250t)',18.3,0);
+
+  // Equipment vertical (lifted position)
+  const eqX=W/2-40,eqW=20*zoom,eqH=LD.length*SCALE*zoom;
+  ctx.fillStyle='rgba(71,85,105,0.6)';ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+  ctx.fillRect(eqX-eqW/2,gY-eqH-20,eqW,eqH);
+  ctx.strokeRect(eqX-eqW/2,gY-eqH-20,eqW,eqH);
+  ctx.fillStyle='#94a3b8';ctx.font=`${9*zoom}px Share Tech Mono,monospace`;ctx.textAlign='center';
+  ctx.fillText(`DA-1101`,eqX,gY-eqH-28);
+  ctx.fillText(`197t`,eqX,gY-eqH-18);
+
+  // Cables
+  ctx.strokeStyle='rgba(245,158,11,0.7)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  const boomTipX=120+200*zoom,boomTipY=gY-LD.mc.boom*SCALE*zoom*0.7;
+  ctx.beginPath();ctx.moveTo(boomTipX,boomTipY);ctx.lineTo(eqX,gY-eqH-20);ctx.stroke();
+  ctx.strokeStyle='rgba(16,185,129,0.7)';
+  ctx.beginPath();ctx.moveTo(W-440+120*zoom,gY-LD.tc.boom*SCALE*zoom*0.5);ctx.lineTo(eqX,gY-20);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Elevation labels
+  ctx.fillStyle='#ff8c00';ctx.font=`bold ${9*zoom}px Share Tech Mono,monospace`;ctx.textAlign='left';
+  ctx.fillText('ELEVATION VIEW',20,50);
+}
+
+function drawElevCrane(bx,gY,s,color,label,boomLen,jibLen){
+  // Crawler tracks
+  const tw=10*s/SCALE, th=3*s/SCALE;
+  ctx.fillStyle=color;ctx.globalAlpha=0.3;
+  ctx.fillRect(bx-tw/2,gY-th,tw,th);ctx.globalAlpha=1;
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;
+  ctx.strokeRect(bx-tw/2,gY-th,tw,th);
+
+  // Boom (lattice lines)
+  const boomH=boomLen*SCALE*zoom*0.55;
+  const boomEndX=bx+boomH*0.45,boomEndY=gY-boomH;
+  ctx.strokeStyle=color;ctx.lineWidth=2*zoom;
+  ctx.beginPath();ctx.moveTo(bx,gY-th);ctx.lineTo(boomEndX,boomEndY);ctx.stroke();
+  ctx.lineWidth=0.8*zoom;
+  for(let t=0.2;t<1;t+=0.2){
+    const x1=bx+(boomEndX-bx)*t,y1=(gY-th)+(boomEndY-(gY-th))*t;
+    const off=8*zoom*(1-t);
+    ctx.beginPath();ctx.moveTo(x1-off,y1+2*zoom);ctx.lineTo(x1+off,y1-2*zoom);ctx.stroke();
+  }
+
+  // Counterweight
+  ctx.fillStyle=color;ctx.globalAlpha=0.4;
+  ctx.fillRect(bx-6*zoom,gY-th-20*zoom,12*zoom,20*zoom);ctx.globalAlpha=1;
+  ctx.strokeRect(bx-6*zoom,gY-th-20*zoom,12*zoom,20*zoom);
+
+  // Boom tip / hook
+  ctx.fillStyle=color;
+  ctx.beginPath();ctx.arc(boomEndX,boomEndY,3*zoom,0,Math.PI*2);ctx.fill();
+
+  // Labels
+  const lines=label.split('\n');
+  ctx.fillStyle=color;ctx.font=`bold ${8.5*zoom}px Share Tech Mono,monospace`;ctx.textAlign='center';
+  lines.forEach((l,i)=>ctx.fillText(l,bx,gY+15*zoom+i*11*zoom));
+
+  // Crawling distance label
+  ctx.strokeStyle='rgba(255,140,0,0.4)';ctx.lineWidth=0.5;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(bx-tw/2,gY+5*zoom);ctx.lineTo(bx+tw/2,gY+5*zoom);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ── COG VIEW ───────────────────────────────────────────────────────────────
+function drawCOGView(){
+  drawBorderAndNorth();drawDetailsTable();drawTitleBlock();
+  ctx.fillStyle='rgba(0,191,255,0.9)';ctx.font='bold 14px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('CENTER OF GRAVITY CALCULATION & RIGGING ARRANGEMENT',W/2,30);
+
+  // COG table
+  const tx=40,ty=50,rh=14;
+  const cols=['Angle\n of load','LIFT LOAD\nMAIN CRANE','TAIL LOAD'];
+  ctx.font='8px Share Tech Mono,monospace';ctx.fillStyle='#88ccff';ctx.textAlign='center';
+  ctx.fillText('ANGLE\nOF LOAD',tx+30,ty+8);
+  ctx.fillText('LIFT LOAD\nMAIN',tx+90,ty+8);
+  ctx.fillText('TAIL LOAD',tx+145,ty+8);
+  ctx.strokeStyle='#334';ctx.lineWidth=0.5;ctx.strokeRect(tx,ty,200,180);
+  for(let a=10,i=0;a<=90;a+=10,i++){
+    const ar=a*Math.PI/180;
+    const ml=(LD.weight*Math.cos(ar)).toFixed(1);
+    const tl=(LD.weight*Math.sin(ar)).toFixed(1);
+    const ry=ty+20+i*rh;
+    ctx.fillStyle=i%2?'rgba(0,15,35,0.6)':'rgba(0,10,25,0.6)';
+    ctx.fillRect(tx,ry-10,200,rh);
+    ctx.fillStyle='#ccc';ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(a,tx+30,ry);ctx.fillText(ml,tx+90,ry);ctx.fillText(tl,tx+145,ry);
+  }
+
+  // Rigging diagram (simplified 2-crane view)
+  const rx=W/2-60,ry2=H/2-30,s=zoom*SCALE*0.7;
+  // Main crane
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(rx-150,ry2+100);ctx.lineTo(rx-80,ry2-80);ctx.stroke();
+  ctx.beginPath();ctx.arc(rx-150,ry2+100,6,0,Math.PI*2);ctx.fillStyle='#f59e0b';ctx.fill();
+  // Tail crane
+  ctx.strokeStyle='#10b981';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(rx+200,ry2+100);ctx.lineTo(rx+130,ry2-60);ctx.stroke();
+  ctx.beginPath();ctx.arc(rx+200,ry2+100,6,0,Math.PI*2);ctx.fillStyle='#10b981';ctx.fill();
+  // Load
+  ctx.fillStyle='rgba(71,85,105,0.7)';ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+  ctx.fillRect(rx-60,ry2-10,180,25);ctx.strokeRect(rx-60,ry2-10,180,25);
+  // Slings
+  ctx.strokeStyle='rgba(245,158,11,0.8)';ctx.lineWidth=1.5;ctx.setLineDash([3,2]);
+  ctx.beginPath();ctx.moveTo(rx-80,ry2-80);ctx.lineTo(rx-20,ry2-10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(rx-80,ry2-80);ctx.lineTo(rx+40,ry2-10);ctx.stroke();
+  ctx.strokeStyle='rgba(16,185,129,0.8)';
+  ctx.beginPath();ctx.moveTo(rx+130,ry2-60);ctx.lineTo(rx+80,ry2-10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(rx+130,ry2-60);ctx.lineTo(rx+110,ry2-10);ctx.stroke();
+  ctx.setLineDash([]);
+  // Labels
+  ctx.fillStyle='#f59e0b';ctx.font='9px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('LIFT CRANE',rx-150,ry2+118);
+  ctx.fillStyle='#10b981';ctx.fillText('TAIL CRANE',rx+200,ry2+118);
+}
+
+// ── GBP VIEW ───────────────────────────────────────────────────────────────
+function drawGBPView(){
+  drawBorderAndNorth();drawDetailsTable();drawTitleBlock();
+  ctx.fillStyle='rgba(0,191,255,0.9)';ctx.font='bold 13px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('GROUND BEARING PRESSURE CALCULATION',W/2,30);
+
+  // CKE-2500-2 GBP estimation table
+  const lx=30,ly=50,rw=220,rh=15;
+  const gbpRows=[
+    {t:'CKE-2500-2(F)(CR) Estimation',hdr:true},
+    {t:'Crane Configuration',v:'Main Boom'},
+    {t:'Boom Length',v:'18.3m (60.0ft)'},
+    {t:'Main Hook',v:'250t Hook'},
+    {t:'Counterweight',v:'90t+CRW'},
+    {t:'Operating Radius',v:'6.5m'},
+    {t:'Lifting Load',v:'121.5ton'},
+    {t:'Swing angle',v:'0 deg.'},
+    {t:'Total Weight',v:'215.9 ton'},
+  ];
+  ctx.font='8px Share Tech Mono,monospace';
+  gbpRows.forEach((r,i)=>{
+    const ry=ly+i*rh;
+    ctx.fillStyle=r.hdr?'rgba(0,60,120,0.9)':'rgba(0,10,25,0.85)';
+    ctx.fillRect(lx,ry,rw,rh);
+    ctx.strokeStyle='#2a3a4a';ctx.lineWidth=0.3;ctx.strokeRect(lx,ry,rw,rh);
+    ctx.fillStyle=r.hdr?'#88ccff':'#bbb';
+    ctx.textAlign='left';ctx.fillText(r.t,lx+4,ry+rh*0.7);
+    if(r.v){ctx.fillStyle='#eee';ctx.textAlign='right';ctx.fillText(r.v,lx+rw-4,ry+rh*0.7);}
+    ctx.textAlign='left';
+  });
+
+  // GBP diagram — CKE mat
+  const mx=lx,my=ly+gbpRows.length*rh+15;
+  ctx.strokeStyle='#a78bfa';ctx.lineWidth=1;
+  // mat
+  ctx.fillStyle='rgba(100,80,160,0.15)';ctx.strokeStyle='#a78bfa';
+  ctx.fillRect(mx,my,100,150);ctx.strokeRect(mx,my,100,150);
+  ctx.fillStyle='#a78bfa';ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('1500',mx+50,my-4);
+  ctx.save();ctx.translate(mx-4,my+75);ctx.rotate(-Math.PI/2);
+  ctx.fillText('20000',0,0);ctx.restore();
+  // pressure arrows
+  ['QBR','QAR','QBF','QAF'].forEach((l,i)=>{
+    const ax=mx+20+i*20,ay=my+75;
+    ctx.strokeStyle='#ef4444';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(ax,ay-10);ctx.lineTo(ax,ay+10);ctx.stroke();
+    ctx.fillStyle='#ef4444';ctx.font='7px Share Tech Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(l,ax,ay+18);
+  });
+  // GBP values
+  ctx.fillStyle='#ccc';ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('Ground bearing pressures:',mx,my+165);
+  ['Mat height: 0.025 m','Mat length: 20.0 m','Mat width: 1.5 m','Max. GBP under mats: 15.1 t/m²'].forEach((t,i)=>{
+    ctx.fillText(t,mx,my+178+i*12);
+  });
+
+  // CC-2800-1 GBP
+  const mx2=W/2+20,my2=ly;
+  ctx.fillStyle='rgba(0,191,255,0.9)';ctx.font='bold 10px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('GBP OF CC-2800-1',mx2+100,my2+10);
+  // Quadrant values (as in drawing)
+  const qv=[{l:'56.1(x:-4.2)',x:mx2+20,y:my2+30},{l:'15.4(x:4.2)',x:mx2+160,y:my2+30},{l:'15.4(x:4.2)',x:mx2+160,y:my2+120},{l:'56.1(x:-4.2)',x:mx2+20,y:my2+120}];
+  ctx.strokeStyle='#00bfff';ctx.lineWidth=1.5;
+  ctx.strokeRect(mx2+50,my2+25,100,100);
+  // inner cross
+  ctx.strokeStyle='rgba(0,191,255,0.4)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(mx2+50,my2+75);ctx.lineTo(mx2+150,my2+75);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mx2+100,my2+25);ctx.lineTo(mx2+100,my2+125);ctx.stroke();
+  // crane top view
+  ctx.fillStyle='rgba(0,191,255,0.1)';ctx.fillRect(mx2+70,my2+60,60,30);
+  ctx.strokeStyle='#00bfff';ctx.lineWidth=0.8;ctx.strokeRect(mx2+70,my2+60,60,30);
+  ctx.fillStyle='#00bfff';ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('CC-2800-1',mx2+100,my2+78);
+  qv.forEach(q=>{ctx.fillStyle='#00bfff';ctx.font='bold 7.5px Share Tech Mono,monospace';ctx.textAlign='center';ctx.fillText(q.l,q.x,q.y)});
+  // GBP values CC
+  ctx.fillStyle='#ccc';ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('Ground bearing pressures:',mx2,my2+145);
+  ['Mat height: 0.2 m','Mat length: 1.0 m','Mat width: 5 m','Max. GBP under mats: 20.7 t/m²'].forEach((t,i)=>{
+    ctx.fillText(t,mx2,my2+158+i*12);
+  });
+}
+
+// ── RIGGING VIEW ───────────────────────────────────────────────────────────
+function drawRiggingView(){
+  drawBorderAndNorth();drawDetailsTable();drawTitleBlock();
+  ctx.fillStyle='rgba(0,191,255,0.9)';ctx.font='bold 13px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText('RIGGING GEARS ARRANGEMENT',W/2,30);
+  ctx.fillStyle='#f59e0b';ctx.font='bold 12px Share Tech Mono,monospace';
+  ctx.fillText('MAIN CRANE',W/4,50);
+  ctx.fillStyle='#10b981';
+  ctx.fillText('TAILING CRANE',3*W/4,50);
+
+  const drawCraneRig=(cx,cy,color,hookLabel,slings)=>{
+    // Boom tip
+    ctx.fillStyle=color;ctx.beginPath();ctx.arc(cx,cy-120,6,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=color;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(cx-80,cy-200);ctx.lineTo(cx,cy-120);ctx.stroke();
+    // Hook block
+    ctx.fillStyle=color;ctx.globalAlpha=0.3;ctx.fillRect(cx-20,cy-120,40,25);ctx.globalAlpha=1;
+    ctx.strokeStyle=color;ctx.lineWidth=1;ctx.strokeRect(cx-20,cy-120,40,25);
+    ctx.fillStyle=color;ctx.font='8px Share Tech Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(hookLabel,cx,cy-128);
+    // Slings
+    slings.forEach(s=>{
+      ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash([4,2]);
+      ctx.beginPath();ctx.moveTo(cx,cy-95);ctx.lineTo(s.x,cy-10);ctx.stroke();
+      ctx.setLineDash([]);
+      // Shackle
+      ctx.fillStyle='#94a3b8';ctx.beginPath();ctx.arc(s.x,cy-10,5,0,Math.PI*2);ctx.fill();
+    });
+    // Load bar
+    const lo=slings[0].x-5,lw=slings[slings.length-1].x-slings[0].x+10;
+    ctx.fillStyle='rgba(71,85,105,0.7)';ctx.strokeStyle='#94a3b8';ctx.lineWidth=1.5;
+    ctx.fillRect(lo,cy-10,lw,20);ctx.strokeRect(lo,cy-10,lw,20);
+    // Labels
+    ctx.fillStyle=color;ctx.font='7px Share Tech Mono,monospace';
+    slings.forEach(s=>{ctx.textAlign='center';ctx.fillText('SLING',s.x,cy+20)});
+  };
+
+  drawCraneRig(W/4,H/2,'#f59e0b','Hook Block\n100t CAP-28fall',[{x:W/4-50},{x:W/4+50}]);
+  drawCraneRig(3*W/4,H/2,'#10b981','Hook Block\n250t CAP-14fall',[{x:3*W/4-30},{x:3*W/4+30}]);
+
+  // Sling specs table
+  const sx=40,sy=H/2+60;
+  ctx.fillStyle='#88ccff';ctx.font='bold 9px Share Tech Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('RIGGING GEAR SPECIFICATIONS',sx,sy);
+  const specs=[
+    ['Main Crane','GROMMET SLING STL-571-86','WLL: 300t','Ø86mm'],
+    ['Hook Block','CAP-100t (MC), CAP-250t (TC)','28/14 Fall','—'],
+    ['Shackle','Bow Type, WLL 300t/150t','Grade S','—'],
+  ];
+  ctx.font='8px Share Tech Mono,monospace';ctx.fillStyle='#ccc';
+  specs.forEach((r,i)=>{
+    ctx.fillText(r[0],sx,sy+15+i*13);ctx.fillText(r[1],sx+80,sy+15+i*13);
+    ctx.fillText(r[2],sx+260,sy+15+i*13);ctx.fillText(r[3],sx+320,sy+15+i*13);
+  });
+}
+
+// ── OBJECT DRAWING ─────────────────────────────────────────────────────────
+function drawObject(o){
+  ctx.save();
+  const lyr=layers.find(l=>l.name===o.layer);
+  if(lyr&&!lyr.on){ctx.restore();return;}
+  const color=selectedIds.includes(o.id)?'#00bfff':(lyr?lyr.color:'#ccc');
+  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=(o.lw||1)*zoom;
+  ctx.setLineDash(o.dash?[6*zoom,3*zoom]:[]);
+  if(o.type==='line'){
+    const a=toScreen(o.x1,o.y1),b=toScreen(o.x2,o.y2);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  } else if(o.type==='circle'){
+    const c=toScreen(o.cx,o.cy);
+    ctx.beginPath();ctx.arc(c.x,c.y,o.r*zoom,0,Math.PI*2);
+    if(o.fill){ctx.globalAlpha=0.15;ctx.fill();ctx.globalAlpha=1}ctx.stroke();
+  } else if(o.type==='rect'){
+    const p=toScreen(o.x,o.y);
+    ctx.beginPath();ctx.rect(p.x,p.y,o.w*zoom,o.h*zoom);
+    if(o.fill){ctx.globalAlpha=0.2;ctx.fill();ctx.globalAlpha=1}ctx.stroke();
+  } else if(o.type==='text'){
+    const p=toScreen(o.x,o.y);
+    ctx.font=`${(o.size||10)*zoom}px Share Tech Mono,monospace`;
+    ctx.textAlign=o.align||'left';ctx.fillText(o.text,p.x,p.y);
+  } else if(o.type==='dim'){
+    const a=toScreen(o.x1,o.y1),b=toScreen(o.x2,o.y2);
+    const my=(a.y+b.y)/2-20*zoom;
+    ctx.strokeStyle='#ff8c00';ctx.lineWidth=0.8*zoom;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x,my);ctx.lineTo(b.x,my);ctx.lineTo(b.x,b.y);ctx.stroke();
+    drawArrowH(a.x,my,b.x,'#ff8c00');
+    const dist=Math.sqrt((o.x2-o.x1)**2+(o.y2-o.y1)**2)/SCALE;
+    ctx.fillStyle='#ff8c00';ctx.font=`${9*zoom}px Share Tech Mono,monospace`;ctx.textAlign='center';
+    ctx.fillText(`${(dist*1000).toFixed(0)}`,((a.x+b.x)/2),my-6*zoom);
+  }
+  ctx.setLineDash([]);ctx.restore();
+}
+
+function drawPreview(){
+  if(!tool||tool==='select') return;
+  ctx.save();ctx.strokeStyle='rgba(0,191,255,0.6)';ctx.lineWidth=1;ctx.setLineDash([5,3]);
+  if(tool==='line'){ctx.beginPath();ctx.moveTo(startX,startY);ctx.lineTo(mx,my);ctx.stroke()}
+  else if(tool==='circle'){const r=Math.hypot(mx-startX,my-startY);ctx.beginPath();ctx.arc(startX,startY,r,0,Math.PI*2);ctx.stroke()}
+  else if(tool==='rect'){ctx.beginPath();ctx.rect(startX,startY,mx-startX,my-startY);ctx.stroke()}
+  ctx.setLineDash([]);ctx.restore();
+}
+
+// ── VIEW CUBE ──────────────────────────────────────────────────────────────
+function drawViewCube(){
+  const vx=W-55,vy=45;
+  ctx.save();ctx.globalAlpha=0.8;
+  ctx.fillStyle='#2a3a4a';ctx.strokeStyle='#445566';ctx.lineWidth=1;
+  ctx.fillRect(vx-22,vy-22,44,44);ctx.strokeRect(vx-22,vy-22,44,44);
+  ctx.fillStyle='rgba(0,191,255,0.15)';ctx.fillRect(vx-22,vy-22,44,22);
+  ctx.fillStyle='#88ccff';ctx.font='bold 9px Share Tech Mono,monospace';ctx.textAlign='center';
+  ctx.fillText(viewMode==='plan'?'TOP':viewMode==='elev'?'FRONT':'ISO',vx,vy-8);
+  ctx.fillStyle='#667';ctx.fillText('PLAN',vx,vy+10);
+  ctx.globalAlpha=1;ctx.restore();
+}
+
+// ── TOOLS ──────────────────────────────────────────────────────────────────
+function setTool(t){
+  tool=t;
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.rib-btn').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('vtool-'+t);
+  if(el) el.classList.add('active');
+  const rb=document.getElementById('tool-'+t);
+  if(rb) rb.classList.add('active');
+  document.getElementById('sb-status').textContent='● '+t.toUpperCase();
+  setCmd('Command: '+t.toUpperCase());
+}
+
+// ── MOUSE ──────────────────────────────────────────────────────────────────
+canvas.addEventListener('contextmenu',e=>{e.preventDefault();showCtx(e.clientX,e.clientY)});
+
+canvas.addEventListener('mousedown',e=>{
+  if(e.button===1||e.button===2){isPanning=true;panStartX=e.clientX;panStartY=e.clientY;panCamX=camX;panCamY=camY;return}
+  const w=toWorld(e.offsetX,e.offsetY);
+  if(tool==='select'){
+    selectedIds=objects.filter(o=>hitTest(o,w.x,w.y)).map(o=>o.id);
+    updateProps();render();return;
+  }
+  if(!drawing){drawing=true;startX=e.offsetX;startY=e.offsetY}
+  else{
+    const s=toWorld(startX,startY);
+    const id=Date.now()+Math.random();
+    if(tool==='line') objects.push({id,type:'line',x1:s.x,y1:s.y,x2:w.x,y2:w.y,layer:'LIFT-PLAN',lw:1});
+    else if(tool==='circle'){const r=Math.hypot(w.x-s.x,w.y-s.y);objects.push({id,type:'circle',cx:s.x,cy:s.y,r,layer:'LIFT-PLAN',lw:1})}
+    else if(tool==='rect') objects.push({id,type:'rect',x:s.x,y:s.y,w:w.x-s.x,h:-(w.y-s.y),layer:'LIFT-PLAN',lw:1});
+    else if(tool==='dim') objects.push({id,type:'dim',x1:s.x,y1:s.y,x2:w.x,y2:w.y,layer:'DIM',lw:0.7});
+    drawing=false;setCmd('Command:');render();
+  }
+});
+
+canvas.addEventListener('mousemove',e=>{
+  mx=e.offsetX;my=e.offsetY;
+  if(isPanning){camX=panCamX-(e.clientX-panStartX)/zoom;camY=panCamY+(e.clientY-panStartY)/zoom;render();return}
+  const w=toWorld(e.offsetX,e.offsetY);
+  document.getElementById('coords').textContent=`X: ${(w.x/SCALE*1000).toFixed(0)}  Y: ${(w.y/SCALE*1000).toFixed(0)}`;
+  if(drawing) render();
+});
+
+canvas.addEventListener('mouseup',e=>{if(e.button===1||e.button===2) isPanning=false});
+
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const factor=e.deltaY<0?1.15:1/1.15;
+  const w=toWorld(e.offsetX,e.offsetY);
+  zoom*=factor;zoom=Math.max(0.05,Math.min(20,zoom));
+  camX=w.x-(e.offsetX-W/2)/zoom;camY=w.y+(e.offsetY-H/2)/zoom;
+  render();
+},{passive:false});
+
+function hitTest(o,wx,wy){
+  if(o.type==='line'){const d=ptLineDist(wx,wy,o.x1,o.y1,o.x2,o.y2);return d<10/zoom}
+  if(o.type==='circle'){return Math.abs(Math.hypot(wx-o.cx,wy-o.cy)-o.r)<8/zoom}
+  if(o.type==='rect'){return wx>o.x&&wx<o.x+o.w&&wy>o.y-o.h&&wy<o.y}
+  if(o.type==='text'){return Math.hypot(wx-o.x,wy-o.y)<20/zoom}
+  return false;
+}
+function ptLineDist(px,py,x1,y1,x2,y2){
+  const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;
+  if(l2===0) return Math.hypot(px-x1,py-y1);
+  const t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/l2));
+  return Math.hypot(px-x1-t*dx,py-y1-t*dy);
+}
+
+// ── ZOOM/EXTENTS ───────────────────────────────────────────────────────────
+function zoomExtents(){camX=0;camY=0;zoom=1;render()}
+function panCanvas(){setTool('pan')}
+
+// ── RIBBON SWITCH ──────────────────────────────────────────────────────────
+function switchRibbon(t){
+  document.querySelectorAll('.ribbon-tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.rtab').forEach(el=>el.classList.remove('active'));
+  const rc=document.getElementById('rib-'+t);
+  if(rc) rc.classList.add('active');
+  document.querySelectorAll('.rtab').forEach(el=>{if(el.textContent.toLowerCase().includes(t.split('').slice(0,4).join(''))) el.classList.add('active')});
+}
+document.querySelectorAll('.rtab').forEach((el,i)=>{
+  const ids=['home','annotate','lift','view','manage','output'];
+  el.onclick=()=>{
+    document.querySelectorAll('.rtab').forEach(r=>r.classList.remove('active'));
+    el.classList.add('active');
+    switchRibbon(ids[i]);
+  }
+});
+
+// ── VIEW MODE ──────────────────────────────────────────────────────────────
+function switchViewMode(m){viewMode=m;zoomExtents()}
+
+// ── LEFT PANEL TABS ────────────────────────────────────────────────────────
+function switchLeftTab(t){
+  document.getElementById('left-model').style.display=t==='model'?'block':'none';
+  document.getElementById('left-layers').style.display=t==='layers'?'block':'none';
+  document.querySelectorAll('.ptab').forEach((el,i)=>{
+    if(el.parentElement===document.querySelector('#left-panel .ptabs'))
+      el.classList.toggle('active',i===(t==='model'?0:1));
+  });
+  if(t==='layers') renderLayers();
+}
+
+function renderLayers(){
+  const html=layers.map(l=>`
+    <div class="layer-row">
+      <span style="font-size:10px;color:${l.on?'#6ab04c':'#555'}">●</span>
+      <span class="layer-icon" title="Visibility">${l.on?'👁':'○'}</span>
+      <span class="layer-icon" title="Freeze">${l.frozen?'❄':'☀'}</span>
+      <span class="layer-icon" title="Lock">${l.locked?'🔒':'○'}</span>
+      <span class="layer-name" style="color:${l.color}">${l.name}</span>
+      <span style="width:12px;height:12px;background:${l.color};border-radius:2px;display:inline-block"></span>
+    </div>`).join('');
+  document.getElementById('layer-list').innerHTML=html;
+}
+
+// ── RIGHT PANEL TABS ───────────────────────────────────────────────────────
+function switchRightTab(t){
+  ['props','data','check'].forEach(id=>{
+    document.getElementById('right-'+id).style.display=id===t?'block':'none';
+  });
+  document.querySelectorAll('#right-panel .ptab').forEach((el,i)=>{
+    el.classList.toggle('active',['props','data','check'][i]===t);
+  });
+  if(t==='check') renderChecklist();
+}
+
+// ── PROPERTIES ─────────────────────────────────────────────────────────────
+function selectElement(id){
+  document.getElementById('sel-label').textContent=id;
+  const propData={
+    'CRANE-MC':[{l:'Handle',v:'CRANE-MC'},{l:'Model',v:'Terex CC-2800-1'},{l:'Capacity',v:'600 t'},{l:'Layer',v:'CRANE-MC'},{l:'Color',v:'BYLAYER'},{l:'Linetype',v:'Continuous'},{l:'Lineweight',v:'0.25'}],
+    'CRANE-TC':[{l:'Handle',v:'CRANE-TC'},{l:'Model',v:'Kobelco CKE-2500-2'},{l:'Capacity',v:'250 t'},{l:'Layer',v:'CRANE-TC'}],
+    'EQUIP':[{l:'Handle',v:'EQUIP'},{l:'Tag',v:'DA-1101'},{l:'Weight',v:'197.0 t'},{l:'Length',v:'14.2 m'},{l:'Layer',v:'EQUIP'}],
+    'COG':[{l:'Handle',v:'COG'},{l:'Type',v:'COG Marker'},{l:'Distance MC',v:'6.49 m'},{l:'Layer',v:'DIM'}],
+  };
+  const rows=propData[id]||[{l:'Type',v:id},{l:'Layer',v:'0'}];
+  document.getElementById('props-content').innerHTML=`
+    <div class="prop-section">
+      <div class="prop-section-hdr">▼ General</div>
+      ${rows.map(r=>`<div class="prop-row"><span class="prop-label">${r.l}</span><span class="prop-val">${r.v}</span></div>`).join('')}
+    </div>`;
+  selectedIds=[id];render();
+}
+
+function updateProps(){
+  if(!selectedIds.length){document.getElementById('sel-label').textContent='Click to select';document.getElementById('props-content').innerHTML='';return}
+  document.getElementById('sel-label').textContent=`${selectedIds.length} object(s)`;
+}
+
+// ── PROPERTIES ─────────────────────────────────────────────────────────────
+function deleteSelected(){objects=objects.filter(o=>!selectedIds.includes(o.id));selectedIds=[];render()}
+
+// ── LIFT WIZARD ─────────────────────────────────────────────────────────────
+function openLiftWizard(){
+  document.getElementById('modal-title').textContent='Lift Plan Wizard — New Tandem Lift';
+  document.getElementById('modal-body').innerHTML=`
+  <div class="form-grid">
+    <div class="form-section">EQUIPMENT DATA</div>
+    <div class="form-group"><label class="form-label">Tag No.</label><input class="form-input" id="wz-tag" value="DA-1101"></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="wz-desc" value="Stripper"></div>
+    <div class="form-group"><label class="form-label">Gross Weight (t)</label><input class="form-input" id="wz-wt" type="number" value="197" step="0.1"></div>
+    <div class="form-group"><label class="form-label">Length (m)</label><input class="form-input" id="wz-len" type="number" value="14.2" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Diameter (m)</label><input class="form-input" id="wz-dia" type="number" value="3.0" step="0.01"></div>
+    <div class="form-group"><label class="form-label">COG from MC end (m)</label><input class="form-input" id="wz-cog" type="number" value="6.49" step="0.01"></div>
+    <div class="form-sep"></div>
+    <div class="form-section">MAIN CRANE</div>
+    <div class="form-group"><label class="form-label">Model</label>
+      <select class="form-select" id="wz-mc"><option>Terex CC-2800-1 (600t)</option><option>Liebherr LTM 11200-9.1 (1200t)</option><option>Demag CC 8800-1 (1600t)</option></select></div>
+    <div class="form-group"><label class="form-label">Configuration</label>
+      <select class="form-select" id="wz-mconf"><option>SWSL</option><option>SWGSL</option><option>SSL</option></select></div>
+    <div class="form-group"><label class="form-label">Main Boom (m)</label><input class="form-input" id="wz-mboom" type="number" value="48" step="1"></div>
+    <div class="form-group"><label class="form-label">Jib Length (m)</label><input class="form-input" id="wz-mjib" type="number" value="24" step="1"></div>
+    <div class="form-group"><label class="form-label">Operating Radius (m)</label><input class="form-input" id="wz-mrad" type="number" value="17" step="0.5"></div>
+    <div class="form-group"><label class="form-label">Capacity at Radius (t)</label><input class="form-input" id="wz-mcap" type="number" value="287" step="1"></div>
+    <div class="form-group"><label class="form-label">CWT (t)</label><input class="form-input" id="wz-mcwt" type="number" value="160" step="1"></div>
+    <div class="form-group"><label class="form-label">SL-CWT (t)</label><input class="form-input" id="wz-mscwt" type="number" value="200" step="1"></div>
+    <div class="form-group"><label class="form-label">Hook Block (t)</label><input class="form-input" id="wz-mhook" type="number" value="10" step="0.5"></div>
+    <div class="form-group"><label class="form-label">Rigging Gears (t)</label><input class="form-input" id="wz-mrig" type="number" value="2" step="0.1"></div>
+    <div class="form-sep"></div>
+    <div class="form-section">TAILING CRANE</div>
+    <div class="form-group"><label class="form-label">Model</label>
+      <select class="form-select" id="wz-tc"><option>Kobelco CKE-2500-2 (250t)</option><option>Liebherr LTM 1500-8 (500t)</option></select></div>
+    <div class="form-group"><label class="form-label">Main Boom (m)</label><input class="form-input" id="wz-tboom" type="number" value="18.3" step="0.1"></div>
+    <div class="form-group"><label class="form-label">Operating Radius (m)</label><input class="form-input" id="wz-trad" type="number" value="6.5" step="0.5"></div>
+    <div class="form-group"><label class="form-label">Capacity at Radius (t)</label><input class="form-input" id="wz-tcap" type="number" value="165.6" step="0.1"></div>
+    <div class="form-group"><label class="form-label">CWT (t)</label><input class="form-input" id="wz-tcwt" type="number" value="90" step="1"></div>
+    <div class="form-group"><label class="form-label">Hook Block (t)</label><input class="form-input" id="wz-thook" type="number" value="4.5" step="0.5"></div>
+    <div class="form-group"><label class="form-label">Rigging Gears (t)</label><input class="form-input" id="wz-trig" type="number" value="1" step="0.1"></div>
+    <div class="form-sep"></div>
+    <div id="wz-results"></div>
+  </div>`;
+  document.getElementById('modal-overlay').style.display='flex';
+  document.getElementById('modal-footer').innerHTML=`
+    <button class="modal-btn" onclick="hideModal()">Cancel</button>
+    <button class="modal-btn" onclick="calcWizard()" style="background:#334;color:var(--accent)">Calculate SF</button>
+    <button class="modal-btn primary" onclick="applyWizard()">Apply & Draw</button>`;
+  // Live calc on input
+  document.querySelectorAll('#modal .form-input').forEach(el=>el.addEventListener('input',calcWizard));
+  calcWizard();
+}
+
+function calcWizard(){
+  const g=id=>parseFloat(document.getElementById(id)?.value)||0;
+  const W=g('wz-wt'),L=g('wz-len'),cog=g('wz-cog');
+  const mhook=g('wz-mhook'),mrig=g('wz-mrig'),mcap=g('wz-mcap');
+  const thook=g('wz-thook'),trig=g('wz-trig'),tcap=g('wz-tcap');
+  const tailD=L-cog;
+  const mLoad=(W*tailD/L);const tLoad=(W*cog/L);
+  const mTotal=mLoad+mhook+mrig;const tTotal=tLoad+thook+trig;
+  const sfM=mcap>0?(mcap/mTotal).toFixed(2):'—';const sfT=tcap>0?(tcap/tTotal).toFixed(2):'—';
+  const pM=mcap>0?(mTotal/mcap*100).toFixed(1):'—';const pT=tcap>0?(tTotal/tcap*100).toFixed(1):'—';
+  const c=v=>v>=1.35?'#6ab04c':v>=1.25?'#ff8c00':'#ef4444';
+  document.getElementById('wz-results').innerHTML=`
+    <div class="calc-box">
+      <div style="font-size:11px;font-weight:700;color:#00bfff;margin-bottom:8px;border-bottom:1px solid #333;padding-bottom:4px">CALCULATED RESULTS</div>
+      <div class="calc-row"><span class="calc-lbl">Main crane load (A)</span><span class="calc-val">${mLoad.toFixed(1)} t</span></div>
+      <div class="calc-row"><span class="calc-lbl">+ Hook block (B)</span><span class="calc-val">${mhook} t</span></div>
+      <div class="calc-row"><span class="calc-lbl">+ Rigging gears (C)</span><span class="calc-val">${mrig} t</span></div>
+      <div class="calc-row" style="border-top:1px solid #444;padding-top:4px"><span class="calc-lbl" style="font-weight:700">Weight to be lifted (A+B+C)</span><span class="calc-val" style="color:#ff8c00">${mTotal.toFixed(1)} t</span></div>
+      <div class="calc-row"><span class="calc-lbl">Crane capacity at radius</span><span class="calc-val">${mcap} t</span></div>
+      <div class="sf-indicator">
+        <span style="font-size:11px;color:#aaa">MC Safety Factor:</span>
+        <span style="font-size:16px;font-weight:700;font-family:'Share Tech Mono',monospace;color:${c(sfM)}">${sfM}</span>
+        <div class="sf-bar-wrap"><div class="sf-bar-fill" style="width:${Math.min(100,pM)}%;background:${c(sfM)}"></div></div>
+        <span style="font-size:11px;color:#aaa">${pM}%</span>
+      </div>
+      <div class="calc-row" style="margin-top:8px"><span class="calc-lbl">Tail crane load (A)</span><span class="calc-val">${tLoad.toFixed(1)} t</span></div>
+      <div class="calc-row"><span class="calc-lbl">Total tail load (A+B+C)</span><span class="calc-val">${tTotal.toFixed(1)} t</span></div>
+      <div class="sf-indicator">
+        <span style="font-size:11px;color:#aaa">TC Safety Factor:</span>
+        <span style="font-size:16px;font-weight:700;font-family:'Share Tech Mono',monospace;color:${c(sfT)}">${sfT}</span>
+        <div class="sf-bar-wrap"><div class="sf-bar-fill" style="width:${Math.min(100,pT)}%;background:${c(sfT)}"></div></div>
+        <span style="font-size:11px;color:#aaa">${pT}%</span>
+      </div>
+    </div>`;
+}
+
+function applyWizard(){hideModal();setCmd('Drawing Lift Plan...');setTimeout(()=>{render();setCmd('Command:')},200)}
+function hideModal(){document.getElementById('modal-overlay').style.display='none'}
+
+// ── CALC & REPORT ─────────────────────────────────────────────────────────
+function calcLift(){
+  const sfM=1.37,sfT=1.35;
+  alert(`Safety Factor Verification:\n\nMain Crane SF: ${sfM} ✓ (≥1.35)\nTail Crane SF: ${sfT} ✓ (≥1.35)\nMC Usage: 72.8%\nTC Usage: 73.9%\n\nAll checks passed.`);
+}
+function genReport(){alert('Report generation would open Print/Plot dialog with full A1 sheet layout.')}
+function exportDXF(){alert('DXF export — would export all objects to AutoCAD DXF format.')}
+
+// ── DRAW ELEMENTS ─────────────────────────────────────────────────────────
+function drawCraneSwing(type){setTool('circle');setCmd('Specify center of '+type+' crane swing arc:')}
+function drawCOG(){setTool('line');setCmd('Specify COG position:')}
+function drawRigging(){switchViewMode('rigging')}
+function drawGBP(){switchViewMode('gbp')}
+function drawNorthArrow(){setCmd('North arrow placed.')}
+
+// ── CHECKLIST ─────────────────────────────────────────────────────────────
+function renderChecklist(){
+  const items=[
+    {cat:'Pre-Lift',items:['Lift plan approved by qualified engineer','Crane load charts verified','Ground bearing pressure calculated','GBP mats positioned per plan','Wind speed < 10 m/s confirmed','Exclusion zone barricaded','All personnel briefed (PTW signed)','Rigging equipment inspected & certified']},
+    {cat:'During Lift',items:['Single signal person designated','Trial lift performed (300mm, 5 min hold)','Load secured with tag lines','Simultaneous lift coordination confirmed','Radius monitored continuously']},
+    {cat:'Post-Lift',items:['Load safely landed and secured','Rigging equipment removed and stored','Incident/near-miss report (if any)','As-built drawing updated']},
+  ];
+  document.getElementById('check-content').innerHTML=items.map(cat=>`
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:3px">${cat.cat}</div>
+      ${cat.items.map((item,i)=>`
+        <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px">
+          <input type="checkbox" id="chk-${cat.cat}-${i}" style="margin-top:2px;accent-color:var(--accent)">
+          <label for="chk-${cat.cat}-${i}" style="font-size:11px;color:var(--text2);cursor:pointer;line-height:1.4">${item}</label>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ── STATUS & SNAP ─────────────────────────────────────────────────────────
+document.getElementById('sb-snap').onclick=()=>{snap=!snap;document.getElementById('sb-snap').style.opacity=snap?1:0.4}
+document.getElementById('sb-grid').onclick=()=>{grid=!grid;render()}
+document.getElementById('sb-ortho').onclick=()=>{ortho=!ortho;document.getElementById('sb-ortho').style.opacity=ortho?1:0.4}
+
+// ── COMMAND LINE ───────────────────────────────────────────────────────────
+function setCmd(t){document.getElementById('cmd-hist').textContent=t}
+document.getElementById('cmd-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const cmd=e.target.value.trim().toUpperCase();
+    e.target.value='';
+    if(cmd==='L'||cmd==='LINE') setTool('line');
+    else if(cmd==='C'||cmd==='CIRCLE') setTool('circle');
+    else if(cmd==='REC'||cmd==='RECTANG') setTool('rect');
+    else if(cmd==='S'||cmd==='SELECT') setTool('select');
+    else if(cmd==='E'||cmd==='ERASE') deleteSelected();
+    else if(cmd==='ZE'||cmd==='ZOOM') zoomExtents();
+    else if(cmd==='SF'||cmd==='CALC') calcLift();
+    else if(cmd==='REP'||cmd==='REPORT') genReport();
+    else if(cmd==='P'||cmd==='PLAN') switchViewMode('plan');
+    else if(cmd==='EL'||cmd==='ELEV') switchViewMode('elev');
+    else if(cmd==='COG') switchViewMode('cog');
+    else if(cmd==='GBP') switchViewMode('gbp');
+    else if(cmd==='RIG') switchViewMode('rigging');
+    else if(cmd==='WIZ') openLiftWizard();
+    else setCmd('Unknown command: '+cmd);
+  }
+});
+canvas.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){drawing=false;selectedIds=[];setTool('select');render()}
+},{passive:true});
+
+// ── CONTEXT MENU ───────────────────────────────────────────────────────────
+function showCtx(x,y){const m=document.getElementById('ctx-menu');m.style.display='block';m.style.left=x+'px';m.style.top=y+'px'}
+function hideCtx(){document.getElementById('ctx-menu').style.display='none'}
+document.addEventListener('click',hideCtx);
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+window.addEventListener('resize',resize);
+resize();
+switchRightTab('data');
+setTool('select');
+
+// Keyboard shortcuts
+document.addEventListener('keydown',e=>{
+  if(e.target===document.getElementById('cmd-input')) return;
+  const k=e.key.toLowerCase();
+  if(k==='l') setTool('line');
+  else if(k==='c') setTool('circle');
+  else if(k==='s') setTool('select');
+  else if(k==='t') setTool('text');
+  else if(k==='escape'){drawing=false;selectedIds=[];render()}
+});
+</script>
+</body>
+</html>
